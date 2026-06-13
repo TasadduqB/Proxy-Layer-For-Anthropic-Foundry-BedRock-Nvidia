@@ -81,96 +81,107 @@ module.exports = {
     }
   ],
 
-  // NVIDIA NIM (build.nvidia.com). All ids are exactly the IDs used by the
-  // /v1/chat/completions endpoint at integrate.api.nvidia.com.
+  // NVIDIA NIM (build.nvidia.com). All ids verified live against the
+  // /v1/models listing at integrate.api.nvidia.com (reconciled 2026-06).
   nvidia: [
     { group: 'NVIDIA Nemotron',
       models: [
-        { id: 'nvidia/nemotron-3-ultra-550b-a55b',                    label: 'Nemotron 3 Ultra 550B (reasoning, 1M ctx)' },
-        { id: 'nvidia/nemotron-3-super-120b-a12b',                    label: 'Nemotron 3 Super 120B-A12B (reasoning)' },
-        { id: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',        label: 'Nemotron 3 Nano Omni 30B (multimodal reasoning)' },
-        { id: 'nvidia/llama-3.3-nemotron-super-49b-v1',               label: 'Llama 3.3 Nemotron Super 49B v1' },
-        { id: 'nvidia/llama-3.1-nemotron-ultra-253b-v1',              label: 'Llama 3.1 Nemotron Ultra 253B v1' },
-        { id: 'nvidia/llama-3.1-nemotron-70b-instruct',               label: 'Llama 3.1 Nemotron 70B Instruct' },
-        { id: 'nvidia/llama-3.1-nemotron-nano-8b-v1',                 label: 'Llama 3.1 Nemotron Nano 8B v1' },
-        { id: 'nvidia/nemotron-4-340b-instruct',                      label: 'Nemotron 4 340B Instruct' }
+        { id: 'nvidia/nemotron-3-ultra-550b-a55b',             label: 'Nemotron 3 Ultra 550B-A55B (reasoning)' },
+        { id: 'nvidia/nemotron-3-super-120b-a12b',             label: 'Nemotron 3 Super 120B-A12B (reasoning)' },
+        { id: 'nvidia/nemotron-3-nano-30b-a3b',               label: 'Nemotron 3 Nano 30B-A3B' },
+        { id: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning', label: 'Nemotron 3 Nano Omni 30B (reasoning)' },
+        { id: 'nvidia/nemotron-nano-3-30b-a3b',               label: 'Nemotron Nano 3 30B-A3B' },
+        { id: 'nvidia/nvidia-nemotron-nano-9b-v2',            label: 'Nemotron Nano 9B v2' },
+        { id: 'nvidia/llama-3.3-nemotron-super-49b-v1.5',     label: 'Llama 3.3 Nemotron Super 49B v1.5' },
+        { id: 'nvidia/llama-3.3-nemotron-super-49b-v1',       label: 'Llama 3.3 Nemotron Super 49B v1' },
+        { id: 'nvidia/llama-3.1-nemotron-ultra-253b-v1',      label: 'Llama 3.1 Nemotron Ultra 253B v1' },
+        { id: 'nvidia/llama-3.1-nemotron-70b-instruct',       label: 'Llama 3.1 Nemotron 70B Instruct' },
+        { id: 'nvidia/llama-3.1-nemotron-51b-instruct',       label: 'Llama 3.1 Nemotron 51B Instruct' },
+        { id: 'nvidia/llama-3.1-nemotron-nano-8b-v1',         label: 'Llama 3.1 Nemotron Nano 8B v1' },
+        { id: 'nvidia/nemotron-4-340b-instruct',              label: 'Nemotron 4 340B Instruct' },
+        { id: 'nvidia/nemotron-mini-4b-instruct',             label: 'Nemotron Mini 4B Instruct' }
       ]
     },
     { group: 'DeepSeek',
       models: [
-        { id: 'deepseek-ai/deepseek-v4-pro',               label: 'DeepSeek V4 Pro (1.6T MoE, 1M ctx)' },
-        { id: 'deepseek-ai/deepseek-v4-flash',             label: 'DeepSeek V4 Flash (284B MoE, 1M ctx)' },
-        { id: 'deepseek-ai/deepseek-v3.1-terminus',        label: 'DeepSeek V3.1 Terminus' },
-        { id: 'deepseek-ai/deepseek-v3-0324',              label: 'DeepSeek V3 (03-24)' },
-        { id: 'deepseek-ai/deepseek-r1-0528',              label: 'DeepSeek R1 (05-28)' },
-        { id: 'deepseek-ai/deepseek-r1',                   label: 'DeepSeek R1' },
-        { id: 'deepseek-ai/deepseek-r1-distill-llama-70b', label: 'DeepSeek R1 Distill Llama 70B' },
-        { id: 'deepseek-ai/deepseek-r1-distill-llama-8b',  label: 'DeepSeek R1 Distill Llama 8B' },
-        { id: 'deepseek-ai/deepseek-r1-distill-qwen-32b',  label: 'DeepSeek R1 Distill Qwen 32B' },
-        { id: 'deepseek-ai/deepseek-r1-distill-qwen-7b',   label: 'DeepSeek R1 Distill Qwen 7B' }
+        { id: 'deepseek-ai/deepseek-v4-pro',            label: 'DeepSeek V4 Pro (1.6T MoE, 1M ctx)' },
+        { id: 'deepseek-ai/deepseek-v4-flash',          label: 'DeepSeek V4 Flash (284B MoE, 1M ctx)' },
+        { id: 'deepseek-ai/deepseek-coder-6.7b-instruct', label: 'DeepSeek Coder 6.7B Instruct' }
       ]
     },
     { group: 'Meta — Llama',
       models: [
         { id: 'meta/llama-4-maverick-17b-128e-instruct', label: 'Llama 4 Maverick 17B (128 experts)' },
-        { id: 'meta/llama-4-scout-17b-16e-instruct',     label: 'Llama 4 Scout 17B (16 experts)' },
         { id: 'meta/llama-3.3-70b-instruct',             label: 'Llama 3.3 70B Instruct' },
-        { id: 'meta/llama-3.1-405b-instruct',            label: 'Llama 3.1 405B Instruct' },
         { id: 'meta/llama-3.1-70b-instruct',             label: 'Llama 3.1 70B Instruct' },
-        { id: 'meta/llama-3.1-8b-instruct',              label: 'Llama 3.1 8B Instruct' }
+        { id: 'meta/llama-3.1-8b-instruct',              label: 'Llama 3.1 8B Instruct' },
+        { id: 'meta/llama-3.2-3b-instruct',              label: 'Llama 3.2 3B Instruct' },
+        { id: 'meta/llama-3.2-1b-instruct',              label: 'Llama 3.2 1B Instruct' }
       ]
     },
     { group: 'Qwen',
       models: [
-        { id: 'qwen/qwen3-coder-480b-a35b-instruct', label: 'Qwen 3 Coder 480B A35B Instruct' },
-        { id: 'qwen/qwen3-235b-a22b',                label: 'Qwen 3 235B A22B' },
-        { id: 'qwen/qwen2.5-72b-instruct',           label: 'Qwen 2.5 72B Instruct' },
-        { id: 'qwen/qwen2.5-coder-32b-instruct',     label: 'Qwen 2.5 Coder 32B Instruct' },
-        { id: 'qwen/qwen2.5-7b-instruct',            label: 'Qwen 2.5 7B Instruct' },
-        { id: 'qwen/qwq-32b',                        label: 'QwQ 32B' }
+        { id: 'qwen/qwen3.5-397b-a17b',              label: 'Qwen 3.5 397B-A17B' },
+        { id: 'qwen/qwen3.5-122b-a10b',              label: 'Qwen 3.5 122B-A10B' },
+        { id: 'qwen/qwen3-next-80b-a3b-instruct',    label: 'Qwen 3 Next 80B-A3B Instruct' }
       ]
     },
     { group: 'Mistral',
       models: [
-        { id: 'mistralai/mistral-medium-3.5-128b',          label: 'Mistral Medium 3.5 128B' },
-        { id: 'mistralai/mixtral-8x22b-instruct-v0.1',      label: 'Mixtral 8x22B Instruct' },
-        { id: 'mistralai/mixtral-8x7b-instruct-v0.1',       label: 'Mixtral 8x7B Instruct' },
-        { id: 'mistralai/mistral-large-2-instruct',         label: 'Mistral Large 2 Instruct' },
-        { id: 'mistralai/mistral-7b-instruct-v0.3',         label: 'Mistral 7B Instruct v0.3' },
-        { id: 'mistralai/codestral-22b-instruct-v0.1',      label: 'Codestral 22B Instruct' }
+        { id: 'mistralai/mistral-large-3-675b-instruct-2512', label: 'Mistral Large 3 675B Instruct' },
+        { id: 'mistralai/mistral-small-4-119b-2603',          label: 'Mistral Small 4 119B' },
+        { id: 'mistralai/mistral-medium-3.5-128b',            label: 'Mistral Medium 3.5 128B' },
+        { id: 'mistralai/mistral-large-2-instruct',           label: 'Mistral Large 2 Instruct' },
+        { id: 'mistralai/mistral-large',                      label: 'Mistral Large' },
+        { id: 'mistralai/ministral-14b-instruct-2512',        label: 'Ministral 14B Instruct' },
+        { id: 'mistralai/mistral-nemotron',                   label: 'Mistral Nemotron' },
+        { id: 'mistralai/mixtral-8x7b-instruct-v0.1',         label: 'Mixtral 8x7B Instruct' },
+        { id: 'mistralai/mistral-7b-instruct-v0.3',           label: 'Mistral 7B Instruct v0.3' },
+        { id: 'mistralai/codestral-22b-instruct-v0.1',        label: 'Codestral 22B Instruct' },
+        { id: 'nv-mistralai/mistral-nemo-12b-instruct',       label: 'Mistral Nemo 12B Instruct (NV)' }
       ]
     },
     { group: 'Google — Gemma',
       models: [
-        { id: 'google/gemma-4-31b-it',         label: 'Gemma 4 31B IT' },
-        { id: 'google/gemma-3-27b-it',         label: 'Gemma 3 27B IT' },
-        { id: 'google/gemma-3n-e4b-it',        label: 'Gemma 3n E4B IT' },
-        { id: 'google/codegemma-7b',           label: 'CodeGemma 7B' }
+        { id: 'google/gemma-4-31b-it',   label: 'Gemma 4 31B IT' },
+        { id: 'google/gemma-3-12b-it',   label: 'Gemma 3 12B IT' },
+        { id: 'google/gemma-3-4b-it',    label: 'Gemma 3 4B IT' },
+        { id: 'google/gemma-3n-e4b-it',  label: 'Gemma 3n E4B IT' },
+        { id: 'google/gemma-2-2b-it',    label: 'Gemma 2 2B IT' },
+        { id: 'google/codegemma-7b',     label: 'CodeGemma 7B' }
       ]
     },
     { group: 'MoonshotAI / Z.ai / Stepfun / MiniMax',
       models: [
-        { id: 'moonshotai/kimi-k2.6',             label: 'Kimi K2.6 (1T MoE multimodal)' },
-        { id: 'moonshotai/kimi-k2-instruct',      label: 'Kimi K2 Instruct' },
-        { id: 'z-ai/glm-5.1',                     label: 'GLM 5.1 (agentic flagship)' },
-        { id: 'zhipuai/glm-4.5-air',              label: 'GLM 4.5 Air' },
-        { id: 'stepfun-ai/step-3.7-flash',        label: 'Step 3.7 Flash (MoE multimodal)' },
-        { id: 'minimaxai/minimax-m3',             label: 'MiniMax M3 (MoE VLM, reasoning + tools)' },
-        { id: 'minimaxai/minimax-m2.7',           label: 'MiniMax M2.7 230B' }
+        { id: 'moonshotai/kimi-k2.6',      label: 'Kimi K2.6 (1T MoE)' },
+        { id: 'z-ai/glm-5.1',              label: 'GLM 5.1 (agentic flagship)' },
+        { id: 'stepfun-ai/step-3.7-flash', label: 'Step 3.7 Flash (MoE multimodal)' },
+        { id: 'stepfun-ai/step-3.5-flash', label: 'Step 3.5 Flash' },
+        { id: 'minimaxai/minimax-m3',      label: 'MiniMax M3 (MoE, reasoning + tools)' },
+        { id: 'minimaxai/minimax-m2.7',    label: 'MiniMax M2.7' }
       ]
     },
-    { group: 'IBM / Microsoft / Other',
+    { group: 'OpenAI / IBM / Microsoft',
       models: [
-        { id: 'ibm/granite-3.0-8b-instruct',            label: 'Granite 3.0 8B Instruct' },
-        { id: 'ibm/granite-3.0-3b-a800m-instruct',      label: 'Granite 3.0 3B-A800M Instruct' },
-        { id: 'microsoft/phi-4',                         label: 'Phi-4' },
-        { id: 'microsoft/phi-4-mini-instruct',           label: 'Phi-4 Mini Instruct' },
-        { id: 'microsoft/phi-4-mini-flash-reasoning',    label: 'Phi-4 Mini Flash Reasoning' },
-        { id: 'microsoft/phi-3.5-moe-instruct',          label: 'Phi-3.5 MoE Instruct' },
-        { id: 'nv-mistralai/mistral-nemo-12b-instruct',  label: 'Mistral Nemo 12B Instruct (NV)' },
-        { id: 'upstage/solar-pro',                       label: 'Solar Pro (Upstage)' },
-        { id: 'sarvam/sarvam-m',                         label: 'Sarvam M (Indic languages)' },
-        { id: 'openai/gpt-oss-120b',                     label: 'OpenAI GPT-OSS 120B' }
+        { id: 'openai/gpt-oss-120b',               label: 'GPT-OSS 120B' },
+        { id: 'openai/gpt-oss-20b',                label: 'GPT-OSS 20B' },
+        { id: 'ibm/granite-3.0-8b-instruct',       label: 'Granite 3.0 8B Instruct' },
+        { id: 'ibm/granite-3.0-3b-a800m-instruct', label: 'Granite 3.0 3B-A800M Instruct' },
+        { id: 'microsoft/phi-4-mini-instruct',     label: 'Phi-4 Mini Instruct' },
+        { id: 'microsoft/phi-4-multimodal-instruct', label: 'Phi-4 Multimodal Instruct' },
+        { id: 'microsoft/phi-3.5-moe-instruct',    label: 'Phi-3.5 MoE Instruct' }
+      ]
+    },
+    { group: 'Writer / Others',
+      models: [
+        { id: 'writer/palmyra-creative-122b',    label: 'Palmyra Creative 122B' },
+        { id: 'writer/palmyra-med-70b-32k',      label: 'Palmyra Med 70B 32k' },
+        { id: 'writer/palmyra-fin-70b-32k',      label: 'Palmyra Fin 70B 32k' },
+        { id: 'sarvamai/sarvam-m',               label: 'Sarvam M (Indic languages)' },
+        { id: 'bytedance/seed-oss-36b-instruct', label: 'Seed OSS 36B Instruct' },
+        { id: '01-ai/yi-large',                  label: 'Yi Large' },
+        { id: 'ai21labs/jamba-1.5-large-instruct', label: 'Jamba 1.5 Large Instruct' },
+        { id: 'databricks/dbrx-instruct',        label: 'DBRX Instruct' }
       ]
     }
   ]
