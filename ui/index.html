@@ -526,6 +526,15 @@
 
       <div class="card">
         <h3>Add model to pool</h3>
+        <div class="small" style="margin-bottom:12px;color:var(--mute)">
+          Each pool entry uses the credentials saved for that provider on the
+          <span class="link-btn" onclick="navTo('provider')" style="color:var(--accent);cursor:pointer">Provider page</span>.
+          Configure credentials there first, then add as many models as you like here.
+        </div>
+
+        <!-- Credential status for selected provider -->
+        <div id="poolCredStatus" style="margin-bottom:12px;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);font-size:12.5px"></div>
+
         <div class="grid2">
           <div>
             <label>Provider</label>
@@ -543,9 +552,9 @@
         </div>
         <label style="margin-top:10px">Label <span class="small">(optional — shown in logs)</span></label>
         <input id="poolLabel" placeholder="e.g. Nemotron Ultra" />
-        <div id="poolProviderWarn" class="small warn hide" style="margin-top:8px">⚠ This provider has no saved credentials. Configure it on the Provider page first.</div>
         <div class="actions">
-          <button class="btn" onclick="addToPool()">Add to pool</button>
+          <button class="btn" onclick="addToPool()" id="poolAddBtn">Add to pool</button>
+          <button class="btn secondary" onclick="navTo('provider')" style="gap:6px">Configure credentials →</button>
           <span id="poolAddResult" class="small"></span>
         </div>
       </div>
@@ -1271,15 +1280,48 @@ function renderPool(data) {
 
 function poolProviderChanged() {
   const p = $('#poolProvider').value;
+
+  // Populate model datalist
   const dl = $('#poolModelList');
   dl.innerHTML = '';
   const groups = (state.models || {})[p] || [];
   for (const g of groups) for (const m of g.models) {
     const o = document.createElement('option'); o.value = m.id; dl.appendChild(o);
   }
+
+  // Show credential status for this provider
   const saved = (state.config.providers || {})[p] || {};
-  const warn = $('#poolProviderWarn');
-  if (warn) warn.classList.toggle('hide', !!(saved.apiKey || saved.accessKeyId));
+  const hasKey = !!(saved.apiKey || saved.accessKeyId);
+  const statusEl = $('#poolCredStatus');
+  if (!statusEl) return;
+
+  const provNames = { nvidia: 'NVIDIA NIM', azure: 'Azure AI Foundry', bedrock: 'AWS Bedrock' };
+  const rows = [];
+
+  if (p === 'nvidia') {
+    rows.push(['API Key', saved.apiKey ? '••••' + saved.apiKey.slice(-4) : '<span class="err">not set</span>']);
+    rows.push(['Endpoint', saved.endpoint || '<span class="mute">default (integrate.api.nvidia.com)</span>']);
+  } else if (p === 'azure') {
+    rows.push(['Endpoint', saved.endpoint ? escapeHtml(saved.endpoint) : '<span class="err">not set</span>']);
+    rows.push(['API Key', saved.apiKey ? '••••' + saved.apiKey.slice(-4) : '<span class="err">not set</span>']);
+    rows.push(['API Version', saved.apiVersion || '<span class="mute">default</span>']);
+    if (saved.deployment) rows.push(['Deployment', escapeHtml(saved.deployment)]);
+  } else if (p === 'bedrock') {
+    rows.push(['Region', saved.region || '<span class="err">not set</span>']);
+    rows.push(['Access Key', saved.accessKeyId ? '••••' + saved.accessKeyId.slice(-4) : '<span class="err">not set</span>']);
+    rows.push(['Secret Key', saved.secretAccessKey ? '••••••••' : '<span class="err">not set</span>']);
+  }
+
+  const icon = hasKey ? '<span class="ok">✓</span>' : '<span class="err">✗</span>';
+  const status = hasKey
+    ? `${icon} <strong>${provNames[p]}</strong> credentials saved — models added here will use them`
+    : `${icon} <strong>${provNames[p]}</strong> has no saved credentials — <span class="link-btn" onclick="navTo('provider')" style="color:var(--accent);cursor:pointer">configure on Provider page</span> first`;
+
+  statusEl.innerHTML = `<div style="margin-bottom:${rows.length?'8px':'0'}">${status}</div>`
+    + rows.map(([k,v]) => `<div style="display:flex;gap:8px"><span style="color:var(--dim);min-width:90px">${k}</span><span style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px">${v}</span></div>`).join('');
+
+  const addBtn = $('#poolAddBtn');
+  if (addBtn) addBtn.disabled = !hasKey;
 }
 
 async function addToPool() {
