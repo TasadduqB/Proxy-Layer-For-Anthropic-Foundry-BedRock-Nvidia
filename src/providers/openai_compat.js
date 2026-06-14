@@ -156,12 +156,14 @@ async function callOpenAICompatible(providerCfg, body, res) {
     if (err.name === 'AbortError') throw new Error(`Upstream connection timed out after ${connectTimeoutMs}ms (URL: ${url})`);
     throw Object.assign(err, { message: `${err.message} (URL: ${url})` });
   } finally {
-    // For streaming: clear the connection timer as soon as headers arrive —
-    // the per-chunk idle timeout in iterSSE takes over from here.
-    clearTimeout(timer);
+    // Streaming: clear the connection timer once headers arrive — per-chunk
+    // idle timeout in iterSSE takes over. Non-streaming: keep it running so
+    // the body read is also covered by the same deadline.
+    if (body.stream) clearTimeout(timer);
   }
 
   if (!upstream.ok) {
+    clearTimeout(timer);
     const errText = await upstream.text();
     throw new Error(`Upstream ${upstream.status} from ${url}: ${errText.slice(0, 600)}`);
   }
@@ -184,6 +186,7 @@ async function callOpenAICompatible(providerCfg, body, res) {
     return;
   }
 
+  clearTimeout(timer);
   const json = await upstream.json();
   const { text, thinking, toolCalls, stopReason } = parseResponse(json, isResponsesApi);
   res.setHeader('Content-Type', 'application/json');
