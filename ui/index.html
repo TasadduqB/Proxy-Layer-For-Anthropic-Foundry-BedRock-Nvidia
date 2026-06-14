@@ -552,7 +552,22 @@
         </div>
         <label style="margin-top:10px">Label <span class="small">(optional — shown in logs)</span></label>
         <input id="poolLabel" placeholder="e.g. Nemotron Ultra" />
-        <div class="actions">
+
+        <details style="margin-top:12px">
+          <summary style="cursor:pointer;font-size:12.5px;color:var(--dim);user-select:none">Override credentials for this entry <span class="small">(leave blank to use Provider page settings)</span></summary>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+            <div>
+              <label style="margin-bottom:4px">Endpoint URL <span class="small">(override)</span></label>
+              <input id="poolEntryEndpoint" placeholder="e.g. https://…/openai/responses?api-version=2025-04-01-preview" />
+            </div>
+            <div>
+              <label style="margin-bottom:4px">API Key <span class="small">(override)</span></label>
+              <input id="poolEntryApiKey" type="password" placeholder="leave blank to use saved key" />
+            </div>
+          </div>
+        </details>
+
+        <div class="actions" style="margin-top:12px">
           <button class="btn" onclick="addToPool()" id="poolAddBtn">Add to pool</button>
           <button class="btn secondary" onclick="navTo('provider')" style="gap:6px">Configure credentials →</button>
           <span id="poolAddResult" class="small"></span>
@@ -688,7 +703,19 @@
       <div class="topbar">
         <div>
           <h1>Diagnostics</h1>
-          <div class="sub">Quick endpoints to inspect proxy state and test panel events.</div>
+          <div class="sub">Request log and panel event testing.</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <h3 style="margin:0;flex:1">Request Log</h3>
+          <span id="logCount" class="small" style="color:var(--dim)"></span>
+          <button class="btn secondary sm" onclick="loadLogs()">Refresh</button>
+          <button class="btn danger sm" onclick="clearLogs()">Clear</button>
+        </div>
+        <div id="logTable" style="overflow-x:auto">
+          <div class="small" style="color:var(--dim);padding:8px 0">No requests logged yet.</div>
         </div>
       </div>
 
@@ -719,6 +746,7 @@
           <span class="k">Launch cmd</span><span class="v"><a href="/api/launch/command" target="_blank">/api/launch/command</a></span>
           <span class="k">Panel event</span><span class="v">POST <a href="/api/panel/event" target="_blank">/api/panel/event</a></span>
           <span class="k">Panel summary</span><span class="v"><a href="/api/panel/summary" target="_blank">/api/panel/summary</a></span>
+          <span class="k">Request logs</span><span class="v"><a href="/api/logs" target="_blank">/api/logs</a></span>
         </div>
       </div>
     </section>
@@ -754,7 +782,7 @@ function navTo(view) {
   for (const el of document.querySelectorAll('.view'))    el.classList.toggle('active', el.dataset.view === view);
   if (view === 'system') refreshSystem();
   if (view === 'models') renderModelsBrowser();
-  if (view === 'logs')   refreshPanelTest();
+  if (view === 'logs')   { loadLogs(); refreshPanelTest(); }
   if (view === 'launch') renderLaunchPage();
   if (view === 'pool') {
     loadPool();
@@ -1328,13 +1356,22 @@ async function addToPool() {
   const provider = $('#poolProvider').value;
   const model = ($('#poolModel').value || '').trim();
   const label = ($('#poolLabel').value || '').trim() || null;
+  const overrideEndpoint = ($('#poolEntryEndpoint')?.value || '').trim() || null;
+  const overrideApiKey   = ($('#poolEntryApiKey')?.value || '').trim() || null;
   const result = $('#poolAddResult');
   if (!model) { if (result) result.innerHTML = '<span class="err">Enter a model ID</span>'; return; }
-  const current = (_poolData.pool || []).map(e => ({ provider: e.provider, model: e.model, label: e.label || null }));
+  const current = (_poolData.pool || []).map(e => {
+    const o = { provider: e.provider, model: e.model, label: e.label || null };
+    for (const f of ['endpoint','apiKey','apiVersion','deployment','region']) if (e[f]) o[f] = e[f];
+    return o;
+  });
   if (current.some(e => e.provider === provider && e.model === model)) {
     if (result) result.innerHTML = '<span class="warn">Already in pool</span>'; return;
   }
-  const updated = [...current, { provider, model, label }];
+  const newEntry = { provider, model, label };
+  if (overrideEndpoint) newEntry.endpoint = overrideEndpoint;
+  if (overrideApiKey)   newEntry.apiKey   = overrideApiKey;
+  const updated = [...current, newEntry];
   if (result) result.innerHTML = '<span class="small">saving…</span>';
   try {
     const r = await fetch('/api/pool', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ pool: updated }) });
@@ -1342,6 +1379,8 @@ async function addToPool() {
     if (r.ok) {
       if (result) result.innerHTML = '<span class="ok">✓ added</span>';
       $('#poolModel').value = ''; $('#poolLabel').value = '';
+      if ($('#poolEntryEndpoint')) $('#poolEntryEndpoint').value = '';
+      if ($('#poolEntryApiKey'))   $('#poolEntryApiKey').value = '';
       await loadPool();
       const h = await fetch('/api/health').then(r=>r.json());
       setHealth(h);
@@ -1350,7 +1389,11 @@ async function addToPool() {
 }
 
 async function removeFromPool(idx) {
-  const current = (_poolData.pool || []).map(e => ({ provider: e.provider, model: e.model, label: e.label || null }));
+  const current = (_poolData.pool || []).map(e => {
+    const o = { provider: e.provider, model: e.model, label: e.label || null };
+    for (const f of ['endpoint','apiKey','apiVersion','deployment','region']) if (e[f]) o[f] = e[f];
+    return o;
+  });
   current.splice(idx, 1);
   try {
     await fetch('/api/pool', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ pool: current }) });
@@ -1358,6 +1401,56 @@ async function removeFromPool(idx) {
     const h = await fetch('/api/health').then(r=>r.json());
     setHealth(h);
   } catch {}
+}
+
+// ── Request Log ──
+async function loadLogs() {
+  try {
+    const data = await fetch('/api/logs').then(r => r.json());
+    renderLogs(data.logs || [], data.count || 0);
+  } catch {}
+}
+
+async function clearLogs() {
+  try {
+    await fetch('/api/logs/clear', { method: 'POST' });
+    renderLogs([], 0);
+    toast('Log cleared');
+  } catch (e) { toast(e.message, false); }
+}
+
+function renderLogs(logs, total) {
+  const cnt = $('#logCount');
+  if (cnt) cnt.textContent = `${total} entr${total === 1 ? 'y' : 'ies'}`;
+  const el = $('#logTable');
+  if (!el) return;
+  if (logs.length === 0) {
+    el.innerHTML = '<div class="small" style="color:var(--dim);padding:8px 0">No requests logged yet.</div>';
+    return;
+  }
+  const statusColor = s => s === 'ok' ? 'var(--ok)' : s === 'all-failed' ? 'var(--err)' : 'var(--warn)';
+  const rows = logs.map(e => {
+    const t = new Date(e.ts);
+    const time = t.toLocaleTimeString();
+    const attempts = (e.attempts || []).map((a, i) => {
+      const icon = a.status === 'ok' ? '✓' : '✗';
+      const color = a.status === 'ok' ? 'var(--ok)' : 'var(--err)';
+      const err = a.error ? ` — ${escapeHtml(a.error.slice(0, 120))}` : '';
+      return `<div style="font-size:11px;color:var(--dim);padding-left:8px"><span style="color:${color}">${icon}</span> ${escapeHtml(a.label || a.model)} <span style="color:var(--mute)">${a.durationMs}ms${err}</span></div>`;
+    }).join('');
+    const flags = [e.stream && 'stream', e.hasTools && 'tools', e.hasSystem && 'sys'].filter(Boolean).join(' ');
+    return `<div style="border-bottom:1px solid var(--line);padding:8px 4px">
+      <div style="display:flex;gap:10px;align-items:baseline">
+        <span style="color:var(--dim);font-size:11px;font-family:ui-monospace,Menlo,Consolas,monospace;flex-shrink:0">${time}</span>
+        <span style="font-size:12px;font-weight:500;color:${statusColor(e.finalStatus)}">${escapeHtml(e.finalStatus)}</span>
+        <span style="font-size:11.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml((e.attempts[0]||{}).label || '')}</span>
+        <span style="font-size:11px;color:var(--mute);flex-shrink:0">${e.totalMs}ms · ${e.poolSize} member${e.poolSize!==1?'s':''}</span>
+        ${flags ? `<span style="font-size:10px;color:var(--dim);flex-shrink:0">${escapeHtml(flags)}</span>` : ''}
+      </div>
+      ${e.attempts.length > 1 ? attempts : (e.attempts.length === 1 && e.attempts[0].status !== 'ok' ? attempts : '')}
+    </div>`;
+  }).join('');
+  el.innerHTML = `<div style="max-height:500px;overflow-y:auto">${rows}</div>`;
 }
 
 $('#refreshSys').addEventListener('click', refreshSystem);

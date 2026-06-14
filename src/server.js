@@ -82,14 +82,29 @@ function getPool() {
   }
   return raw.map(entry => {
     const provCfg = (CONFIG.providers || {})[entry.provider] || {};
+    // Per-entry credential fields (endpoint, apiKey, apiVersion, deployment, etc.)
+    // override the shared provider config. This lets pool entries from the same
+    // provider use different endpoints / API keys (e.g. two Azure deployments).
+    const { provider, model, label, _key, ...entryOverrides } = entry;
     return {
       kind: entry.provider,
       ...provCfg,
+      ...entryOverrides,   // per-entry overrides win over provider defaults
       model: entry.model,
       label: entry.label || `${entry.provider} / ${entry.model}`,
       _key: `${entry.provider}::${entry.model}`
     };
   }).filter(e => e.kind && e.model);
+}
+
+// ---- Request log (in-memory circular buffer) ----
+
+const REQUEST_LOG = [];
+const MAX_LOG_ENTRIES = 300;
+
+function pushLog(entry) {
+  REQUEST_LOG.push(entry);
+  if (REQUEST_LOG.length > MAX_LOG_ENTRIES) REQUEST_LOG.shift();
 }
 
 // ---- Rate limiting (sliding 60s window for requests + tokens) ----
@@ -189,6 +204,23 @@ async function handleMessages(req, res) {
   try { body = await readJSONBody(req); }
   catch { return send(res, 400, { type: 'error', error: { type: 'invalid_request_error', message: 'Bad JSON' } }); }
 
+  // Build log entry for this request.
+  const reqId = Math.random().toString(36).slice(2, 10);
+  const logEntry = {
+    id: reqId,
+    ts: Date.now(),
+    stream: !!body.stream,
+    maxTokens: body.max_tokens || null,
+    messageCount: (body.messages || []).length,
+    hasTools: !!(body.tools && body.tools.length),
+    hasSystem: !!body.system,
+    poolSize: pool.length,
+    attempts: [],
+    finalStatus: 'ok',
+    totalMs: 0
+  };
+  const reqStart = Date.now();
+
   // Round-robin + fallback: try each pool member in order starting from poolRR.
   const startIdx = poolRR;
   for (let attempt = 0; attempt < pool.length; attempt++) {
@@ -202,30 +234,55 @@ async function handleMessages(req, res) {
     stat.req++;
     const t0 = Date.now();
 
+    const attemptLog = {
+      model: cfg.model,
+      provider: cfg.kind,
+      label: cfg.label,
+      endpoint: cfg.endpoint || null,
+      status: 'ok',
+      durationMs: 0,
+      error: null
+    };
+
     try {
       if (cfg.kind === 'bedrock') await callBedrock(cfg, body, res);
       else await callOpenAICompatible(cfg, body, res);
-      stat.lastMs = Date.now() - t0;
-      poolRR = (idx + 1) % pool.length; // advance past successful entry
+      attemptLog.durationMs = Date.now() - t0;
+      stat.lastMs = attemptLog.durationMs;
+      poolRR = (idx + 1) % pool.length;
+      logEntry.attempts.push(attemptLog);
+      logEntry.totalMs = Date.now() - reqStart;
+      pushLog(logEntry);
+      console.log(`[proxy] [ok] ${cfg.label} model=${cfg.model} dur=${attemptLog.durationMs}ms stream=${body.stream}`);
       return;
     } catch (err) {
+      attemptLog.durationMs = Date.now() - t0;
+      attemptLog.status = 'err';
+      attemptLog.error = err.message.slice(0, 300);
       stat.err++;
-      stat.lastMs = Date.now() - t0;
+      stat.lastMs = attemptLog.durationMs;
+      logEntry.attempts.push(attemptLog);
 
       if (res.headersSent) {
-        // Streaming started — cannot fall back; close whatever was sent.
-        console.error(`[proxy] [pool] ${cfg.label} failed mid-stream: ${err.message}`);
+        logEntry.finalStatus = 'mid-stream-err';
+        logEntry.totalMs = Date.now() - reqStart;
+        pushLog(logEntry);
+        console.error(`[proxy] [mid-stream] ${cfg.label}: ${err.message}`);
         try { res.end(); } catch {}
         return;
       }
 
       if (attempt < pool.length - 1) {
-        console.warn(`[proxy] [pool] ${cfg.label} failed (${err.message.slice(0, 100)}), trying next…`);
+        console.warn(`[proxy] [fallback] ${cfg.label} failed (${err.message.slice(0, 120)}) → trying next`);
       } else {
-        console.error(`[proxy] [pool] all ${pool.length} member(s) failed. Last: ${err.message}`);
+        logEntry.finalStatus = 'all-failed';
+        logEntry.totalMs = Date.now() - reqStart;
+        pushLog(logEntry);
+        const lastErr = err.message;
+        console.error(`[proxy] [all-failed] ${pool.length} member(s) exhausted. Last: ${lastErr}`);
         send(res, 502, {
           type: 'error',
-          error: { type: 'api_error', message: `All pool members failed. Last error: ${err.message}` }
+          error: { type: 'api_error', message: `All pool members failed. Last error: ${lastErr}` }
         });
       }
     }
@@ -523,11 +580,27 @@ function handlePoolGet(_req, res) {
 async function handlePoolPost(req, res) {
   const body = await readJSONBody(req);
   if (!Array.isArray(body.pool)) return send(res, 400, { error: 'pool must be an array' });
+  const CRED_FIELDS = ['endpoint', 'apiKey', 'apiVersion', 'deployment', 'region', 'accessKeyId', 'secretAccessKey'];
   CONFIG.pool = body.pool
-    .map(e => ({ provider: e.provider, model: e.model, label: e.label || null }))
+    .map(e => {
+      const entry = { provider: e.provider, model: e.model, label: e.label || null };
+      for (const f of CRED_FIELDS) {
+        if (e[f] != null && e[f] !== '') entry[f] = e[f];
+      }
+      return entry;
+    })
     .filter(e => e.provider && e.model);
   saveConfig(CONFIG);
   send(res, 200, { ok: true, pool: CONFIG.pool });
+}
+
+function handleLogsGet(_req, res) {
+  send(res, 200, { logs: REQUEST_LOG.slice().reverse(), count: REQUEST_LOG.length });
+}
+
+function handleLogsClear(_req, res) {
+  REQUEST_LOG.length = 0;
+  send(res, 200, { ok: true });
 }
 
 function serveStatic(req, res) {
@@ -564,6 +637,8 @@ const server = http.createServer(async (req, res) => {
     if (u.pathname === '/api/panel/reset' && req.method === 'POST') return handlePanelResetPost(req, res);
     if (u.pathname === '/api/pool' && req.method === 'GET') return handlePoolGet(req, res);
     if (u.pathname === '/api/pool' && req.method === 'POST') return await handlePoolPost(req, res);
+    if (u.pathname === '/api/logs' && req.method === 'GET') return handleLogsGet(req, res);
+    if (u.pathname === '/api/logs/clear' && req.method === 'POST') return handleLogsClear(req, res);
     if (u.pathname === '/api/health') {
       const pool = getPool();
       const poolMode = Array.isArray(CONFIG.pool) && CONFIG.pool.length > 0;
