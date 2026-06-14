@@ -10,8 +10,15 @@ const MODELS = require('./models');
 const installer = require('./install');
 
 const ROOT = path.resolve(__dirname, '..');
-const CONFIG_PATH = process.env.PROXY_MAX_CONFIG || path.join(ROOT, 'config.json');
-const PANEL_EVENTS_PATH = process.env.PROXY_MAX_PANEL_EVENTS || path.join(ROOT, 'panel-events.json');
+const CONFIG_PATH        = process.env.PROXY_MAX_CONFIG       || path.join(ROOT, 'config.json');
+const PANEL_EVENTS_PATH  = process.env.PROXY_MAX_PANEL_EVENTS || path.join(ROOT, 'panel-events.json');
+const LOG_DIR            = process.env.PROXY_MAX_LOG_DIR      || path.join(ROOT, 'logs');
+const LOG_FILE           = path.join(LOG_DIR, 'requests.log');
+const LOG_MAX_BYTES      = 10 * 1024 * 1024; // 10 MB before rotation
+const LOG_KEEP_ROTATIONS = 3;                 // keep .1 .2 .3 then drop oldest
+
+// Ensure log directory exists (sync at startup — cheap one-time call).
+try { fs.mkdirSync(LOG_DIR, { recursive: true }); } catch { /* already exists */ }
 
 function loadConfig() {
   try { return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')); }
@@ -120,14 +127,73 @@ function getPool() {
   }).filter(e => e.kind && e.model);
 }
 
-// ---- Request log (in-memory circular buffer) ----
+// ---- Request log — in-memory ring buffer + rotating file ----
+//
+// Every completed request (ok / all-failed / mid-stream-err) is:
+//   1. Pushed into REQUEST_LOG (last 300, served via GET /api/logs)
+//   2. Appended as a single JSON line to logs/requests.log
+//      Rotation: when the file exceeds 10 MB it is renamed to .1, old .1→.2
+//      etc. up to LOG_KEEP_ROTATIONS copies; the oldest is deleted.
+//
+// The file survives server restarts and is readable from the VM even when
+// no browser can reach the UI.
 
 const REQUEST_LOG = [];
 const MAX_LOG_ENTRIES = 300;
 
+function rotateLogs() {
+  try {
+    const stat = fs.statSync(LOG_FILE);
+    if (stat.size < LOG_MAX_BYTES) return;
+    // Shift existing rotations: .3 → drop, .2 → .3, .1 → .2, current → .1
+    for (let i = LOG_KEEP_ROTATIONS; i >= 1; i--) {
+      const older = `${LOG_FILE}.${i}`;
+      const newer = i < LOG_KEEP_ROTATIONS ? `${LOG_FILE}.${i + 1}` : null;
+      try {
+        if (newer) fs.renameSync(older, newer);
+        else fs.unlinkSync(older);
+      } catch { /* file may not exist yet */ }
+    }
+    fs.renameSync(LOG_FILE, `${LOG_FILE}.1`);
+  } catch { /* file doesn't exist yet — nothing to rotate */ }
+}
+
+function writeLogLine(entry) {
+  try {
+    rotateLogs();
+    // Build a compact single-line summary for easy grepping.
+    const time = new Date(entry.ts).toISOString();
+    const firstAttempt = (entry.attempts || []).find(a => a.status !== 'skipped') || {};
+    const line = JSON.stringify({
+      time,
+      id:       entry.id,
+      status:   entry.finalStatus,
+      model:    firstAttempt.model  || '?',
+      provider: firstAttempt.provider || '?',
+      label:    firstAttempt.label  || '?',
+      totalMs:  entry.totalMs,
+      stream:   entry.stream,
+      hasTools: entry.hasTools,
+      hasSystem: entry.hasSystem,
+      poolSize: entry.poolSize,
+      attempts: (entry.attempts || []).map(a => ({
+        label:      a.label,
+        status:     a.status,
+        durationMs: a.durationMs,
+        error:      a.error || null
+      }))
+    });
+    fs.appendFileSync(LOG_FILE, line + '\n', 'utf8');
+  } catch (e) {
+    // Never let logging crash the server.
+    console.error('[proxy] [log-write-error]', e.message);
+  }
+}
+
 function pushLog(entry) {
   REQUEST_LOG.push(entry);
   if (REQUEST_LOG.length > MAX_LOG_ENTRIES) REQUEST_LOG.shift();
+  writeLogLine(entry);
 }
 
 // ---- Rate limiting (sliding 60s window for requests + tokens) ----
@@ -682,8 +748,34 @@ function handleLogsGet(_req, res) {
   send(res, 200, { logs: REQUEST_LOG.slice().reverse(), count: REQUEST_LOG.length });
 }
 
+// Serve the last N lines of the on-disk log file as a JSON array of parsed objects.
+// ?lines=N (default 200, max 2000). Falls back gracefully if file doesn't exist yet.
+function handleLogsFileGet(req, res) {
+  const u = new URL(req.url, 'http://localhost');
+  const limit = Math.min(2000, Math.max(1, parseInt(u.searchParams.get('lines') || '200', 10)));
+  try {
+    const raw = fs.readFileSync(LOG_FILE, 'utf8');
+    const lines = raw.split('\n').filter(Boolean);
+    const tail = lines.slice(-limit).reverse();
+    const parsed = tail.map(l => { try { return JSON.parse(l); } catch { return { raw: l }; } });
+    const logFiles = [];
+    for (let i = 1; i <= LOG_KEEP_ROTATIONS; i++) {
+      try { const s = fs.statSync(`${LOG_FILE}.${i}`); logFiles.push({ name: `requests.log.${i}`, bytes: s.size }); } catch {}
+    }
+    try { const s = fs.statSync(LOG_FILE); logFiles.unshift({ name: 'requests.log', bytes: s.size }); } catch {}
+    send(res, 200, { logs: parsed, total: lines.length, limit, logFile: LOG_FILE, logFiles });
+  } catch {
+    send(res, 200, { logs: [], total: 0, limit, logFile: LOG_FILE, logFiles: [] });
+  }
+}
+
 function handleLogsClear(_req, res) {
   REQUEST_LOG.length = 0;
+  // Also truncate the log file and all rotations.
+  try { fs.writeFileSync(LOG_FILE, '', 'utf8'); } catch {}
+  for (let i = 1; i <= LOG_KEEP_ROTATIONS; i++) {
+    try { fs.unlinkSync(`${LOG_FILE}.${i}`); } catch {}
+  }
   send(res, 200, { ok: true });
 }
 
@@ -723,6 +815,7 @@ const server = http.createServer(async (req, res) => {
     if (u.pathname === '/api/pool' && req.method === 'POST') return await handlePoolPost(req, res);
     if (u.pathname === '/api/pool/reset-circuits' && req.method === 'POST') return handlePoolResetCircuits(req, res);
     if (u.pathname === '/api/logs' && req.method === 'GET') return handleLogsGet(req, res);
+    if (u.pathname === '/api/logs/file' && req.method === 'GET') return handleLogsFileGet(req, res);
     if (u.pathname === '/api/logs/clear' && req.method === 'POST') return handleLogsClear(req, res);
     if (u.pathname === '/api/health') {
       const pool = getPool();
@@ -752,6 +845,7 @@ server.listen(PORT, HOST, () => {
   console.log(`  UI:        http://${HOST}:${PORT}/`);
   console.log(`  API base:  http://${HOST}:${PORT}  (point ANTHROPIC_BASE_URL here)`);
   console.log(`  Config:    ${CONFIG_PATH}`);
+  console.log(`  Log file:  ${LOG_FILE}  (tail -f for live view)`);
   if (CONFIG.provider) {
     const ac = activeProviderConfig();
     console.log(`  Active:    ${CONFIG.provider} / ${ac?.model || '(no model selected)'}`);
