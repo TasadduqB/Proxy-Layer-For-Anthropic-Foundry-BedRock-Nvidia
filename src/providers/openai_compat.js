@@ -2,6 +2,20 @@
 // Both expose /v1/chat/completions; only auth + URL shape differ.
 // Azure also supports the newer Responses API at /openai/responses.
 
+// Support PROXY_INSECURE=1 or NODE_TLS_REJECT_UNAUTHORIZED=0 for corporate SSL inspection proxies
+// that inject a self-signed cert into the chain (SELF_SIGNED_CERT_IN_CHAIN error).
+let _insecureDispatcher = null;
+function getInsecureDispatcher() {
+  if (!_insecureDispatcher) {
+    try {
+      const { Agent } = require('undici');
+      _insecureDispatcher = new Agent({ connect: { rejectUnauthorized: false } });
+    } catch { _insecureDispatcher = undefined; }
+  }
+  return _insecureDispatcher;
+}
+const ALLOW_INSECURE = process.env.PROXY_INSECURE === '1' || process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0';
+
 const {
   anthropicToOpenAIMessages,
   anthropicToolsToOpenAI,
@@ -370,7 +384,8 @@ async function callWithWebSearchLoop(providerCfg, sanitizedBody, originalBody, r
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify(payloadNonStream),
-        signal: controller.signal
+        signal: controller.signal,
+        ...(ALLOW_INSECURE && getInsecureDispatcher() ? { dispatcher: getInsecureDispatcher() } : {})
       });
     } catch (err) {
       clearTimeout(timer);
@@ -485,7 +500,8 @@ async function callOpenAICompatible(providerCfg, body, res) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...headers },
       body: JSON.stringify(payload),
-      signal: controller.signal
+      signal: controller.signal,
+      ...(ALLOW_INSECURE && getInsecureDispatcher() ? { dispatcher: getInsecureDispatcher() } : {})
     });
   } catch (err) {
     clearTimeout(timer);

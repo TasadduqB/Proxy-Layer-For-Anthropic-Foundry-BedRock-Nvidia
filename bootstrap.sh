@@ -83,7 +83,7 @@ HOST="${HOST:-127.0.0.1}"
 # If the proxy is already running on PORT, just open the UI / launch claude.
 if ! curl -fs "http://$HOST:$PORT/api/health" >/dev/null 2>&1; then
   echo "[bootstrap] starting proxy on http://$HOST:$PORT"
-  ( PORT="$PORT" HOST="$HOST" nohup node "$HERE/src/server.js" >"$PROXY_HOME/server.log" 2>&1 & )
+  ( PORT="$PORT" HOST="$HOST" PROXY_INSECURE="${PROXY_INSECURE:-}" nohup node "$HERE/src/server.js" >"$PROXY_HOME/server.log" 2>&1 & )
   # wait until ready
   for i in $(seq 1 40); do
     sleep 0.15
