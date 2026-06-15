@@ -5,16 +5,32 @@
 // Support PROXY_INSECURE=1 or NODE_TLS_REJECT_UNAUTHORIZED=0 for corporate SSL inspection proxies
 // that inject a self-signed cert into the chain (SELF_SIGNED_CERT_IN_CHAIN error).
 let _insecureDispatcher = null;
+let _undiciUnavailable = false;
 function getInsecureDispatcher() {
-  if (!_insecureDispatcher) {
-    try {
-      const { Agent } = require('undici');
-      _insecureDispatcher = new Agent({ connect: { rejectUnauthorized: false } });
-    } catch { _insecureDispatcher = undefined; }
+  if (_insecureDispatcher) return _insecureDispatcher;
+  if (_undiciUnavailable) return null;
+  try {
+    const { Agent } = require('undici');
+    _insecureDispatcher = new Agent({ connect: { rejectUnauthorized: false } });
+  } catch {
+    _undiciUnavailable = true;
   }
   return _insecureDispatcher;
 }
+
+// When undici is unavailable, disable TLS verification process-wide via env var.
+// This is the safe fallback for corporate SSL inspection proxies.
+function enableInsecureTlsFallback(reason) {
+  if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') return;
+  console.warn(`[proxy] ${reason} — enabling NODE_TLS_REJECT_UNAUTHORIZED=0 (undici not available as standalone module)`);
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
 const ALLOW_INSECURE = process.env.PROXY_INSECURE === '1' || process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0';
+// If PROXY_INSECURE=1 is set but undici isn't available, activate the env-var fallback immediately.
+if (ALLOW_INSECURE && !getInsecureDispatcher()) {
+  enableInsecureTlsFallback('PROXY_INSECURE=1 requested');
+}
 
 // TLS error codes thrown by Node.js/undici when a corporate SSL inspection proxy
 // injects a self-signed cert into the chain.
@@ -35,9 +51,13 @@ async function fetchWithCertFallback(url, opts) {
   } catch (err) {
     if (!isCertError(err)) throw err;
     const dispatcher = getInsecureDispatcher();
-    if (!dispatcher) throw err;
     console.warn(`[proxy] TLS cert error (${err?.cause?.code}) — retrying with rejectUnauthorized=false for ${url}`);
-    return await fetch(url, { ...opts, dispatcher });
+    if (dispatcher) {
+      return await fetch(url, { ...opts, dispatcher });
+    }
+    // undici not available as standalone module — fall back to process-level env var
+    enableInsecureTlsFallback(`TLS cert error (${err?.cause?.code})`);
+    return await fetch(url, opts);
   }
 }
 
