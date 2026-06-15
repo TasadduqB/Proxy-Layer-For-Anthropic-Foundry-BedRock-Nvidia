@@ -701,14 +701,15 @@ function modelForUpstream(cfg) {
   return cfg.model;
 }
 
-// Models that require the Responses API (/openai/responses) — Chat Completions won't work.
-const RESPONSES_API_MODELS = new Set(['gpt-5.5', 'o3', 'o4-mini']);
-// Also detect by model-id prefix/suffix patterns (deployment names often end in a suffix).
+// Models whose Azure deployment Target URI points to /openai/responses (not Chat Completions).
+// When users enter a base URL, route these to /openai/responses automatically.
+const RESPONSES_API_MODELS = new Set(['gpt-5.5', 'gpt-5.2', 'gpt-5.1', 'gpt-5', 'o3', 'o4-mini']);
+// Also detect by model-id prefix/suffix patterns (deployment names often end in a suffix like -TVS).
 function requiresResponsesApi(modelId) {
   if (!modelId) return false;
   const m = modelId.toLowerCase();
   if (RESPONSES_API_MODELS.has(m)) return true;
-  // Match deployment names like "gpt-5.5-TVS" — strip trailing -XX[X] suffix and check
+  // Match deployment names like "gpt-5.2-TVS" — strip trailing alphanumeric suffix and check base
   const base = m.replace(/-[a-z0-9]+$/i, '');
   return RESPONSES_API_MODELS.has(base);
 }
