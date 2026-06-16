@@ -433,6 +433,23 @@
           <div class="page-title">Prose Compressor</div>
           <div class="page-subtitle">Test prompt compression to reduce token usage 65-75%</div>
         </div>
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">Compression Settings</div>
+          <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:14px; cursor:pointer;">
+              <input type="checkbox" id="compressionEnabled" style="width:16px; height:16px;">
+              Enable auto-compression on all requests
+            </label>
+            <div class="form-group" style="margin:0; min-width:200px;">
+              <select class="form-select" id="compressionSettingsMode">
+                <option value="lite">Lite (30-40% reduction, safe)</option>
+                <option value="full">Standard (50-60% reduction)</option>
+                <option value="ultra">Ultra (75-85% reduction, aggressive)</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="saveCompressionConfig()">Save</button>
+          </div>
+        </div>
         <div class="grid-2">
           <div class="card">
             <div class="card-title">Input</div>
@@ -526,15 +543,6 @@
       document.getElementById('themeLabel').textContent = 'Light Mode';
     }
 
-    // Navigation
-    function showPage(page) {
-      document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      document.getElementById(`page-${page}`).style.display = 'block';
-      document.querySelector(`[data-page="${page}"]`).classList.add('active');
-      currentPage = page;
-    }
-
     // Toast
     function showToast(msg) {
       const t = document.getElementById('toast');
@@ -552,7 +560,7 @@
     // Load config
     async function loadConfig() {
       try {
-        const data = await api('/panel/config');
+        const data = await api('/api/config');
         config = data;
         updateProviderStatus();
       } catch {}
@@ -561,7 +569,7 @@
     // Load models
     async function loadModels() {
       try {
-        const data = await api('/panel/models');
+        const data = await api('/api/models');
         models = data;
         renderModelTable();
         populateModelDropdown();
@@ -573,7 +581,8 @@
       ['bedrock', 'azure', 'nvidia'].forEach(p => {
         const dot = document.getElementById(`${p}Dot`);
         if (dot) {
-          dot.className = `status-dot ${config.provider === p ? 'active' : (config.providers?.[p] ? 'inactive' : '')}`;
+          const providerCfg = config.providers && config.providers[p];
+          dot.className = `status-dot ${config.provider === p ? 'active' : (providerCfg ? 'inactive' : '')}`;
         }
       });
       const active = document.getElementById('activeProvider');
@@ -593,18 +602,21 @@
 
     // Save provider
     async function saveProvider(provider) {
-      let payload = { provider };
+      let providerConfig = {};
       if (provider === 'bedrock') {
-        payload.region = document.getElementById('bedrockRegion').value;
-        payload.accessKeyId = document.getElementById('bedrockKey').value;
-        payload.secretAccessKey = document.getElementById('bedrockSecret').value;
+        providerConfig.region = document.getElementById('bedrockRegion').value;
+        providerConfig.accessKeyId = document.getElementById('bedrockKey').value;
+        providerConfig.secretAccessKey = document.getElementById('bedrockSecret').value;
+        providerConfig.model = providerConfig.model || 'us.anthropic.claude-sonnet-4-20250514-v1:0';
       } else if (provider === 'azure') {
-        payload.endpoint = document.getElementById('azureEndpoint').value;
-        payload.apiKey = document.getElementById('azureKey').value;
+        providerConfig.endpoint = document.getElementById('azureEndpoint').value;
+        providerConfig.apiKey = document.getElementById('azureKey').value;
+        providerConfig.model = providerConfig.model || 'claude-sonnet-4-20250514';
       } else if (provider === 'nvidia') {
-        payload.apiKey = document.getElementById('nvidiaKey').value;
+        providerConfig.apiKey = document.getElementById('nvidiaKey').value;
+        providerConfig.model = providerConfig.model || 'meta/llama-3.1-70b-instruct';
       }
-      await api('/panel/config', { method: 'PUT', body: JSON.stringify(payload) });
+      await api('/api/config', { method: 'POST', body: JSON.stringify({ provider, config: providerConfig }) });
       await loadConfig();
       showToast(`${provider} activated ✓`);
     }
@@ -701,7 +713,7 @@
     }
 
     async function selectModel(provider, modelId) {
-      await api('/panel/config', { method: 'PUT', body: JSON.stringify({ provider, model: modelId }) });
+      await api('/api/config', { method: 'POST', body: JSON.stringify({ provider, config: { model: modelId } }) });
       await loadConfig();
       showToast(`Model set: ${modelId}`);
     }
@@ -737,19 +749,6 @@
     function removePoolModel(idx) {
       poolModels.splice(idx, 1);
       renderPoolModels();
-    }
-
-    function savePool() {
-      const name = document.getElementById('poolName').value.trim();
-      const strategy = document.getElementById('poolStrategy').value;
-      if (!name) { showToast('Pool name required'); return; }
-      if (!poolModels.length) { showToast('Add at least one model'); return; }
-      pools[name] = { strategy, models: [...poolModels] };
-      renderPoolList();
-      poolModels = [];
-      renderPoolModels();
-      document.getElementById('poolName').value = '';
-      showToast(`Pool "${name}" saved ✓`);
     }
 
     function renderPoolList() {
@@ -798,15 +797,6 @@
       }
     }
 
-    // Token counter (live)
-    function countTokensLive() {
-      const text = document.getElementById('tokenInput').value;
-      document.getElementById('charCount').textContent = text.length.toLocaleString();
-      document.getElementById('wordCount').textContent = text.trim() ? text.trim().split(/\s+/).length.toLocaleString() : '0';
-      // Heuristic: ~4 chars per token for English
-      document.getElementById('tokenCount').textContent = Math.ceil(text.length / 4).toLocaleString();
-    }
-
     // Request log
     function addLogEntry(entry) {
       requestLog.unshift(entry);
@@ -842,32 +832,188 @@
       }
     });
 
-    // Poll for events
-    async function pollEvents() {
+    // Poll analytics
+    async function pollAnalytics() {
       try {
-        const events = await api('/panel/events');
-        if (Array.isArray(events)) {
-          const newEvents = events.slice(-10);
-          newEvents.forEach(e => {
-            if (!requestLog.find(r => r.ts === e.ts)) addLogEntry(e);
-          });
-          // Update stats
-          document.getElementById('statRequests').textContent = events.length.toLocaleString();
-          const totalTokens = events.reduce((a, e) => a + (e.tokens || 0), 0);
-          document.getElementById('statTokens').textContent = totalTokens > 1000 ? (totalTokens/1000).toFixed(1) + 'K' : totalTokens.toLocaleString();
-          const errors = events.filter(e => e.error).length;
-          const successRate = events.length ? ((events.length - errors) / events.length * 100).toFixed(0) : 100;
-          document.getElementById('statSuccess').textContent = successRate + '%';
-          document.getElementById('statSuccess').className = `stat-value ${successRate >= 95 ? 'success' : successRate >= 80 ? 'warning' : 'danger'}`;
+        const data = await api('/api/analytics');
+        const totalReqs = data.session?.total_requests || 0;
+        document.getElementById('statRequests').textContent = totalReqs.toLocaleString();
+        const totalInput = data.session?.total_input_tokens || 0;
+        const totalOutput = data.session?.total_output_tokens || 0;
+        const totalTokens = totalInput + totalOutput;
+        document.getElementById('statTokens').textContent = totalTokens > 1000 ? (totalTokens/1000).toFixed(1) + 'K' : totalTokens.toLocaleString();
+        const history = Array.isArray(data.history) ? data.history : [];
+        const errors = history.filter(e => e.status !== 'success').length;
+        const successRate = totalReqs > 0 ? ((totalReqs - errors) / totalReqs * 100).toFixed(0) : 100;
+        document.getElementById('statSuccess').textContent = successRate + '%';
+        document.getElementById('statSuccess').className = `stat-value ${successRate >= 95 ? 'success' : successRate >= 80 ? 'warning' : 'danger'}`;
+        const costNano = data.session?.total_cost_nano_usd || 0;
+        document.getElementById('statCost').textContent = '$' + (costNano / 1e9).toFixed(4);
+        // Recent activity
+        renderRecentActivity(history.slice(0, 5));
+      } catch {}
+    }
+
+    // Poll request logs
+    async function pollLogs() {
+      try {
+        const data = await api('/api/logs');
+        if (Array.isArray(data.logs)) {
+          requestLog = data.logs.slice(0, 100).map(e => ({
+            ts: e.ts,
+            model: e.attempts?.[0]?.model || e.request?.model || '—',
+            provider: e.attempts?.[0]?.provider || '—',
+            latency: e.totalMs,
+            tokens: null,
+            error: e.finalStatus !== 'ok' ? e.finalStatus : null
+          }));
+          if (currentPage === 'requests') renderLog();
         }
       } catch {}
+    }
+
+    function renderRecentActivity(history) {
+      const container = document.getElementById('recentActivity');
+      if (!history || !history.length) {
+        container.innerHTML = '<div class="empty-state" style="padding:12px;"><p>No requests yet</p></div>';
+        return;
+      }
+      container.innerHTML = history.map(r => {
+        const statusClass = r.status === 'success' ? 'tag-success' : 'tag-danger';
+        const tokens = (r.input_tokens || 0) + (r.output_tokens || 0);
+        const ms = r.response_time_ms || 0;
+        return `<div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--border); font-size:12px;">
+          <span class="tag ${statusClass}">${r.status || '?'}</span>
+          <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r.model || '—'}</span>
+          <span style="color:var(--text-muted);">${tokens > 0 ? tokens + ' tok' : ''}</span>
+          <span style="color:var(--text-muted);">${ms}ms</span>
+        </div>`;
+      }).join('');
+    }
+
+    // Load pool from server on pool page open
+    async function loadPool() {
+      try {
+        const data = await api('/api/pool');
+        if (Array.isArray(data.pool) && data.pool.length > 0) {
+          renderPoolStatus(data.pool);
+        }
+      } catch {}
+    }
+
+    function renderPoolStatus(pool) {
+      const container = document.getElementById('poolList');
+      if (!pool || !pool.length) {
+        container.innerHTML = '<div class="empty-state"><span class="icon">🔀</span><p>No routing pools configured yet</p></div>';
+        return;
+      }
+      container.innerHTML = pool.map(e => {
+        const isCooled = e.stats?.cooldownSecsLeft > 0;
+        const dotClass = isCooled ? 'error' : (e.stats?.req > 0 ? 'active' : 'inactive');
+        return `<div style="margin-bottom:12px; padding:10px 12px; background:var(--bg-alt); border-radius:8px; font-size:13px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span class="status-dot ${dotClass}"></span>
+            <strong>${e.label || e.provider + ' / ' + e.model}</strong>
+            ${isCooled ? `<span class="tag tag-warning">cooldown ${e.stats.cooldownSecsLeft}s</span>` : ''}
+          </div>
+          <div style="color:var(--text-muted); font-size:11px;">Requests: ${e.stats?.req || 0} | Errors: ${e.stats?.err || 0} | Last: ${e.stats?.lastMs || 0}ms</div>
+        </div>`;
+      }).join('');
+    }
+
+    function savePool() {
+      const name = document.getElementById('poolName').value.trim();
+      const strategy = document.getElementById('poolStrategy').value;
+      if (!name) { showToast('Pool name required'); return; }
+      if (!poolModels.length) { showToast('Add at least one model'); return; }
+      // Save to server
+      const pool = poolModels.map(m => ({ provider: m.provider, model: m.id, label: m.label }));
+      api('/api/pool', { method: 'POST', body: JSON.stringify({ pool }) })
+        .then(() => { showToast(`Pool saved to server ✓`); loadPool(); })
+        .catch(() => showToast('Failed to save pool to server'));
+      pools[name] = { strategy, models: [...poolModels] };
+      renderPoolList();
+      poolModels = [];
+      renderPoolModels();
+      document.getElementById('poolName').value = '';
+    }
+
+    // Load compression config
+    async function loadCompressionConfig() {
+      try {
+        const data = await api('/api/compression');
+        document.getElementById('compressionEnabled').checked = !!data.enabled;
+        document.getElementById('compressionSettingsMode').value = data.mode || 'lite';
+      } catch {}
+    }
+
+    async function saveCompressionConfig() {
+      const enabled = document.getElementById('compressionEnabled').checked;
+      const mode = document.getElementById('compressionSettingsMode').value;
+      try {
+        await api('/api/compression', { method: 'POST', body: JSON.stringify({ enabled, mode }) });
+        showToast('Compression settings saved ✓');
+      } catch { showToast('Failed to save compression settings'); }
+    }
+
+    // Load cost data
+    async function loadCostData() {
+      try {
+        const data = await api('/api/dashboard/cost-analytics');
+        if (data.session) {
+          const nano = data.session.total_cost_nano_usd || 0;
+          document.getElementById('costTotal').textContent = '$' + (nano / 1e9).toFixed(4);
+        }
+        if (data.lifetime) {
+          document.getElementById('costWeek').textContent = '$' + ((data.lifetime.total_cost_nano_usd || 0) / 1e9).toFixed(4);
+        }
+        if (Array.isArray(data.byModel) && data.byModel.length) {
+          document.getElementById('costByModel').innerHTML = data.byModel.map(m => `
+            <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px;">
+              <span style="font-family:var(--mono); font-size:11px;">${m.model}</span>
+              <span>$${((m.total_cost_nano || 0) / 1e9).toFixed(6)}</span>
+            </div>`).join('');
+        }
+      } catch {}
+    }
+
+    // Token counter with debounced server estimate
+    let tokenDebounce;
+    function countTokensLive() {
+      const text = document.getElementById('tokenInput').value;
+      document.getElementById('charCount').textContent = text.length.toLocaleString();
+      document.getElementById('wordCount').textContent = text.trim() ? text.trim().split(/\s+/).length.toLocaleString() : '0';
+      document.getElementById('tokenCount').textContent = Math.ceil(text.length / 4).toLocaleString();
+      clearTimeout(tokenDebounce);
+      tokenDebounce = setTimeout(async () => {
+        if (!text) return;
+        try {
+          const data = await api('/api/dashboard/estimate-tokens', { method: 'POST', body: JSON.stringify({ text, provider: 'anthropic' }) });
+          document.getElementById('tokenCount').textContent = (data.estimated_tokens || 0).toLocaleString();
+        } catch {}
+      }, 300);
+    }
+
+    // Navigation — also triggers data loads for pages
+    function showPage(page) {
+      document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById(`page-${page}`).style.display = 'block';
+      document.querySelector(`[data-page="${page}"]`).classList.add('active');
+      currentPage = page;
+      if (page === 'pool') loadPool();
+      if (page === 'costs') loadCostData();
+      if (page === 'compression') loadCompressionConfig();
+      if (page === 'requests') pollLogs();
     }
 
     // Init
     loadConfig();
     loadModels();
-    pollEvents();
-    setInterval(pollEvents, 5000);
+    pollAnalytics();
+    pollLogs();
+    setInterval(pollAnalytics, 5000);
+    setInterval(pollLogs, 5000);
   </script>
 </body>
 </html>

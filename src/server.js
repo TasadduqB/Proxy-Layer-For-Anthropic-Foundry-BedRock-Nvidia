@@ -353,7 +353,7 @@ function sniffUsage(res, onUsage) {
     const outs = [...buf.matchAll(/"output_tokens":\s*(\d+)/g)];
     const input = ins.length ? Number(ins[ins.length - 1][1]) : 0;
     const output = outs.length ? Number(outs[outs.length - 1][1]) : 0;
-    onUsage(input + output);
+    onUsage(input, output);
   };
   res.write = (chunk, ...a) => { scan(chunk); return origWrite(chunk, ...a); };
   res.end = (chunk, ...a) => { scan(chunk); report(); return origEnd(chunk, ...a); };
@@ -384,7 +384,12 @@ async function handleMessages(req, res) {
       }, { 'retry-after': String(verdict.retryAfter) });
     }
     limiter.recordRequest(now);
-    res = sniffUsage(res, n => limiter.recordTokens(Date.now(), n));
+    res = sniffUsage(res, (inputN, outputN) => {
+      limiter.recordTokens(Date.now(), inputN + outputN);
+      // Stash for analytics logging after the response ends.
+      res._analyticsInput = inputN;
+      res._analyticsOutput = outputN;
+    });
   }
 
   let body;
@@ -398,6 +403,26 @@ async function handleMessages(req, res) {
         detail: err.raw || err.message
       }
     });
+  }
+
+  // Apply prose compression to system prompt and message text blocks if enabled.
+  if (CONFIG.compression?.enabled) {
+    const compMode = CONFIG.compression.mode || 'lite';
+    if (body.system && typeof body.system === 'string') {
+      body.system = compressor.compress(body.system, compMode);
+    }
+    if (Array.isArray(body.messages)) {
+      for (const msg of body.messages) {
+        if (Array.isArray(msg.content)) {
+          for (const block of msg.content) {
+            if (block && block.type === 'text' && typeof block.text === 'string') {
+              block.text = compressor.compress(block.text, compMode);
+            }
+          }
+        }
+      }
+    }
+    body._compressionMode = compMode;
   }
 
   // Build log entry for this request.
@@ -477,6 +502,28 @@ async function handleMessages(req, res) {
       logEntry.attempts.push(attemptLog);
       logEntry.totalMs = Date.now() - reqStart;
       pushLog(logEntry);
+      // Log analytics after success. Token counts come from the sniffUsage
+      // callback which fires on res.end(); we use setImmediate to ensure it
+      // has already fired before we read the values.
+      setImmediate(() => {
+        try {
+          const inputTokens = res._analyticsInput || 0;
+          const outputTokens = res._analyticsOutput || 0;
+          const costResult = pricingCalc.calculateCostNano(inputTokens, outputTokens, cfg.model);
+          analytics.logRequest({
+            provider: cfg.kind,
+            model: cfg.model,
+            inputTokens,
+            outputTokens,
+            costNanoUsd: costResult?.cost_nano_usd || 0,
+            compressionMode: body._compressionMode || 'none',
+            responseTimeMs: attemptLog.durationMs,
+            status: 'success'
+          });
+        } catch (e) {
+          console.error('[proxy] [analytics] logRequest error:', e.message);
+        }
+      });
       console.log(`[proxy] [ok] ${cfg.label} dur=${attemptLog.durationMs}ms stream=${body.stream}`);
       return;
     } catch (err) {
@@ -562,10 +609,8 @@ async function handleMessages(req, res) {
 async function handleCountTokens(req, res) {
   try {
     const body = await readJSONBody(req);
-    // Approximate token count: ~4 characters per token for standard English text/JSON.
-    const str = JSON.stringify(body);
-    const estimatedTokens = Math.ceil(str.length / 4);
-    send(res, 200, { input_tokens: estimatedTokens });
+    const tokens = tokenCounter.estimateTokens(JSON.stringify(body), { provider: 'anthropic' });
+    send(res, 200, { input_tokens: tokens });
   } catch (err) {
     send(res, 400, { type: 'error', error: { type: 'invalid_request_error', message: err.message } });
   }
@@ -597,6 +642,32 @@ async function handleConfigPost(req, res) {
   CONFIG.providers[body.provider] = merged;
   saveConfig(CONFIG);
   send(res, 200, { ok: true });
+}
+
+function handleCompressionGet(_req, res) {
+  send(res, 200, CONFIG.compression || { enabled: false, mode: 'lite' });
+}
+
+async function handleCompressionPost(req, res) {
+  const body = await readJSONBody(req);
+  CONFIG.compression = CONFIG.compression || {};
+  if (typeof body.enabled === 'boolean') CONFIG.compression.enabled = body.enabled;
+  if (body.mode && typeof body.mode === 'string') CONFIG.compression.mode = body.mode;
+  saveConfig(CONFIG);
+  send(res, 200, { ok: true, compression: CONFIG.compression });
+}
+
+async function handleAnalyticsGet(_req, res) {
+  try {
+    const [sessionStats, lifetimeStats, history] = await Promise.all([
+      analytics.getSessionStats(),
+      analytics.getLifetimeStats(),
+      analytics.getRequestHistory(null, 100)
+    ]);
+    send(res, 200, { session: sessionStats, lifetime: lifetimeStats, history });
+  } catch (err) {
+    send(res, 500, { error: err.message });
+  }
 }
 
 function handleLimitsGet(_req, res) {
@@ -992,6 +1063,9 @@ const server = http.createServer(async (req, res) => {
     if (u.pathname === '/api/test' && req.method === 'POST') return await handleTest(req, res);
     if (u.pathname === '/api/limits' && req.method === 'GET') return handleLimitsGet(req, res);
     if (u.pathname === '/api/limits' && req.method === 'POST') return await handleLimitsPost(req, res);
+    if (u.pathname === '/api/compression' && req.method === 'GET') return handleCompressionGet(req, res);
+    if (u.pathname === '/api/compression' && req.method === 'POST') return await handleCompressionPost(req, res);
+    if (u.pathname === '/api/analytics' && req.method === 'GET') return await handleAnalyticsGet(req, res);
     if (u.pathname === '/api/panel/event' && req.method === 'POST') return await handlePanelEventPost(req, res);
     if (u.pathname === '/api/panel/events' && req.method === 'GET') return handlePanelEventsGet(req, res);
     if (u.pathname === '/api/panel/summary' && req.method === 'GET') return handlePanelSummaryGet(req, res);
