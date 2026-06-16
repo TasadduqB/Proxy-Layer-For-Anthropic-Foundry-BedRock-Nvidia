@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f0c29"/>
+      <stop offset="50%" style="stop-color:#302b63"/>
+      <stop offset="100%" style="stop-color:#24243e"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f12711"/>
+      <stop offset="100%" style="stop-color:#f5af19"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#667eea"/>
+      <stop offset="100%" style="stop-color:#764ba2"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  
+  <!-- Decorative circles -->
+  <circle cx="150" cy="100" r="200" fill="#667eea" opacity="0.05"/>
+  <circle cx="1100" cy="500" r="250" fill="#f5af19" opacity="0.05"/>
+  <circle cx="640" cy="320" r="300" fill="#764ba2" opacity="0.03"/>
+  
+  <!-- Grid pattern -->
+  <g opacity="0.03" stroke="white" stroke-width="0.5">
+    <line x1="0" y1="0" x2="0" y2="640"/><line x1="80" y1="0" x2="80" y2="640"/>
+    <line x1="160" y1="0" x2="160" y2="640"/><line x1="240" y1="0" x2="240" y2="640"/>
+    <line x1="320" y1="0" x2="320" y2="640"/><line x1="400" y1="0" x2="400" y2="640"/>
+    <line x1="480" y1="0" x2="480" y2="640"/><line x1="560" y1="0" x2="560" y2="640"/>
+    <line x1="640" y1="0" x2="640" y2="640"/><line x1="720" y1="0" x2="720" y2="640"/>
+    <line x1="800" y1="0" x2="800" y2="640"/><line x1="880" y1="0" x2="880" y2="640"/>
+    <line x1="960" y1="0" x2="960" y2="640"/><line x1="1040" y1="0" x2="1040" y2="640"/>
+    <line x1="1120" y1="0" x2="1120" y2="640"/><line x1="1200" y1="0" x2="1200" y2="640"/>
+    <line x1="0" y1="80" x2="1280" y2="80"/><line x1="0" y1="160" x2="1280" y2="160"/>
+    <line x1="0" y1="240" x2="1280" y2="240"/><line x1="0" y1="320" x2="1280" y2="320"/>
+    <line x1="0" y1="400" x2="1280" y2="400"/><line x1="0" y1="480" x2="1280" y2="480"/>
+    <line x1="0" y1="560" x2="1280" y2="560"/>
+  </g>
+  
+  <!-- Logo icon -->
+  <g transform="translate(540, 140)" filter="url(#shadow)">
+    <rect x="0" y="0" width="200" height="200" rx="40" fill="url(#glow)" opacity="0.9"/>
+    <text x="100" y="145" font-family="Arial, sans-serif" font-size="110" font-weight="bold" fill="white" text-anchor="middle">⚡</text>
+  </g>
+  
+  <!-- Title -->
+  <text x="640" y="410" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="white" text-anchor="middle" filter="url(#shadow)">Proxy Max</text>
+  
+  <!-- Tagline -->
+  <text x="640" y="470" font-family="Arial, sans-serif" font-size="28" fill="#b8b8d4" text-anchor="middle">Route Claude Code to Any Model, Anywhere</text>
+  
+  <!-- Provider pills - centered (total width 640px, starting at x=320) -->
+  <g transform="translate(320, 510)">
+    <rect x="0" y="0" width="150" height="38" rx="19" fill="url(#accent)" opacity="0.9"/>
+    <text x="75" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">AWS Bedrock</text>
+  </g>
+  <g transform="translate(490, 510)">
+    <rect x="0" y="0" width="130" height="38" rx="19" fill="url(#glow)" opacity="0.9"/>
+    <text x="65" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">Azure AI</text>
+  </g>
+  <g transform="translate(640, 510)">
+    <rect x="0" y="0" width="150" height="38" rx="19" fill="#76b900" opacity="0.9"/>
+    <text x="75" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">NVIDIA NIM</text>
+  </g>
+  <g transform="translate(810, 510)">
+    <rect x="0" y="0" width="150" height="38" rx="19" fill="#e91e63" opacity="0.8"/>
+    <text x="75" y="25" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">100+ Models</text>
+  </g>
+  
+  <!-- Bottom accent line -->
+  <rect x="0" y="620" width="1280" height="20" fill="url(#accent)"/>
+</svg>

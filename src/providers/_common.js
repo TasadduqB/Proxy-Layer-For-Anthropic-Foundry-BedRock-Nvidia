@@ -620,6 +620,20 @@ function createAnthropicSSEEmitter(res, model) {
       send('content_block_stop', { type: 'content_block_stop', index: block.index });
     }
     if (toolBlocks.size > 0) stopReason = 'tool_use';
+
+    // Ensure at least one text content block exists so Claude Code's Stop hook
+    // can find an assistant message. Without this, prompt-based hooks error with
+    // "No assistant message found".
+    if (nextBlockIndex === 0) {
+      const emptyIdx = nextBlockIndex++;
+      send('content_block_start', {
+        type: 'content_block_start',
+        index: emptyIdx,
+        content_block: { type: 'text', text: '' }
+      });
+      send('content_block_stop', { type: 'content_block_stop', index: emptyIdx });
+    }
+
     send('message_delta', {
       type: 'message_delta',
       delta: { stop_reason: stopReason, stop_sequence: null },
