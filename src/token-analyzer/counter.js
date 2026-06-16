@@ -1,23 +1,14 @@
 /**
- * Token Counter - 3-tier estimation strategy
- * Tier 1: OpenAI BPE (tiktoken exact)
- * Tier 2: Heuristic character classification (provider-specific multipliers)
- * Tier 3: Fallback (upstream reported or 4 chars per token)
+ * Token Counter - character-heuristic estimation (no external deps)
+ * Provider-specific multipliers give good accuracy without BPE.
  */
-
-const { encoding_for_model, get_encoding } = require('js-tiktoken');
 
 class TokenCounter {
   constructor() {
-    this.encEncodings = {
-      o: get_encoding('o200k_base'), // o1, o3, gpt-4o models
-      cl100k: get_encoding('cl100k_base'), // Most other models
-    };
-    
     // Provider-specific character multipliers (empirical analysis)
     this.multipliers = {
-      openai: { words: 1.02, numbers: 1.55, cjk: 0.85, symbols: 0.4, math_symbols: 2.68, emoji: 2.12 },
-      gemini: { words: 1.15, numbers: 2.8, cjk: 0.68, symbols: 0.38, math_symbols: 1.05, emoji: 1.08 },
+      openai:    { words: 1.02, numbers: 1.55, cjk: 0.85, symbols: 0.4, math_symbols: 2.68, emoji: 2.12 },
+      gemini:    { words: 1.15, numbers: 2.8,  cjk: 0.68, symbols: 0.38, math_symbols: 1.05, emoji: 1.08 },
       anthropic: { words: 1.13, numbers: 1.63, cjk: 1.21, symbols: 0.4, math_symbols: 4.52, emoji: 2.6 },
     };
 
@@ -40,37 +31,15 @@ class TokenCounter {
   }
 
   /**
-   * Estimate tokens using 3-tier strategy
+   * Estimate tokens using character-heuristic strategy
    */
   estimateTokens(text, options = {}) {
-    const { provider = 'openai', model = 'gpt-4o', tier1Only = false } = options;
-
-    // Tier 1: Exact BPE (if < 128KB)
-    if (text.length < 128 * 1024) {
-      try {
-        return this.tier1_exactBPE(text, model);
-      } catch (err) {
-        if (tier1Only) throw err;
-      }
-    }
-
-    // Tier 2: Heuristic character classification
+    const { provider = 'openai' } = options;
     return this.tier2_characterHeuristic(text, provider);
   }
 
   /**
-   * Tier 1: Exact BPE encoding
-   */
-  tier1_exactBPE(text, model) {
-    const isO = model.startsWith('o1') || model.startsWith('o3') || model.startsWith('o4');
-    const encoding = isO ? this.encEncodings.o : this.encEncodings.cl100k;
-    
-    const tokens = encoding.encode(text);
-    return tokens.length;
-  }
-
-  /**
-   * Tier 2: Character-class heuristics
+   * Character-class heuristics
    */
   tier2_characterHeuristic(text, provider = 'openai') {
     const mults = this.multipliers[provider] || this.multipliers.openai;
@@ -141,7 +110,6 @@ class TokenCounter {
     if (typeof content === 'string') {
       total += this.estimateTokens(content, { provider });
     } else if (Array.isArray(content)) {
-      // Array of messages or blocks
       content.forEach(item => {
         if (item.content) {
           total += this.countStructuredContent(item.content, provider);
@@ -151,12 +119,11 @@ class TokenCounter {
           total += this.estimateTokens(item, { provider });
         }
       });
-    } else if (typeof content === 'object') {
-      // Recursively count all string values
+    } else if (typeof content === 'object' && content !== null) {
       Object.values(content).forEach(val => {
         if (typeof val === 'string') {
           total += this.estimateTokens(val, { provider });
-        } else if (typeof val === 'object') {
+        } else if (typeof val === 'object' && val !== null) {
           total += this.countStructuredContent(val, provider);
         }
       });

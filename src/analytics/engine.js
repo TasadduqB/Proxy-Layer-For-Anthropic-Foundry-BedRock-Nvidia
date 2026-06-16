@@ -1,87 +1,59 @@
 /**
  * Analytics Engine - Session tracking, lifetime metrics, recommendations
+ * Storage: JSON file at ~/.proxy-max/analytics.json (no native deps)
  */
 
-const sqlite3 = require('sqlite3').verbose();
+const fs = require('fs');
 const path = require('path');
+const os = require('os');
+
+const DATA_DIR = path.join(os.homedir(), '.proxy-max');
+const DATA_FILE = path.join(DATA_DIR, 'analytics.json');
+
+const EMPTY_STORE = () => ({
+  sessions: {},          // { [sessionId]: sessionRow }
+  request_logs: [],      // array of request rows
+  optimization_opportunities: [], // array of opportunity rows
+  _nextLogId: 1,
+  _nextOppId: 1,
+});
 
 class AnalyticsEngine {
-  constructor(dbPath = null) {
-    this.dbPath = dbPath || path.join(process.env.HOME || process.env.USERPROFILE, '.proxy-max', 'analytics.db');
-    this.db = null;
+  constructor(dataPath = null) {
+    this.dataPath = dataPath || DATA_FILE;
     this.sessionId = null;
     this.sessionStartTime = null;
-    this.initDB();
+    this._store = null;
+    this._load();
   }
 
-  /**
-   * Initialize SQLite database with schema
-   */
-  initDB() {
-    this.db = new sqlite3.Database(this.dbPath, (err) => {
-      if (err) console.error('DB init error:', err);
-      else console.log('Analytics DB ready at', this.dbPath);
-    });
+  // ---- internal persistence ----
 
-    // Create tables
-    this.db.serialize(() => {
-      // Request logs
-      this.db.run(`
-        CREATE TABLE IF NOT EXISTS request_logs (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          session_id TEXT,
-          timestamp INTEGER,
-          provider TEXT,
-          model TEXT,
-          input_tokens INTEGER,
-          output_tokens INTEGER,
-          cached_tokens INTEGER,
-          cost_nano_usd INTEGER,
-          compression_mode TEXT,
-          original_token_count INTEGER,
-          compressed_token_count INTEGER,
-          response_time_ms INTEGER,
-          status TEXT,
-          upstream TEXT
-        )
-      `);
+  _load() {
+    try {
+      fs.mkdirSync(path.dirname(this.dataPath), { recursive: true });
+    } catch { /* already exists */ }
 
-      // Session summary
-      this.db.run(`
-        CREATE TABLE IF NOT EXISTS sessions (
-          id TEXT PRIMARY KEY,
-          start_time INTEGER,
-          end_time INTEGER,
-          total_requests INTEGER,
-          total_input_tokens INTEGER,
-          total_output_tokens INTEGER,
-          total_cost_nano_usd INTEGER,
-          total_tokens_saved INTEGER,
-          compression_enabled BOOLEAN,
-          DEFAULT_MODE TEXT
-        )
-      `);
-
-      // Command optimization opportunities
-      this.db.run(`
-        CREATE TABLE IF NOT EXISTS optimization_opportunities (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          session_id TEXT,
-          command TEXT,
-          current_output_tokens INTEGER,
-          estimated_reduced_tokens INTEGER,
-          savings_pct REAL,
-          suggested_filter TEXT,
-          timestamp INTEGER
-        )
-      `);
-
-      // Create indexes
-      this.db.run('CREATE INDEX IF NOT EXISTS idx_session_timestamp ON request_logs(session_id, timestamp)');
-      this.db.run('CREATE INDEX IF NOT EXISTS idx_provider ON request_logs(provider)');
-      this.db.run('CREATE INDEX IF NOT EXISTS idx_model ON request_logs(model)');
-    });
+    try {
+      const raw = fs.readFileSync(this.dataPath, 'utf8');
+      const parsed = JSON.parse(raw);
+      // Ensure all top-level keys exist (forward-compat with old files).
+      this._store = Object.assign(EMPTY_STORE(), parsed);
+    } catch {
+      this._store = EMPTY_STORE();
+    }
   }
+
+  _save() {
+    try {
+      fs.mkdirSync(path.dirname(this.dataPath), { recursive: true });
+      fs.writeFileSync(this.dataPath, JSON.stringify(this._store, null, 2), 'utf8');
+    } catch (e) {
+      console.error('[analytics] save error:', e.message);
+    }
+  }
+
+  // ---- public API (mirrors the original SQLite-based engine) ----
 
   /**
    * Start new session
@@ -89,12 +61,19 @@ class AnalyticsEngine {
   startSession(sessionId = null) {
     this.sessionId = sessionId || `session_${Date.now()}`;
     this.sessionStartTime = Date.now();
-    
-    this.db.run(
-      'INSERT INTO sessions (id, start_time, total_requests, total_input_tokens, total_output_tokens, total_cost_nano_usd, total_tokens_saved, compression_enabled) VALUES (?, ?, 0, 0, 0, 0, 0, 1)',
-      [this.sessionId, this.sessionStartTime]
-    );
 
+    this._store.sessions[this.sessionId] = {
+      id: this.sessionId,
+      start_time: this.sessionStartTime,
+      end_time: null,
+      total_requests: 0,
+      total_input_tokens: 0,
+      total_output_tokens: 0,
+      total_cost_nano_usd: 0,
+      total_tokens_saved: 0,
+      compression_enabled: 1,
+    };
+    this._save();
     return this.sessionId;
   }
 
@@ -121,208 +100,180 @@ class AnalyticsEngine {
     const compressedCount = compressedTokenCount || inputTokens + outputTokens;
     const tokensSaved = originalCount - compressedCount;
 
-    this.db.run(
-      `INSERT INTO request_logs 
-       (session_id, timestamp, provider, model, input_tokens, output_tokens, cached_tokens, cost_nano_usd, 
-        compression_mode, original_token_count, compressed_token_count, response_time_ms, status, upstream)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        this.sessionId,
-        Date.now(),
-        provider,
-        model,
-        inputTokens,
-        outputTokens,
-        cachedTokens,
-        costNanoUsd,
-        compressionMode,
-        originalCount,
-        compressedCount,
-        responseTimeMs,
-        status,
-        upstream,
-      ]
-    );
+    const row = {
+      id: this._store._nextLogId++,
+      session_id: this.sessionId,
+      timestamp: Date.now(),
+      provider,
+      model,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      cached_tokens: cachedTokens,
+      cost_nano_usd: costNanoUsd,
+      compression_mode: compressionMode,
+      original_token_count: originalCount,
+      compressed_token_count: compressedCount,
+      response_time_ms: responseTimeMs,
+      status,
+      upstream,
+    };
+    this._store.request_logs.push(row);
 
-    // Update session totals
-    this.db.run(
-      `UPDATE sessions SET total_requests = total_requests + 1,
-       total_input_tokens = total_input_tokens + ?,
-       total_output_tokens = total_output_tokens + ?,
-       total_cost_nano_usd = total_cost_nano_usd + ?,
-       total_tokens_saved = total_tokens_saved + ?
-       WHERE id = ?`,
-      [inputTokens, outputTokens, costNanoUsd, tokensSaved, this.sessionId]
-    );
+    // Keep log from growing unboundedly (keep last 10 000 rows).
+    if (this._store.request_logs.length > 10000) {
+      this._store.request_logs = this._store.request_logs.slice(-10000);
+    }
+
+    // Update session totals.
+    const sess = this._store.sessions[this.sessionId];
+    if (sess) {
+      sess.total_requests += 1;
+      sess.total_input_tokens += inputTokens;
+      sess.total_output_tokens += outputTokens;
+      sess.total_cost_nano_usd += costNanoUsd;
+      sess.total_tokens_saved += tokensSaved;
+    }
+
+    this._save();
   }
 
   /**
    * Record optimization opportunity
    */
   logOpportunity(command, currentTokens, estimatedReduced, suggestedFilter = null) {
-    const savingsPct = ((currentTokens - estimatedReduced) / currentTokens) * 100;
+    const savingsPct = currentTokens > 0
+      ? ((currentTokens - estimatedReduced) / currentTokens) * 100
+      : 0;
 
-    this.db.run(
-      `INSERT INTO optimization_opportunities 
-       (session_id, command, current_output_tokens, estimated_reduced_tokens, savings_pct, suggested_filter, timestamp)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [this.sessionId, command, currentTokens, estimatedReduced, savingsPct, suggestedFilter, Date.now()]
-    );
+    this._store.optimization_opportunities.push({
+      id: this._store._nextOppId++,
+      session_id: this.sessionId,
+      command,
+      current_output_tokens: currentTokens,
+      estimated_reduced_tokens: estimatedReduced,
+      savings_pct: savingsPct,
+      suggested_filter: suggestedFilter,
+      timestamp: Date.now(),
+    });
+
+    // Keep last 1 000 opportunities.
+    if (this._store.optimization_opportunities.length > 1000) {
+      this._store.optimization_opportunities = this._store.optimization_opportunities.slice(-1000);
+    }
+
+    this._save();
   }
 
   /**
    * Get session statistics
    */
   getSessionStats(sessionId = null) {
-    return new Promise((resolve, reject) => {
-      const sid = sessionId || this.sessionId;
-      
-      this.db.get(
-        'SELECT * FROM sessions WHERE id = ?',
-        [sid],
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(row || {});
-        }
-      );
-    });
+    const sid = sessionId || this.sessionId;
+    return Promise.resolve(this._store.sessions[sid] || {});
   }
 
   /**
    * Get request history for session
    */
   getRequestHistory(sessionId = null, limit = 100) {
-    return new Promise((resolve, reject) => {
-      const sid = sessionId || this.sessionId;
-
-      this.db.all(
-        `SELECT * FROM request_logs WHERE session_id = ? ORDER BY timestamp DESC LIMIT ?`,
-        [sid, limit],
-        (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows || []);
-        }
-      );
-    });
+    const sid = sessionId || this.sessionId;
+    const rows = this._store.request_logs
+      .filter(r => r.session_id === sid)
+      .slice(-limit)
+      .reverse();
+    return Promise.resolve(rows);
   }
 
   /**
    * Get provider breakdown
    */
   getProviderBreakdown(sessionId = null) {
-    return new Promise((resolve, reject) => {
-      const sid = sessionId || this.sessionId;
-
-      this.db.all(
-        `SELECT provider, 
-                COUNT(*) as request_count,
-                SUM(input_tokens) as total_input,
-                SUM(output_tokens) as total_output,
-                SUM(cost_nano_usd) as total_cost_nano
-         FROM request_logs
-         WHERE session_id = ?
-         GROUP BY provider
-         ORDER BY total_cost_nano DESC`,
-        [sid],
-        (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows || []);
-        }
-      );
-    });
+    const sid = sessionId || this.sessionId;
+    const map = {};
+    for (const r of this._store.request_logs) {
+      if (r.session_id !== sid) continue;
+      const key = r.provider || 'unknown';
+      if (!map[key]) map[key] = { provider: key, request_count: 0, total_input: 0, total_output: 0, total_cost_nano: 0 };
+      map[key].request_count += 1;
+      map[key].total_input += r.input_tokens;
+      map[key].total_output += r.output_tokens;
+      map[key].total_cost_nano += r.cost_nano_usd;
+    }
+    const rows = Object.values(map).sort((a, b) => b.total_cost_nano - a.total_cost_nano);
+    return Promise.resolve(rows);
   }
 
   /**
    * Get model breakdown
    */
   getModelBreakdown(sessionId = null) {
-    return new Promise((resolve, reject) => {
-      const sid = sessionId || this.sessionId;
-
-      this.db.all(
-        `SELECT model,
-                COUNT(*) as request_count,
-                SUM(input_tokens) as total_input,
-                SUM(output_tokens) as total_output,
-                SUM(cost_nano_usd) as total_cost_nano,
-                SUM(compressed_token_count - original_token_count) as tokens_saved
-         FROM request_logs
-         WHERE session_id = ?
-         GROUP BY model
-         ORDER BY total_cost_nano DESC`,
-        [sid],
-        (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows || []);
-        }
-      );
-    });
+    const sid = sessionId || this.sessionId;
+    const map = {};
+    for (const r of this._store.request_logs) {
+      if (r.session_id !== sid) continue;
+      const key = r.model || 'unknown';
+      if (!map[key]) map[key] = { model: key, request_count: 0, total_input: 0, total_output: 0, total_cost_nano: 0, tokens_saved: 0 };
+      map[key].request_count += 1;
+      map[key].total_input += r.input_tokens;
+      map[key].total_output += r.output_tokens;
+      map[key].total_cost_nano += r.cost_nano_usd;
+      map[key].tokens_saved += (r.compressed_token_count - r.original_token_count);
+    }
+    const rows = Object.values(map).sort((a, b) => b.total_cost_nano - a.total_cost_nano);
+    return Promise.resolve(rows);
   }
 
   /**
    * Get compression impact
    */
   getCompressionStats(sessionId = null) {
-    return new Promise((resolve, reject) => {
-      const sid = sessionId || this.sessionId;
-
-      this.db.all(
-        `SELECT compression_mode,
-                COUNT(*) as request_count,
-                SUM(original_token_count) as original_tokens,
-                SUM(compressed_token_count) as compressed_tokens,
-                SUM(original_token_count - compressed_token_count) as tokens_saved
-         FROM request_logs
-         WHERE session_id = ?
-         GROUP BY compression_mode
-         ORDER BY tokens_saved DESC`,
-        [sid],
-        (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows || []);
-        }
-      );
-    });
+    const sid = sessionId || this.sessionId;
+    const map = {};
+    for (const r of this._store.request_logs) {
+      if (r.session_id !== sid) continue;
+      const key = r.compression_mode || 'none';
+      if (!map[key]) map[key] = { compression_mode: key, request_count: 0, original_tokens: 0, compressed_tokens: 0, tokens_saved: 0 };
+      map[key].request_count += 1;
+      map[key].original_tokens += r.original_token_count;
+      map[key].compressed_tokens += r.compressed_token_count;
+      map[key].tokens_saved += (r.original_token_count - r.compressed_token_count);
+    }
+    const rows = Object.values(map).sort((a, b) => b.tokens_saved - a.tokens_saved);
+    return Promise.resolve(rows);
   }
 
   /**
    * Get lifetime statistics across all sessions
    */
   getLifetimeStats() {
-    return new Promise((resolve, reject) => {
-      this.db.get(
-        `SELECT 
-                COUNT(DISTINCT id) as total_sessions,
-                SUM(total_requests) as total_requests,
-                SUM(total_input_tokens) as total_input_tokens,
-                SUM(total_output_tokens) as total_output_tokens,
-                SUM(total_cost_nano_usd) as total_cost_nano_usd,
-                SUM(total_tokens_saved) as total_tokens_saved
-         FROM sessions`,
-        (err, row) => {
-          if (err) reject(err);
-          else resolve(row || {});
-        }
-      );
-    });
+    const sessions = Object.values(this._store.sessions);
+    const result = {
+      total_sessions: sessions.length,
+      total_requests: 0,
+      total_input_tokens: 0,
+      total_output_tokens: 0,
+      total_cost_nano_usd: 0,
+      total_tokens_saved: 0,
+    };
+    for (const s of sessions) {
+      result.total_requests += s.total_requests || 0;
+      result.total_input_tokens += s.total_input_tokens || 0;
+      result.total_output_tokens += s.total_output_tokens || 0;
+      result.total_cost_nano_usd += s.total_cost_nano_usd || 0;
+      result.total_tokens_saved += s.total_tokens_saved || 0;
+    }
+    return Promise.resolve(result);
   }
 
   /**
    * Get top optimization opportunities
    */
   getOptimizationOpportunities(limit = 10) {
-    return new Promise((resolve, reject) => {
-      this.db.all(
-        `SELECT * FROM optimization_opportunities
-         ORDER BY savings_pct DESC
-         LIMIT ?`,
-        [limit],
-        (err, rows) => {
-          if (err) reject(err);
-          else resolve(rows || []);
-        }
-      );
-    });
+    const rows = this._store.optimization_opportunities
+      .slice()
+      .sort((a, b) => b.savings_pct - a.savings_pct)
+      .slice(0, limit);
+    return Promise.resolve(rows);
   }
 
   /**
@@ -330,28 +281,19 @@ class AnalyticsEngine {
    */
   endSession(sessionId = null) {
     const sid = sessionId || this.sessionId;
-    return new Promise((resolve, reject) => {
-      this.db.run(
-        'UPDATE sessions SET end_time = ? WHERE id = ?',
-        [Date.now(), sid],
-        (err) => {
-          if (err) reject(err);
-          else resolve();
-        }
-      );
-    });
+    const sess = this._store.sessions[sid];
+    if (sess) {
+      sess.end_time = Date.now();
+      this._save();
+    }
+    return Promise.resolve();
   }
 
   /**
-   * Close database connection
+   * Close (no-op for file-based storage; kept for API compatibility)
    */
   close() {
-    return new Promise((resolve, reject) => {
-      this.db.close((err) => {
-        if (err) reject(err);
-        else resolve();
-      });
-    });
+    return Promise.resolve();
   }
 }
 

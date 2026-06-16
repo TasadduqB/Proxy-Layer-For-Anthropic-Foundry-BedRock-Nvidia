@@ -9,6 +9,13 @@ const { callBedrock } = require('./providers/bedrock');
 const MODELS = require('./models');
 const installer = require('./install');
 
+const AnalyticsEngine = require('./analytics/engine');
+const TokenCounter = require('./token-analyzer/counter');
+const PricingCalculator = require('./cost-calculator/pricing');
+const ProseCompressor = require('./compression/prose-compressor');
+const { OutputFilter, BUILTIN_FILTERS } = require('./output-filters/filter');
+const DASHBOARD_ROUTES = require('./dashboard/routes');
+
 const ROOT = path.resolve(__dirname, '..');
 const CONFIG_PATH        = process.env.PROXY_MAX_CONFIG       || path.join(ROOT, 'config.json');
 const PANEL_EVENTS_PATH  = process.env.PROXY_MAX_PANEL_EVENTS || path.join(ROOT, 'panel-events.json');
@@ -29,6 +36,14 @@ function saveConfig(cfg) {
 }
 
 let CONFIG = loadConfig();
+
+// ---- Analytics / dashboard utilities ----
+const analytics    = new AnalyticsEngine();
+const tokenCounter = new TokenCounter();
+const pricingCalc  = new PricingCalculator();
+const compressor   = new ProseCompressor();
+// Shared deps object threaded into every dashboard route handler.
+const dashDeps = { analytics, tokenCounter, pricingCalc, compressor };
 
 function loadPanelEvents() {
   try {
@@ -1001,6 +1016,23 @@ const server = http.createServer(async (req, res) => {
     }
     if (u.pathname === '/api/launch/command' && req.method === 'GET') return handleLaunchCommand(req, res);
     if (u.pathname === '/api/reload') { CONFIG = loadConfig(); return send(res, 200, { ok: true }); }
+
+    // ---- Dashboard routes ----
+    const dashKey = `${req.method} ${u.pathname}`;
+    if (DASHBOARD_ROUTES[dashKey]) return DASHBOARD_ROUTES[dashKey](req, res, dashDeps);
+
+    // Serve dashboard.html at /dashboard
+    if (u.pathname === '/dashboard' && req.method === 'GET') {
+      const dashFile = path.join(ROOT, 'ui', 'dashboard.html');
+      try {
+        const data = fs.readFileSync(dashFile);
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        return res.end(data);
+      } catch {
+        return send(res, 404, 'dashboard.html not found');
+      }
+    }
+
     return serveStatic(req, res);
   } catch (err) {
     console.error('[proxy] unhandled:', err);
@@ -1010,9 +1042,13 @@ const server = http.createServer(async (req, res) => {
 
 const PORT = parseInt(process.env.PORT || '8787', 10);
 const HOST = process.env.HOST || '127.0.0.1';
+
+analytics.startSession();
+
 server.listen(PORT, HOST, () => {
   console.log(`\nProxy-Max running`);
   console.log(`  UI:        http://${HOST}:${PORT}/`);
+  console.log(`  Dashboard: http://${HOST}:${PORT}/dashboard`);
   console.log(`  API base:  http://${HOST}:${PORT}  (point ANTHROPIC_BASE_URL here)`);
   console.log(`  Config:    ${CONFIG_PATH}`);
   console.log(`  Log file:  ${LOG_FILE}  (tail -f for live view)`);
@@ -1022,4 +1058,15 @@ server.listen(PORT, HOST, () => {
   } else {
     console.log(`  Active:    (none — open the UI to configure)`);
   }
+});
+
+process.on('SIGINT', async () => {
+  console.log('\n[proxy] shutting down...');
+  try {
+    await analytics.endSession();
+    await analytics.close();
+  } catch (e) {
+    console.error('[proxy] analytics shutdown error:', e.message);
+  }
+  server.close(() => process.exit(0));
 });
