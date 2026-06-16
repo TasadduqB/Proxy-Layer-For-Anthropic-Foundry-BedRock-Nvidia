@@ -353,6 +353,7 @@ function buildResponsesPayload(body, model) {
   };
   if (instructions) payload.instructions = instructions;
   if (body.max_tokens != null) payload.max_output_tokens = body.max_tokens;
+  if (body.stop_sequences && body.stop_sequences.length) payload.stop = body.stop_sequences;
 
   if (body.tools && body.tools.length > 0) {
     payload.tools = body.tools.map(t => ({
@@ -672,13 +673,19 @@ async function streamChatCompletions(upstream, emitter, idleTimeoutMs) {
 
 // Azure /openai/responses SSE streaming (Responses API event format).
 async function streamResponsesApi(upstream, emitter, idleTimeoutMs) {
+  // Track in-flight function_call items so we can detect missed delta chunks.
+  const pending = new Map(); // output_index → { id, name, argsBuf }
+
   for await (const evt of iterSSE(upstream, idleTimeoutMs)) {
     if (!evt.type) {
-      // Fallback: treat as chat completions event if it has choices
+      // Fallback: some Azure versions emit chat-completion-shaped chunks.
       if (evt.choices) {
         const choice = evt.choices[0];
         const delta = choice?.delta || {};
         if (delta.content) emitter.deltaText(delta.content);
+        if (delta.tool_calls) {
+          for (const tc of delta.tool_calls) emitter.deltaToolCall(tc.index ?? 0, tc);
+        }
         if (choice?.finish_reason) emitter.setStopReason(choice.finish_reason);
       }
       if (evt.usage) emitter.setUsage(evt.usage);
@@ -688,30 +695,57 @@ async function streamResponsesApi(upstream, emitter, idleTimeoutMs) {
       case 'response.output_text.delta':
         emitter.deltaText(evt.delta || '');
         break;
+      case 'response.output_text.done':
+        break; // already accumulated via delta
       case 'response.output_item.added':
-        // tool call block started
         if (evt.item?.type === 'function_call') {
-          emitter.deltaToolCall(evt.output_index ?? 0, {
+          const idx = evt.output_index ?? 0;
+          pending.set(idx, { id: evt.item.id, name: evt.item.name || '', argsBuf: '' });
+          emitter.deltaToolCall(idx, {
             id: evt.item.id,
             function: { name: evt.item.name || '', arguments: '' }
           });
         }
         break;
-      case 'response.function_call_arguments.delta':
-        emitter.deltaToolCall(evt.output_index ?? 0, {
-          function: { arguments: evt.delta || '' }
-        });
+      case 'response.output_item.done':
+        // Finalize: if delta stream was incomplete, emit the missing tail.
+        if (evt.item?.type === 'function_call') {
+          const idx = evt.output_index ?? 0;
+          const p = pending.get(idx);
+          if (p && evt.item.arguments != null) {
+            const missing = String(evt.item.arguments).slice(p.argsBuf.length);
+            if (missing) emitter.deltaToolCall(idx, { function: { arguments: missing } });
+          }
+          pending.delete(idx);
+        }
         break;
+      case 'response.function_call_arguments.delta': {
+        const idx = evt.output_index ?? 0;
+        const chunk = evt.delta || '';
+        const p = pending.get(idx);
+        if (p) p.argsBuf += chunk;
+        emitter.deltaToolCall(idx, { function: { arguments: chunk } });
+        break;
+      }
+      case 'response.function_call_arguments.done':
+        break; // already accumulated via delta
       case 'response.completed':
       case 'response.incomplete': {
         const resp = evt.response || {};
         if (resp.usage) emitter.setUsage(resp.usage);
-        // Truncation (e.g. reasoning model hitting the token cap) -> max_tokens.
         const truncated = resp.status === 'incomplete' ||
           resp.incomplete_details?.reason === 'max_output_tokens';
-        emitter.setStopReason(truncated ? 'length' : 'stop');
+        const hasTools = pending.size > 0 ||
+          (resp.output || []).some(o => o.type === 'function_call');
+        emitter.setStopReason(hasTools ? 'tool_calls' : truncated ? 'length' : 'stop');
         break;
       }
+      case 'error':
+        throw Object.assign(
+          new Error(`Responses API stream error: ${evt.message || evt.code || JSON.stringify(evt)}`),
+          { stage: 'responses-api-stream' }
+        );
+      // response.created, response.in_progress — informational, skip
     }
   }
 }
@@ -735,17 +769,17 @@ function parseResponse(json, isResponsesApi) {
   // Responses API: { output: [ { type:'message', content: [{type:'output_text', text:'...'}] } ] }
   if (json.output) {
     const outputMsg = json.output.find(o => o.type === 'message');
-    const textPart = outputMsg?.content?.find(c => c.type === 'output_text');
+    const textPart = outputMsg?.content?.find(c => c.type === 'output_text' || c.type === 'text');
+    const thinkingPart = outputMsg?.content?.find(c => c.type === 'reasoning' || c.type === 'thinking');
     const toolItems = (json.output || []).filter(o => o.type === 'function_call');
     const truncated = json.status === 'incomplete' ||
       json.incomplete_details?.reason === 'max_output_tokens';
     return {
       text: textPart?.text || '',
+      thinking: thinkingPart?.text || thinkingPart?.summary?.map(s => s.text || '').join('') || '',
       toolCalls: toolItems.map(tc => ({
         id: tc.id, name: tc.name, arguments: tc.arguments
       })),
-      // The Responses API has no per-message finish_reason; infer tool_use from
-      // the presence of function_call items, and length when truncated.
       stopReason: toolItems.length ? 'tool_calls' : (truncated ? 'length' : 'stop')
     };
   }
@@ -779,15 +813,14 @@ function modelForUpstream(cfg) {
 
 // Models whose Azure deployment Target URI points to /openai/responses (not Chat Completions).
 // When users enter a base URL, route these to /openai/responses automatically.
-const RESPONSES_API_MODELS = new Set(['gpt-5.5', 'gpt-5.2', 'gpt-5.1', 'gpt-5', 'o3', 'o4-mini']);
-// Also detect by model-id prefix/suffix patterns (deployment names often end in a suffix like -TVS).
+// Only models that exclusively use the Responses API (no chat/completions endpoint).
+// gpt-5.x models support standard chat/completions — only use responses when the
+// user explicitly pastes a full /openai/responses Target URI as the endpoint.
+const RESPONSES_API_MODELS = new Set(['o3', 'o4-mini']);
 function requiresResponsesApi(modelId) {
   if (!modelId) return false;
   const m = modelId.toLowerCase();
-  if (RESPONSES_API_MODELS.has(m)) return true;
-  // Match deployment names like "gpt-5.2-TVS" — strip trailing alphanumeric suffix and check base
-  const base = m.replace(/-[a-z0-9]+$/i, '');
-  return RESPONSES_API_MODELS.has(base);
+  return RESPONSES_API_MODELS.has(m);
 }
 
 function buildRequest(cfg) {
@@ -797,7 +830,10 @@ function buildRequest(cfg) {
     //   2) Responses API: model requires /openai/responses (e.g. gpt-5.5)
     //   3) AOAI deployment: {endpoint}/openai/deployments/{deployment}/chat/completions?api-version=...
     //   4) Direct Foundry inference: {endpoint}/chat/completions?api-version=...
-    const endpoint = (cfg.endpoint || '').trim().replace(/\/+$/, '');
+    // Azure portal often shows cognitiveservices.azure.com but the live DNS record
+    // is under openai.azure.com — rewrite transparently so pasting the portal URL works.
+    const endpoint = (cfg.endpoint || '').trim().replace(/\/+$/, '')
+      .replace(/\.cognitiveservices\.azure\.com\b/, '.openai.azure.com');
     const apiVersion = cfg.apiVersion || '2024-10-21';
 
     let pathname = '';
