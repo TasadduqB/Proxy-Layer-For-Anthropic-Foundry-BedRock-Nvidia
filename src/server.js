@@ -121,6 +121,18 @@ const OPT_STATS = {
   responseCacheCostSavedNano: 0,
 };
 
+// Restore cumulative OPT_STATS from previous runs; always reset startedAt to now.
+{
+  try {
+    const saved = store.ready() ? store.kvGet('opt_stats') : null;
+    if (saved && typeof saved === 'object') {
+      for (const k of Object.keys(OPT_STATS)) {
+        if (k !== 'startedAt' && typeof saved[k] === 'number') OPT_STATS[k] = saved[k];
+      }
+    }
+  } catch {}
+}
+
 function send(res, status, body, headers = {}) {
   const isString = typeof body === 'string' || Buffer.isBuffer(body);
   const data = isString ? body : JSON.stringify(body);
@@ -542,6 +554,7 @@ async function handleMessages(req, res) {
           cachedTokens: savedTokens, costNanoUsd: 0,
           compressionMode: 'response-cache', responseTimeMs: 0, status: 'cache_hit'
         });
+        try { const { startedAt: _, ...s } = OPT_STATS; store.kvSet('opt_stats', s); } catch {}
       } catch {}
       // Build a fresh log entry for the hit.
       pushLog({
@@ -803,6 +816,7 @@ async function handleMessages(req, res) {
             responseTimeMs: attemptLog.durationMs,
             status: 'success'
           });
+          try { const { startedAt: _, ...s } = OPT_STATS; store.kvSet('opt_stats', s); } catch {}
 
           // Store the captured response in the lossless cache (success only).
           if (opt.responseCache.enabled && cacheKey && res._capturedBody && res._capturedBody.length > 0) {

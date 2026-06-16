@@ -204,22 +204,21 @@ class AnalyticsEngine {
    * Get request history for session
    */
   getRequestHistory(sessionId = null, limit = 100) {
-    const sid = sessionId || this.sessionId;
-    const rows = this._store.request_logs
-      .filter(r => r.session_id === sid)
-      .slice(-limit)
-      .reverse();
-    return Promise.resolve(rows);
+    const logs = sessionId
+      ? this._store.request_logs.filter(r => r.session_id === sessionId)
+      : this._store.request_logs;
+    return Promise.resolve(logs.slice(-limit).reverse());
   }
 
   /**
    * Get provider breakdown
    */
   getProviderBreakdown(sessionId = null) {
-    const sid = sessionId || this.sessionId;
+    const logs = sessionId
+      ? this._store.request_logs.filter(r => r.session_id === sessionId)
+      : this._store.request_logs;
     const map = {};
-    for (const r of this._store.request_logs) {
-      if (r.session_id !== sid) continue;
+    for (const r of logs) {
       const key = r.provider || 'unknown';
       if (!map[key]) map[key] = { provider: key, request_count: 0, total_input: 0, total_output: 0, total_cost_nano: 0 };
       map[key].request_count += 1;
@@ -235,17 +234,18 @@ class AnalyticsEngine {
    * Get model breakdown
    */
   getModelBreakdown(sessionId = null) {
-    const sid = sessionId || this.sessionId;
+    const logs = sessionId
+      ? this._store.request_logs.filter(r => r.session_id === sessionId)
+      : this._store.request_logs;
     const map = {};
-    for (const r of this._store.request_logs) {
-      if (r.session_id !== sid) continue;
+    for (const r of logs) {
       const key = r.model || 'unknown';
       if (!map[key]) map[key] = { model: key, request_count: 0, total_input: 0, total_output: 0, total_cost_nano: 0, tokens_saved: 0 };
       map[key].request_count += 1;
       map[key].total_input += r.input_tokens;
       map[key].total_output += r.output_tokens;
       map[key].total_cost_nano += r.cost_nano_usd;
-      map[key].tokens_saved += (r.compressed_token_count - r.original_token_count);
+      map[key].tokens_saved += (r.original_token_count - r.compressed_token_count);
     }
     const rows = Object.values(map).sort((a, b) => b.total_cost_nano - a.total_cost_nano);
     return Promise.resolve(rows);
@@ -255,10 +255,11 @@ class AnalyticsEngine {
    * Get compression impact
    */
   getCompressionStats(sessionId = null) {
-    const sid = sessionId || this.sessionId;
+    const logs = sessionId
+      ? this._store.request_logs.filter(r => r.session_id === sessionId)
+      : this._store.request_logs;
     const map = {};
-    for (const r of this._store.request_logs) {
-      if (r.session_id !== sid) continue;
+    for (const r of logs) {
       const key = r.compression_mode || 'none';
       if (!map[key]) map[key] = { compression_mode: key, request_count: 0, original_tokens: 0, compressed_tokens: 0, tokens_saved: 0 };
       map[key].request_count += 1;
