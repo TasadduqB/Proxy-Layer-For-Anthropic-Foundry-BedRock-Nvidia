@@ -979,7 +979,7 @@ async function streamResponsesApi(upstream, emitter, idleTimeoutMs) {
           resp.incomplete_details?.reason === 'max_output_tokens';
         const hasTools = sawFunctionCall ||
           (resp.output || []).some(o => o.type === 'function_call');
-        emitter.setStopReason(hasTools ? 'tool_calls' : truncated ? 'length' : 'stop');
+        emitter.setStopReason(truncated ? 'length' : hasTools ? 'tool_calls' : 'stop');
         break;
       }
       case 'error':
