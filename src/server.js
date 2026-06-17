@@ -1889,19 +1889,55 @@ function handleLaunchCommand(_req, res) {
   const host = process.env.HOST || '127.0.0.1';
   const base = `http://${host}:${port}`;
   const claudePath = installer.detectClaude();
-  const claudeCmd = claudePath || 'claude';
-  const platform = process.platform;
+  const claudeCmd  = claudePath || 'claude';
+  const platform   = process.platform;
+  const isWin      = platform === 'win32';
 
-  const unix   = `export ANTHROPIC_BASE_URL="${base}"\nexport ANTHROPIC_AUTH_TOKEN="proxy-max"\nexport ANTHROPIC_API_KEY="proxy-max"\n${claudeCmd} --dangerously-skip-permissions`;
-  const ps     = `$env:ANTHROPIC_BASE_URL = "${base}"\n$env:ANTHROPIC_AUTH_TOKEN = "proxy-max"\n$env:ANTHROPIC_API_KEY = "proxy-max"\n${claudeCmd} --dangerously-skip-permissions`;
-  const wincmd = `set ANTHROPIC_BASE_URL=${base} && set ANTHROPIC_AUTH_TOKEN=proxy-max && set ANTHROPIC_API_KEY=proxy-max && ${claudeCmd} --dangerously-skip-permissions`;
+  // Collect directories that contain node/claude so a fresh terminal can find them.
+  // claude is typically a shell script that calls `node` internally — node MUST be in PATH.
+  const nodeBinDir  = path.dirname(process.execPath);
+  const npmBinDir   = path.join(installer.NPM_PREFIX, isWin ? '' : 'bin');
+  const portNodeDir = path.join(installer.NODE_DIR,   isWin ? '' : 'bin');
+  const claudeDir   = claudePath ? path.dirname(claudePath) : null;
+
+  // Deduplicate; always include so a fresh terminal with no custom PATH works.
+  const pathDirs = [...new Set([claudeDir, npmBinDir, portNodeDir, nodeBinDir].filter(Boolean))];
+
+  const pathUnix = `export PATH="${pathDirs.join(':')}:$PATH"`;
+  const pathPs   = `$env:PATH = "${pathDirs.join(';')};$env:PATH"`;
+  const pathCmds = pathDirs.map(d => `set PATH=${d};%PATH%`);
+
+  const unix = [
+    `export ANTHROPIC_BASE_URL="${base}"`,
+    `export ANTHROPIC_AUTH_TOKEN="proxy-max"`,
+    `export ANTHROPIC_API_KEY="proxy-max"`,
+    pathUnix,
+    `${claudeCmd} --dangerously-skip-permissions`,
+  ].join('\n');
+
+  const ps = [
+    `$env:ANTHROPIC_BASE_URL = "${base}"`,
+    `$env:ANTHROPIC_AUTH_TOKEN = "proxy-max"`,
+    `$env:ANTHROPIC_API_KEY = "proxy-max"`,
+    pathPs,
+    claudePath ? `& '${claudeCmd.replace(/'/g, "''")}' --dangerously-skip-permissions` : `claude --dangerously-skip-permissions`,
+  ].join('\n');
+
+  const wincmd = [
+    `set ANTHROPIC_BASE_URL=${base}`,
+    `set ANTHROPIC_AUTH_TOKEN=proxy-max`,
+    `set ANTHROPIC_API_KEY=proxy-max`,
+    ...pathCmds,
+    `"${claudeCmd}" --dangerously-skip-permissions`,
+  ].join(' && ');
 
   send(res, 200, {
     platform,
     claudeInstalled: !!claudePath,
     claudePath: claudePath || null,
     base,
-    commands: { unix, ps, wincmd }
+    pathDirs,
+    commands: { unix, ps, wincmd },
   });
 }
 

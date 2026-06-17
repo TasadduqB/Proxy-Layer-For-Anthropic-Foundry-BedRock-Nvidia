@@ -280,26 +280,110 @@ function symlinkPythonForHooks() {
   }
 }
 
+// ---- Corporate proxy / SSL helpers ----
+
+function getNpmProxyArgs() {
+  const proxy = process.env.https_proxy || process.env.HTTPS_PROXY
+              || process.env.http_proxy  || process.env.HTTP_PROXY
+              || process.env.npm_config_proxy || '';
+  const caFile = process.env.NODE_EXTRA_CA_CERTS || process.env.npm_config_cafile || '';
+  const args = [];
+  if (proxy) {
+    args.push('--proxy', proxy, '--https-proxy', proxy);
+    log(`Corporate proxy detected: ${proxy}`);
+  }
+  if (caFile) {
+    args.push('--cafile', caFile);
+    log(`Custom CA file: ${caFile}`);
+  }
+  return args;
+}
+
+// Write PATH additions to shell RC files and Windows user registry.
+function persistPath() {
+  const binDirs = [
+    path.join(NPM_PREFIX, isWin ? '' : 'bin'),
+    path.join(NODE_DIR,   isWin ? '' : 'bin'),
+  ].filter(d => { try { return fs.statSync(d).isDirectory(); } catch { return false; } });
+
+  if (!binDirs.length) return;
+
+  if (isWin) {
+    try {
+      const reg = spawnSync('reg', ['query', 'HKCU\\Environment', '/v', 'PATH'],
+        { encoding: 'utf8', stdio: 'pipe' });
+      const m = (reg.stdout || '').match(/PATH\s+REG_(?:EXPAND_)?SZ\s+(.+)/i);
+      const existing = (m ? m[1].trim() : process.env.PATH || '').split(';');
+      const newDirs  = binDirs.filter(d => !existing.includes(d));
+      if (!newDirs.length) { log('Windows PATH already includes required dirs.'); return; }
+      const newPath  = [...newDirs, ...existing].join(';');
+      spawnSync('reg', ['add', 'HKCU\\Environment', '/v', 'PATH', '/t', 'REG_EXPAND_SZ', '/d', newPath, '/f'],
+        { stdio: 'pipe' });
+      log(`Updated Windows user PATH in registry: ${newDirs.join(';')}`);
+      log('Open a NEW terminal for PATH changes to take effect.');
+    } catch (e) { warn('Could not update Windows PATH registry: ' + e.message); }
+    return;
+  }
+
+  const exportLine = `\n# proxy-max PATH additions (added by install.js)\nexport PATH="${binDirs.join(':')}:$PATH"\n`;
+  const shell = process.env.SHELL || '';
+  const rcCandidates = [
+    shell.includes('zsh')  ? path.join(HOME, '.zshrc')  : null,
+    shell.includes('bash') ? path.join(HOME, '.bashrc') : null,
+    path.join(HOME, '.zshrc'),
+    path.join(HOME, '.bashrc'),
+    path.join(HOME, '.profile'),
+  ].filter(Boolean);
+
+  for (const f of [...new Set(rcCandidates)]) {
+    try {
+      if (!fs.existsSync(f)) continue;
+      const content = fs.readFileSync(f, 'utf8');
+      if (content.includes('proxy-max PATH additions')) { log(`PATH already in ${f}`); return; }
+      fs.appendFileSync(f, exportLine, 'utf8');
+      log(`Added PATH to ${f} — run: source ${f}  (or open a new terminal)`);
+      return;
+    } catch {}
+  }
+  warn(`Could not write to any RC file. Add manually:\n${exportLine.trim()}`);
+}
+
 async function ensureClaude(npmBin) {
   const found = detectClaude();
   if (found) return found;
   log('Installing @anthropic-ai/claude-code…');
 
-  // First attempt: global install with admin (or if user prefix is already writable).
+  const proxyArgs = getNpmProxyArgs();
+  const perUserEnv = { ...process.env, npm_config_prefix: NPM_PREFIX };
+
+  // Attempt 1: global install as admin (when available).
   if (isAdmin()) {
-    if (run(npmBin, ['install', '-g', '@anthropic-ai/claude-code'])) {
-      const c = detectClaude();
-      if (c) return c;
+    if (run(npmBin, ['install', '-g', '@anthropic-ai/claude-code', ...proxyArgs])) {
+      const c = detectClaude(); if (c) return c;
     }
   }
-  // Second attempt: per-user prefix (no admin).
+
+  // Attempt 2: per-user prefix (no admin needed).
   log('Falling back to per-user install at ' + NPM_PREFIX);
-  const env = { ...process.env, npm_config_prefix: NPM_PREFIX };
-  if (run(npmBin, ['install', '-g', '@anthropic-ai/claude-code'], { env })) {
-    const c = detectClaude();
-    if (c) return c;
+  if (run(npmBin, ['install', '-g', '@anthropic-ai/claude-code', ...proxyArgs], { env: perUserEnv })) {
+    const c = detectClaude(); if (c) return c;
   }
-  throw new Error('Failed to install @anthropic-ai/claude-code via npm.');
+
+  // Attempt 3: same but with --strict-ssl=false for corporate SSL-inspection proxies.
+  if (!proxyArgs.includes('--strict-ssl=false')) {
+    warn('Retrying with --strict-ssl=false (corporate SSL-inspection proxy workaround)…');
+    if (run(npmBin, ['install', '-g', '@anthropic-ai/claude-code', ...proxyArgs, '--strict-ssl=false'], { env: perUserEnv })) {
+      const c = detectClaude(); if (c) return c;
+    }
+  }
+
+  // Attempt 4: legacy peer deps in case of dependency conflicts.
+  warn('Retrying with --legacy-peer-deps…');
+  if (run(npmBin, ['install', '-g', '@anthropic-ai/claude-code', ...proxyArgs, '--legacy-peer-deps'], { env: perUserEnv })) {
+    const c = detectClaude(); if (c) return c;
+  }
+
+  throw new Error('Failed to install @anthropic-ai/claude-code via npm. Check network/proxy settings and try: node src/install.js --doctor');
 }
 
 // ---- Doctor ----
@@ -345,16 +429,12 @@ async function main() {
     symlinkPythonForHooks();
   }
 
-  // Print a one-liner the user can paste into their shell to make `claude` discoverable.
-  const exportLine = isWin
-    ? `setx PATH "%PATH%;${path.join(NPM_PREFIX, '')};${NODE_DIR}"`
-    : `export PATH="${path.join(NPM_PREFIX, 'bin')}:${path.join(NODE_DIR, 'bin')}:$PATH"`;
-  log('Add to your shell if needed:');
-  log('  ' + exportLine);
+  // Persist PATH so new terminals can find node + claude without manual setup.
+  persistPath();
 }
 
 if (require.main === module) {
   main().catch(err => { warn(err.stack || err.message); process.exit(1); });
 }
 
-module.exports = { detectNode, detectClaude, detectPython, ensurePython, symlinkPythonForHooks, ensureNode, ensureClaude, which, doctor, ROOT, NPM_PREFIX, NODE_DIR };
+module.exports = { detectNode, detectClaude, detectPython, ensurePython, symlinkPythonForHooks, ensureNode, ensureClaude, getNpmProxyArgs, persistPath, which, doctor, ROOT, NPM_PREFIX, NODE_DIR };
