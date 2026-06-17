@@ -387,7 +387,34 @@ function anthropicToolsToOpenAI(tools) {
   }));
 }
 
+// Walk a (possibly truncated) JSON string and return structural state.
+// Only counts braces/brackets that are OUTSIDE string values so that code
+// inside a "content" field (e.g. "int main() { return 0; }") is not counted.
+function _jsonDepth(str) {
+  let openBraces = 0, openBrackets = 0;
+  let inString = false, escape = false;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (escape) { escape = false; continue; }
+    if (ch === '\\' && inString) { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (!inString) {
+      if      (ch === '{') openBraces++;
+      else if (ch === '}') openBraces--;
+      else if (ch === '[') openBrackets++;
+      else if (ch === ']') openBrackets--;
+    }
+  }
+  return {
+    openBraces:   Math.max(0, openBraces),
+    openBrackets: Math.max(0, openBrackets),
+    inString,
+    escape, // true when string ends with an unresolved backslash
+  };
+}
+
 // Lightweight, zero-dependency heuristic JSON repair for LLM tool hallucinations.
+// Handles the common max_tokens truncation case: {"file_path":"x","content":"code...
 function repairJSON(str) {
   if (!str) return "{}";
   str = str.trim();
@@ -398,60 +425,43 @@ function repairJSON(str) {
     let fixed = str;
     // 1. Fix trailing commas before closing braces/brackets
     fixed = fixed.replace(/,\s*([}\]])/g, '$1');
-    // 2. Count unclosed brackets/braces
-    let openBraces = (fixed.match(/{/g) || []).length - (fixed.match(/}/g) || []).length;
-    let openBrackets = (fixed.match(/\[/g) || []).length - (fixed.match(/\]/g) || []).length;
-    // 3. Close open string quotes
-    let inString = false;
-    let escape = false;
-    for (let i = 0; i < fixed.length; i++) {
-      if (fixed[i] === '\\' && !escape) escape = true;
-      else if (fixed[i] === '"' && !escape) inString = !inString;
-      else escape = false;
-    }
-    if (inString) fixed += '"';
-    // 4. Append missing closing brackets/braces
+    const { openBraces, openBrackets, inString, escape } = _jsonDepth(fixed);
+    // 2. Close any open string.  If the last char was a backslash (escape=true)
+    //    appending '"' alone would produce '\"' (escaped quote, not a terminator).
+    //    Instead complete the escape as '\n' then close the string.
+    if (escape)       fixed += 'n"';
+    else if (inString) fixed += '"';
+    // 3. Append missing closing brackets/braces
     for (let i = 0; i < openBrackets; i++) fixed += ']';
-    for (let i = 0; i < openBraces; i++) fixed += '}';
+    for (let i = 0; i < openBraces;   i++) fixed += '}';
     try {
       return JSON.stringify(JSON.parse(fixed));
     } catch (e2) {
-      // If we completely fail, return {} to prevent fatal parser crash.
       return "{}";
     }
   }
 }
 
-// Computes only the missing closing suffix (braces, quotes, etc.) needed to repair JSON
+// Computes only the missing closing suffix (braces, quotes, etc.) needed to repair JSON.
+// Returns '' if the string is already valid or if repair is impossible.
 function getJSONRepairSuffix(str) {
   if (!str) return '';
   str = str.trim();
   if (str === "") return '';
+  try { JSON.parse(str); return ''; } catch (e) { /* fall through */ }
+  let fixed = str;
+  fixed = fixed.replace(/,\s*([}\]])/g, '$1');
+  const { openBraces, openBrackets, inString, escape } = _jsonDepth(fixed);
+  let suffix = '';
+  if (escape)        suffix += 'n"';   // complete \-escape then close string
+  else if (inString) suffix += '"';
+  for (let i = 0; i < openBrackets; i++) suffix += ']';
+  for (let i = 0; i < openBraces;   i++) suffix += '}';
   try {
-    JSON.parse(str);
-    return ''; // already valid
-  } catch (e) {
-    let fixed = str;
-    fixed = fixed.replace(/,\s*([}\]])/g, '$1');
-    let openBraces = (fixed.match(/{/g) || []).length - (fixed.match(/}/g) || []).length;
-    let openBrackets = (fixed.match(/\[/g) || []).length - (fixed.match(/\]/g) || []).length;
-    let inString = false;
-    let escape = false;
-    for (let i = 0; i < fixed.length; i++) {
-      if (fixed[i] === '\\' && !escape) escape = true;
-      else if (fixed[i] === '"' && !escape) inString = !inString;
-      else escape = false;
-    }
-    let suffix = '';
-    if (inString) suffix += '"';
-    for (let i = 0; i < openBrackets; i++) suffix += ']';
-    for (let i = 0; i < openBraces; i++) suffix += '}';
-    try {
-      JSON.parse(str + suffix);
-      return suffix;
-    } catch (e2) {
-      return '';
-    }
+    JSON.parse(fixed + suffix); // test against fixed (trailing commas removed)
+    return suffix;
+  } catch (e2) {
+    return '';
   }
 }
 
@@ -765,7 +775,20 @@ function createAnthropicSSEEmitter(res, model) {
       activeToolBlocks.set(idx, block);
 
       if (block.argsBuf !== undefined) {
-        const suffix = getJSONRepairSuffix(block.argsBuf);
+        let suffix = getJSONRepairSuffix(block.argsBuf);
+        // If normal repair fails (returns '') but we have a partial object that
+        // at least opened with '{', force-close it so Claude Code can parse
+        // whatever partial parameters arrived rather than getting input:{}.
+        if (!suffix && block.argsBuf.trimStart().startsWith('{')) {
+          const { inString, escape, openBraces, openBrackets } = _jsonDepth(block.argsBuf);
+          let forced = '';
+          if (escape)        forced += 'n"';
+          else if (inString) forced += '"';
+          for (let i = 0; i < openBrackets; i++) forced += ']';
+          for (let i = 0; i < openBraces;   i++) forced += '}';
+          // Only use the forced suffix if it actually produces parseable JSON
+          try { JSON.parse(block.argsBuf + forced); suffix = forced; } catch {}
+        }
         if (suffix) {
           send('content_block_delta', {
             type: 'content_block_delta',
@@ -850,7 +873,13 @@ function buildAnthropicResponse({ model, text, thinking, toolCalls, stopReason, 
   if (text) content.push({ type: 'text', text });
   for (const tc of toolCalls || []) {
     let input = {};
+    const rawArgs = (tc.arguments || '').trim();
     try { input = JSON.parse(repairJSON(tc.arguments)); } catch { input = {}; }
+    // If the model sent non-empty arguments but repair produced {} the JSON was
+    // unrecoverably truncated (max_tokens mid-value).  Skip the tool call so
+    // Claude Code sees the max_tokens stop reason and retries gracefully instead
+    // of hitting InputValidationError: file_path/content missing.
+    if (rawArgs && rawArgs !== '{}' && Object.keys(input).length === 0) continue;
     content.push({ type: 'tool_use', id: tc.id || newId('toolu'), name: tc.name, input });
   }
   if (content.length === 0) content.push({ type: 'text', text: '' });
