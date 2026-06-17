@@ -6,45 +6,56 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
   :root {
-    --bg:#070910; --bg2:#0c0f17;
-    --panel:#10131c; --panel2:#161a25; --panel3:#1c2230;
-    --line:#222837; --line2:#2c3346;
-    --text:#e8eaf2; --mute:#8993ab; --dim:#5a6378;
-    --accent:#7aa2ff; --accent2:#b988ff; --accent3:#5ee0c1;
+    --bg:#f5f7fb; --bg2:#ffffff;
+    --panel:#ffffff; --panel2:#f8fafc; --panel3:#eef2f7;
+    --line:#e5e7eb; --line2:#d1d5db;
+    --text:#111827; --mute:#667085; --dim:#98a2b3;
+    --accent:#1877f2; --accent2:#405de6; --accent3:#10b981; --hot:#e1306c;
     --ok:#3ddc97; --warn:#ffb547; --err:#ff6b6b;
     --bedrock:#ff9900; --azure:#0078d4; --nvidia:#76b900;
+    --shadow:0 18px 45px rgba(15,23,42,.10);
+    --glass: none;
   }
   * { box-sizing: border-box; }
   html,body {
     margin:0; padding:0;
     background:
-      radial-gradient(1100px 700px at 12% -10%, rgba(122,162,255,.10), transparent 60%),
-      radial-gradient(900px 600px at 100% 0%, rgba(185,136,255,.08), transparent 55%),
-      var(--bg);
+      linear-gradient(180deg, #f8fafc 0%, #eef2ff 45%, #ffffff 100%);
     color:var(--text); font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
     min-height:100vh;
   }
   a { color:var(--accent); text-decoration:none; }
   button { font:inherit; }
   svg { display:block; }
+  body::before {
+    content:""; position:fixed; inset:0; pointer-events:none; opacity:.26; z-index:-1;
+    background-image: linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size: 46px 46px;
+    mask-image: radial-gradient(circle at 50% 20%, #000 0%, transparent 72%);
+  }
+  ::selection { background:rgba(143,178,255,.35); color:#fff; }
 
   /* ── Layout ── */
-  .app { display:grid; grid-template-columns: 244px 1fr; min-height:100vh; }
+  .app { display:grid; grid-template-columns: 280px 1fr; min-height:100vh; }
   aside {
     border-right:1px solid var(--line);
-    background: linear-gradient(180deg, rgba(255,255,255,0.025) 0%, rgba(255,255,255,0) 100%);
-    padding: 16px 12px;
+    background:
+      radial-gradient(380px 260px at 45% -10%, rgba(143,178,255,.16), transparent 62%),
+      linear-gradient(180deg, rgba(255,255,255,.085), rgba(255,255,255,.025));
+    backdrop-filter: var(--glass);
+    padding: 18px 14px;
     position: sticky; top:0; height:100vh; overflow:auto;
     display:flex; flex-direction:column;
+    box-shadow: 18px 0 60px rgba(0,0,0,.18);
   }
 
   /* ── Brand ── */
   .brand { display:flex; align-items:center; gap:11px; padding:4px 6px 16px; border-bottom:1px solid var(--line); margin-bottom:10px; }
   .brand .logo {
-    width:34px; height:34px; border-radius:9px; flex-shrink:0;
-    background: conic-gradient(from 220deg at 50% 50%, var(--accent), var(--accent2), var(--accent3), var(--accent));
+    width:38px; height:38px; border-radius:13px; flex-shrink:0;
+    background: conic-gradient(from 220deg at 50% 50%, var(--accent), var(--accent2), var(--hot), var(--accent3), var(--accent));
     display:flex; align-items:center; justify-content:center;
-    box-shadow: 0 6px 18px rgba(122,162,255,.22);
+    box-shadow: 0 10px 28px rgba(143,178,255,.30), inset 0 0 18px rgba(255,255,255,.18);
   }
   .brand .logo svg { width:18px; height:18px; color:#0a0c12; }
   .brand .name { font-weight:700; font-size:14.5px; letter-spacing:.2px; line-height:1.2; }
@@ -54,12 +65,12 @@
   nav { display:flex; flex-direction:column; gap:2px; flex:1; }
   .nav-section { color:var(--dim); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; padding:13px 8px 5px; }
   .navitem {
-    display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px;
-    color:var(--mute); cursor:pointer; user-select:none; font-size:13.5px; font-weight:500;
-    border:1px solid transparent; transition:.12s;
+    display:flex; align-items:center; gap:10px; padding:9px 11px; border-radius:12px;
+    color:var(--mute); cursor:pointer; user-select:none; font-size:13.5px; font-weight:600;
+    border:1px solid transparent; transition:.16s ease;
   }
-  .navitem:hover { color:var(--text); background:rgba(255,255,255,.04); }
-  .navitem.active { color:var(--text); background:var(--panel2); border-color:var(--line2); }
+  .navitem:hover { color:var(--text); background:rgba(255,255,255,.055); transform:translateX(2px); }
+  .navitem.active { color:var(--text); background:linear-gradient(135deg, rgba(143,178,255,.22), rgba(94,224,193,.11)); border-color:rgba(143,178,255,.42); box-shadow:0 12px 32px rgba(143,178,255,.16), inset 0 1px 0 rgba(255,255,255,.08); }
   .navitem svg { width:17px; height:17px; flex-shrink:0; opacity:.75; }
   .navitem.active svg { opacity:1; color:var(--accent); }
 
@@ -77,14 +88,14 @@
   .health .value { font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
   /* ── Main ── */
-  main { padding: 24px clamp(16px, 3.5vw, 40px) 80px; max-width: 1140px; }
-  h1 { font-size:21px; font-weight:700; margin:0 0 3px; letter-spacing:.1px; }
+  main { padding: 28px clamp(18px, 3.7vw, 46px) 86px; max-width: 1220px; }
+  h1 { font-size:24px; font-weight:800; margin:0 0 4px; letter-spacing:-.35px; }
   .sub { color:var(--mute); font-size:13px; margin-bottom:16px; line-height:1.5; }
   .topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; margin-bottom:16px; }
   .topbar .pills { display:flex; gap:6px; flex-wrap:wrap; padding-top:4px; }
 
   /* ── Pills ── */
-  .pill { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; background:var(--panel); border:1px solid var(--line); color:var(--mute); font-size:11.5px; }
+  .pill { display:inline-flex; align-items:center; gap:6px; padding:5px 11px; border-radius:999px; background:rgba(255,255,255,.055); border:1px solid var(--line); color:var(--mute); font-size:11.5px; box-shadow:inset 0 1px 0 rgba(255,255,255,.06); }
   .pill .dot { width:6px; height:6px; border-radius:50%; background:var(--mute); }
   .pill.ok   { color:var(--text); } .pill.ok   .dot { background:var(--ok);   }
   .pill.warn { color:var(--text); } .pill.warn .dot { background:var(--warn);  }
@@ -92,10 +103,16 @@
 
   /* ── Cards ── */
   .card {
-    background: linear-gradient(160deg, rgba(255,255,255,.022) 0%, rgba(255,255,255,0) 50%), var(--panel);
-    border:1px solid var(--line); border-radius:14px; padding:18px; margin-bottom:14px;
-    transition: border-color .15s;
+    background:
+      linear-gradient(160deg, rgba(255,255,255,.095) 0%, rgba(255,255,255,.024) 58%),
+      radial-gradient(360px 180px at 0% 0%, rgba(143,178,255,.08), transparent 70%),
+      var(--panel);
+    border:1px solid var(--line); border-radius:22px; padding:22px; margin-bottom:18px;
+    transition: border-color .16s, transform .16s, box-shadow .16s;
+    box-shadow: 0 14px 42px rgba(0,0,0,.18);
+    backdrop-filter: var(--glass);
   }
+  .card:hover { border-color: rgba(122,162,255,.24); transform: translateY(-1px); }
   .card:focus-within { border-color: var(--line2); }
   .card h3 { margin:0 0 12px; font-size:13.5px; font-weight:600; letter-spacing:.15px; display:flex; align-items:center; gap:8px; }
   .card h3 svg { width:16px; height:16px; opacity:.7; }
@@ -134,8 +151,8 @@
   /* ── Forms ── */
   label { display:block; font-size:11px; color:var(--mute); margin:12px 0 5px; letter-spacing:.08em; text-transform:uppercase; font-weight:500; }
   input, select, textarea {
-    width:100%; background:var(--panel2); color:var(--text);
-    border:1px solid var(--line); border-radius:8px; padding:9px 11px; font:inherit; outline:none;
+    width:100%; background:rgba(8,12,24,.58); color:var(--text);
+    border:1px solid var(--line); border-radius:12px; padding:10px 12px; font:inherit; outline:none;
     transition: border-color .12s, box-shadow .12s;
   }
   input:focus, select:focus, textarea:focus { border-color:var(--accent); box-shadow: 0 0 0 3px rgba(122,162,255,.12); }
@@ -146,13 +163,13 @@
   /* ── Buttons ── */
   .btn {
     display:inline-flex; align-items:center; gap:6px;
-    background:var(--accent); color:#0b0d12; border:0; border-radius:8px;
-    padding:9px 15px; font-weight:600; font-size:13.5px; cursor:pointer; transition:.12s;
-    white-space:nowrap;
+    background:linear-gradient(135deg, var(--accent), var(--accent3)); color:#07101b; border:0; border-radius:13px;
+    padding:10px 16px; font-weight:800; font-size:13.5px; cursor:pointer; transition:.14s ease;
+    white-space:nowrap; box-shadow:0 12px 30px rgba(143,178,255,.22), inset 0 1px 0 rgba(255,255,255,.35);
   }
   .btn svg { width:15px; height:15px; }
-  .btn:hover { filter:brightness(1.08); }
-  .btn.secondary { background:transparent; color:var(--text); border:1px solid var(--line2); }
+  .btn:hover { filter:brightness(1.08); transform:translateY(-1px); }
+  .btn.secondary { background:rgba(255,255,255,.03); color:var(--text); border:1px solid var(--line2); box-shadow:none; }
   .btn.secondary:hover { background:var(--panel2); border-color:var(--accent); }
   .btn.ghost { background:transparent; color:var(--mute); border:1px dashed var(--line); }
   .btn.ghost:hover { color:var(--text); }
@@ -293,15 +310,72 @@
   /* ── Dashboard stat cards ── */
   .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:6px; }
   .stat {
-    background: linear-gradient(160deg, rgba(255,255,255,.03) 0%, rgba(255,255,255,0) 60%), var(--panel);
-    border:1px solid var(--line); border-radius:14px; padding:16px;
+    background: radial-gradient(220px 120px at 20% 0%, rgba(122,162,255,.13), transparent 65%), linear-gradient(160deg, rgba(255,255,255,.06) 0%, rgba(255,255,255,.015) 60%), var(--panel);
+    border:1px solid var(--line); border-radius:22px; padding:19px;
+    box-shadow:0 15px 42px rgba(0,0,0,.18); transition:.16s ease;
   }
+  .stat:hover { transform:translateY(-2px); border-color:rgba(143,178,255,.28); }
   .stat .label { display:flex; align-items:center; gap:7px; font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.08em; }
   .stat .label svg { width:14px; height:14px; opacity:.7; }
   .stat .value { font-size:25px; font-weight:700; letter-spacing:-.5px; margin-top:8px; }
   .stat .value.accent { color:var(--accent3); }
   .stat .value.warn { color:var(--warn); }
   .stat .delta { font-size:11.5px; color:var(--mute); margin-top:3px; }
+  .savings-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:12px 0; }
+  .mini-metric { border:1px solid var(--line); border-radius:15px; padding:12px 13px; background:linear-gradient(160deg, rgba(255,255,255,.06), rgba(255,255,255,.018)), var(--panel2); }
+  .mini-metric .m-label { color:var(--dim); font-size:10px; text-transform:uppercase; letter-spacing:.08em; }
+  .mini-metric .m-value { font-size:18px; font-weight:700; margin-top:4px; }
+  .mini-metric .m-note { color:var(--mute); font-size:10.5px; margin-top:2px; }
+  .hero { display:grid; grid-template-columns:1.35fr .95fr; gap:14px; margin-bottom:14px; }
+  .hero-card {
+    position:relative; overflow:hidden; border:1px solid var(--line); border-radius:18px; padding:20px;
+    background:
+      radial-gradient(680px 320px at 0% 0%, rgba(143,178,255,.24), transparent 62%),
+      radial-gradient(560px 300px at 100% 0%, rgba(255,122,217,.12), transparent 56%),
+      radial-gradient(500px 280px at 70% 100%, rgba(94,224,193,.13), transparent 62%),
+      linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.012)), var(--panel);
+    box-shadow:0 22px 70px rgba(0,0,0,.32); backdrop-filter:var(--glass);
+  }
+  .hero-kicker { color:var(--accent3); font-size:11px; letter-spacing:.12em; text-transform:uppercase; font-weight:700; }
+  .hero-title { font-size:34px; line-height:1.05; font-weight:900; margin:8px 0 10px; letter-spacing:-1px; text-wrap:balance; }
+  .hero-sub { color:var(--mute); max-width:720px; }
+  .hero-pills { display:flex; gap:7px; flex-wrap:wrap; margin-top:16px; }
+  .compat-grid { display:grid; gap:9px; }
+  .compat-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 13px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.035); }
+  .compat-row .l { color:var(--mute); font-size:12px; }
+  .compat-row .r { font-weight:700; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; text-align:right; }
+  .diag-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr)); gap:12px; width:100%; min-width:0; }
+  .diag-card { border:1px solid var(--line); border-radius:12px; padding:12px; background:#fff; min-width:0; overflow:hidden; }
+  .diag-card.warn { border-color:rgba(255,181,71,.40); background:#fffaf0; }
+  .diag-card.ok { border-color:rgba(61,220,151,.35); background:#f4fff9; }
+  .diag-card.err { border-color:rgba(255,95,109,.38); background:#fff5f6; }
+  .diag-head { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; margin-bottom:10px; min-width:0; }
+  .diag-title { font-weight:700; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+  .diag-sub { color:var(--dim); font-size:11px; font-family:ui-monospace,Menlo,Consolas,monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+  .diag-metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(92px,1fr)); gap:8px; margin:10px 0; min-width:0; }
+  .diag-metric { border:1px solid var(--line); border-radius:9px; padding:8px; background:#f8fafc; min-width:0; overflow:hidden; }
+  .diag-metric .k { color:var(--dim); font-size:9.5px; text-transform:uppercase; letter-spacing:.06em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .diag-metric .v { font-weight:800; font-size:14px; margin-top:3px; font-family:ui-monospace,Menlo,Consolas,monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .diag-tabs { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; margin:12px 0 14px; width:100%; }
+  .diag-tab { border:1px solid var(--line); background:#fff; color:var(--text); border-radius:12px; padding:9px 10px; font-size:12px; cursor:pointer; text-align:center; min-width:0; }
+  .diag-tab.active { background:#eaf2ff; border-color:#cfe0ff; color:#1877f2; font-weight:700; }
+  .diag-section { display:none; width:100%; min-width:0; }
+  .diag-section.active { display:block; }
+  .diag-wide { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr); gap:12px; width:100%; min-width:0; }
+  .diag-wide > .card, .diag-section .card { min-width:0; overflow:hidden; }
+  .diag-spark { display:flex; align-items:flex-end; gap:2px; height:42px; padding:7px 0; min-width:0; overflow:hidden; }
+  .diag-spark span { flex:1; min-width:2px; border-radius:3px 3px 0 0; background:linear-gradient(180deg,#1877f2,#84b7ff); }
+  .diag-log-row { border-bottom:1px solid var(--line); padding:9px 4px; cursor:pointer; min-width:0; overflow:hidden; }
+  .diag-log-row:hover { background:#f8fafc; }
+  .diag-trace { border:1px solid var(--line); border-radius:10px; padding:10px; background:#fff; margin-top:8px; min-width:0; overflow:hidden; }
+  .diag-chip { display:inline-flex; align-items:center; gap:4px; max-width:100%; padding:2px 7px; border-radius:999px; border:1px solid var(--line); font-size:10.5px; color:var(--dim); margin:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .trace-tree { margin-top:10px; border-left:2px solid #60a5fa; padding-left:12px; min-width:0; }
+  .trace-step { position:relative; margin:8px 0; padding:8px 10px; border:1px solid var(--line); border-radius:10px; min-width:0; overflow:hidden; background:#fff; }
+  .trace-step:before { content:""; position:absolute; left:-18px; top:14px; width:10px; height:10px; border-radius:50%; background:#60a5fa; }
+  [data-view="logs"] pre, [data-view="logs"] .cmd { max-width:100%; overflow:auto; white-space:pre-wrap; word-break:break-word; }
+  [data-view="logs"] .kv { min-width:0; }
+  [data-view="logs"] .kv .v { min-width:0; overflow:hidden; text-overflow:ellipsis; word-break:break-word; }
+  @media (max-width:980px) { .diag-wide { grid-template-columns:1fr; } }
 
   /* ── Data table ── */
   table.data { width:100%; border-collapse:collapse; font-size:13px; }
@@ -342,7 +416,11 @@
   .link-btn { color:var(--accent); cursor:pointer; text-decoration:underline; }
   kbd { background:var(--panel3); border:1px solid var(--line2); border-radius:4px; padding:1px 5px; font-size:11.5px; font-family:inherit; }
 
-  @media (max-width:980px) { .stats-grid { grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:980px) { .stats-grid { grid-template-columns:repeat(2,1fr); } .hero { grid-template-columns:1fr; } }
+  @media (prefers-reduced-motion:no-preference) {
+    .brand .logo { animation: glowPulse 4.5s ease-in-out infinite; }
+    @keyframes glowPulse { 0%,100% { filter:saturate(1); } 50% { filter:saturate(1.25) brightness(1.08); } }
+  }
   @media (max-width:860px) {
     .app { grid-template-columns: 1fr; }
     aside { position:relative; height:auto; border-right:0; border-bottom:1px solid var(--line); }
@@ -350,6 +428,222 @@
     .grid2 { grid-template-columns:1fr; }
     .stats-grid { grid-template-columns:1fr; }
   }
+
+  /* Final clean social-app theme overrides */
+  body { background:#f6f7f9 !important; color:#111827 !important; }
+  body::before { display:none !important; }
+  aside { background:#fff !important; box-shadow:none !important; backdrop-filter:none !important; }
+  .card, .stat, .hero-card, .mini-metric, .diag-card, .compat-row { background:#fff !important; box-shadow:none !important; backdrop-filter:none !important; min-width:0; }
+  main, .view, [data-view="logs"], .diag-section, .diag-wide, .diag-grid { max-width:100%; min-width:0; box-sizing:border-box; }
+  [data-view="logs"] { background:transparent !important; color:#111827 !important; padding:0 !important; border-radius:0 !important; overflow:hidden; }
+  .card:hover, .stat:hover, .btn:hover, .navitem:hover { transform:none !important; }
+  input, select, textarea { background:#fff !important; color:#111827 !important; border-color:#d0d5dd !important; }
+  .btn { background:#1877f2 !important; color:#fff !important; box-shadow:none !important; }
+  .btn.secondary { background:#fff !important; color:#111827 !important; }
+  .navitem.active { background:#eaf2ff !important; border-color:#cfe0ff !important; box-shadow:none !important; }
+  .brand .logo { background:#1877f2 !important; box-shadow:none !important; animation:none !important; }
+  .hero-title { color:#111827 !important; }
+  .pill { background:#f2f4f7 !important; box-shadow:none !important; }
+
+  /* ── dx- Diagnostics redesign (Datadog/Grafana-lite style) ── */
+  [data-view="logs"] { overflow:visible !important; background:transparent !important; }
+
+  /* Shell */
+  .dx-shell { display:flex; flex-direction:column; gap:0; color:#111827; background:#f8fafc; border:1px solid #e5e7eb; border-radius:16px; overflow:hidden; }
+
+  /* Header */
+  .dx-header { background:#ffffff; border-bottom:1px solid #e5e7eb; padding:14px 18px 0; }
+  .dx-header-row1 { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding-bottom:12px; border-bottom:1px solid #e5e7eb; }
+  .dx-title { font-size:16px; font-weight:700; color:#111827; letter-spacing:-.3px; margin-right:4px; }
+  .dx-kpi-chips { display:flex; gap:6px; flex-wrap:wrap; flex:1; }
+  .dx-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:6px; border:1px solid #e5e7eb; background:#f8fafc; font-size:12px; font-weight:600; color:#374151; font-family:ui-monospace,Menlo,Consolas,monospace; white-space:nowrap; }
+  .dx-chip.ok { border-color:#bbf7d0; background:#f0fdf4; color:#16a34a; }
+  .dx-chip.warn { border-color:#fde68a; background:#fffbeb; color:#d97706; }
+  .dx-chip.err { border-color:#fecaca; background:#fef2f2; color:#dc2626; }
+  .dx-chip.blue { border-color:#bfdbfe; background:#eff6ff; color:#2563eb; }
+  .dx-chip-dot { width:7px; height:7px; border-radius:50%; background:currentColor; flex-shrink:0; }
+  .dx-header-actions { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .dx-header-row2 { display:flex; align-items:center; gap:8px; padding:10px 0 0; flex-wrap:wrap; }
+  .dx-ctrl-input { flex:1 1 220px; min-width:0; height:34px; border:1px solid #e5e7eb; border-radius:6px; padding:0 10px; font-size:13px; background:#fff; color:#111827; }
+  .dx-ctrl-select { height:34px; border:1px solid #e5e7eb; border-radius:6px; padding:0 8px; font-size:13px; background:#fff; color:#111827; min-width:120px; }
+  .dx-ctrl-input:focus, .dx-ctrl-select:focus { outline:2px solid #2563eb; outline-offset:-1px; }
+
+  /* Tab bar */
+  .dx-tabbar { display:flex; align-items:center; gap:0; background:#ffffff; border-bottom:1px solid #e5e7eb; padding:0 18px; overflow-x:auto; }
+  .dx-tab { flex:0 0 auto; border:0; background:transparent; color:#6b7280; font-size:13px; font-weight:600; padding:11px 14px; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; white-space:nowrap; transition:color .15s, border-color .15s; }
+  .dx-tab:hover { color:#111827; }
+  .dx-tab.active { color:#2563eb; border-bottom-color:#2563eb; }
+  .dx-sev-bar { display:flex; align-items:center; gap:4px; margin-left:auto; padding-left:12px; flex-shrink:0; }
+  .dx-sev-btn { border:1px solid #e5e7eb; background:#fff; color:#6b7280; font-size:11px; font-weight:600; padding:4px 10px; border-radius:5px; cursor:pointer; }
+  .dx-sev-btn.active { background:#111827; color:#fff; border-color:#111827; }
+
+  /* Panels */
+  .dx-panel { display:none; padding:16px 18px; }
+  .dx-panel.active { display:block; }
+
+  /* Two-column layouts */
+  .dx-split { display:grid; grid-template-columns:60fr 40fr; gap:14px; align-items:start; min-width:0; }
+  .dx-split-half { display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; min-width:0; }
+
+  /* Card */
+  .dx-card { background:#ffffff; border:1px solid #e5e7eb; border-radius:10px; padding:14px; min-width:0; overflow:hidden; }
+  .dx-card-title { font-size:12px; font-weight:700; color:#374151; text-transform:uppercase; letter-spacing:.06em; margin:0 0 10px; }
+  .dx-card.ok { border-color:#bbf7d0; background:#f0fdf4; }
+  .dx-card.err { border-color:#fecaca; background:#fef2f2; }
+  .dx-card.warn { border-color:#fde68a; background:#fffbeb; }
+
+  /* Live Feed terminal */
+  .dx-terminal { background:#0f1117; border:1px solid #1f2937; border-radius:10px; overflow:hidden; }
+  .dx-term-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:#151b26; border-bottom:1px solid rgba(255,255,255,.08); }
+  .dx-term-lights { display:flex; gap:5px; }
+  .dx-term-lights i { width:9px; height:9px; border-radius:50%; display:block; }
+  .dx-term-lights i:nth-child(1){background:#ff5f57} .dx-term-lights i:nth-child(2){background:#ffbd2e} .dx-term-lights i:nth-child(3){background:#28c840}
+  .dx-term-label { color:#64748b; font:700 10px ui-monospace,Menlo,Consolas,monospace; letter-spacing:.1em; text-transform:uppercase; }
+  .dx-term-count { color:#64748b; font:600 11px ui-monospace,Menlo,Consolas,monospace; }
+  .dx-term-body { height:min(62vh,680px); min-height:400px; overflow-y:auto; font:12px/1.6 ui-monospace,Menlo,Consolas,monospace; }
+  .dx-tr { display:grid; grid-template-columns:84px 10px 140px 90px 1fr 70px; gap:8px; align-items:center; padding:6px 14px; border-bottom:1px solid rgba(255,255,255,.04); color:#94a3b8; cursor:pointer; min-width:0; }
+  .dx-tr:hover { background:rgba(255,255,255,.04); }
+  .dx-tr.active { background:rgba(37,99,235,.18); box-shadow:inset 3px 0 0 #3b82f6; }
+  .dx-tr .dx-tr-time { color:#475569; font-size:11px; }
+  .dx-tr .dx-tr-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .dx-tr-dot.ok { background:#22c55e; }
+  .dx-tr-dot.warn { background:#f59e0b; }
+  .dx-tr-dot.error { background:#ef4444; }
+  .dx-tr .dx-tr-model { color:#e2e8f0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dx-tr .dx-tr-prov { color:#64748b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dx-tr .dx-tr-msg { color:#94a3b8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }
+  .dx-tr .dx-tr-ms { text-align:right; color:#64748b; font-size:11px; }
+  .dx-tr-empty { color:#475569; padding:20px 14px; font-size:12px; }
+
+  /* Detail panel */
+  .dx-detail-stack { display:flex; flex-direction:column; gap:12px; }
+  .dx-kv { display:grid; grid-template-columns:auto 1fr; gap:3px 10px; font-size:12.5px; align-items:baseline; }
+  .dx-kv .dk { color:#6b7280; font-size:11px; text-transform:uppercase; letter-spacing:.05em; font-weight:600; white-space:nowrap; }
+  .dx-kv .dv { color:#111827; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; overflow:hidden; text-overflow:ellipsis; word-break:break-all; }
+  .dx-pre { margin:0; padding:10px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:6px; font:11.5px/1.5 ui-monospace,Menlo,Consolas,monospace; color:#111827; white-space:pre-wrap; word-break:break-word; max-height:200px; overflow:auto; }
+  .dx-cap-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .dx-cap-box { border:1px solid #e5e7eb; border-radius:6px; background:#f8fafc; overflow:hidden; }
+  .dx-cap-head { display:flex; justify-content:space-between; align-items:center; padding:6px 10px; border-bottom:1px solid #e5e7eb; font-size:10.5px; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:.07em; }
+  .dx-cap-box pre { margin:0; padding:10px; max-height:180px; overflow:auto; background:#f8fafc; color:#111827; font:11.5px/1.5 ui-monospace,Menlo,Consolas,monospace; white-space:pre-wrap; word-break:break-word; }
+  .dx-muted { color:#9ca3af; font-size:12.5px; padding:8px 0; }
+  .dx-section-label { font-size:11px; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:.07em; margin:10px 0 5px; }
+
+  /* Model cards grid */
+  .dx-model-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr)); gap:12px; }
+  .dx-model-card { background:#ffffff; border:1px solid #e5e7eb; border-radius:10px; padding:14px; cursor:pointer; transition:border-color .15s, box-shadow .15s; min-width:0; }
+  .dx-model-card:hover { border-color:#93c5fd; box-shadow:0 0 0 3px rgba(37,99,235,.07); }
+  .dx-model-card.active { border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.10); }
+  .dx-model-card.err { border-color:#fca5a5; }
+  .dx-model-card.warn { border-color:#fcd34d; }
+  .dx-mc-head { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:4px; }
+  .dx-mc-name { font-size:14px; font-weight:700; color:#111827; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; }
+  .dx-mc-badge { flex-shrink:0; font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; text-transform:uppercase; letter-spacing:.05em; }
+  .dx-mc-badge.active { background:#dcfce7; color:#16a34a; }
+  .dx-mc-badge.warn { background:#fef3c7; color:#d97706; }
+  .dx-mc-badge.err { background:#fee2e2; color:#dc2626; }
+  .dx-mc-badge.idle { background:#f3f4f6; color:#6b7280; }
+  .dx-mc-sub { font-size:11px; color:#6b7280; font-family:ui-monospace,Menlo,Consolas,monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:10px; }
+  .dx-mc-divider { border:0; border-top:1px solid #e5e7eb; margin:8px 0; }
+  .dx-mc-stats { display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; margin-bottom:10px; }
+  .dx-mc-stat-k { font-size:10.5px; color:#6b7280; }
+  .dx-mc-stat-v { font-size:13px; font-weight:700; color:#111827; font-family:ui-monospace,Menlo,Consolas,monospace; }
+  .dx-lat-bar { height:5px; border-radius:3px; background:#e5e7eb; overflow:hidden; margin:8px 0 4px; }
+  .dx-lat-fill { height:100%; border-radius:3px; background:#2563eb; transition:width .3s; }
+  .dx-lat-label { font-size:10px; color:#6b7280; display:flex; justify-content:space-between; }
+  .dx-mc-tokens { font-size:11px; color:#6b7280; margin-top:6px; }
+  .dx-mc-cost-row { display:flex; justify-content:space-between; font-size:11.5px; color:#374151; margin-top:6px; }
+
+  /* Model drawer */
+  .dx-model-drawer { display:none; background:#f8fafc; border:1px solid #e5e7eb; border-radius:10px; padding:16px; margin-top:14px; }
+  .dx-model-drawer.open { display:block; }
+
+  /* Trace list */
+  .dx-trace-list { display:flex; flex-direction:column; gap:0; }
+  .dx-trace-row { display:grid; grid-template-columns:10px minmax(0,1fr) 120px 70px; gap:8px; align-items:center; padding:8px 10px; border-bottom:1px solid #f3f4f6; cursor:pointer; min-width:0; }
+  .dx-trace-row:hover { background:#f8fafc; }
+  .dx-trace-row.active { background:#eff6ff; }
+  .dx-trace-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .dx-trace-dot.ok { background:#22c55e; }
+  .dx-trace-dot.warn { background:#f59e0b; }
+  .dx-trace-dot.error { background:#ef4444; }
+  .dx-trace-main { min-width:0; }
+  .dx-trace-id { font:600 11.5px ui-monospace,Menlo,Consolas,monospace; color:#374151; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dx-trace-meta { font-size:11px; color:#9ca3af; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dx-trace-status { font-size:11px; font-weight:600; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .dx-trace-ms { font-size:11px; color:#6b7280; text-align:right; font-family:ui-monospace,Menlo,Consolas,monospace; }
+
+  /* Trace tree */
+  .dx-tree { border-left:2px solid #93c5fd; padding-left:14px; margin:8px 0; display:flex; flex-direction:column; gap:6px; }
+  .dx-tree-step { position:relative; padding:8px 10px; border:1px solid #e5e7eb; border-radius:7px; background:#fff; font-size:12.5px; }
+  .dx-tree-step:before { content:""; position:absolute; left:-20px; top:12px; width:10px; height:10px; border-radius:50%; background:#93c5fd; border:2px solid #fff; }
+  .dx-tree-step strong { font-weight:700; color:#111827; margin-right:8px; }
+
+  /* Error cards */
+  .dx-err-list { display:flex; flex-direction:column; gap:10px; }
+  .dx-err-card { background:#fff; border:1px solid #fecaca; border-radius:8px; padding:12px; min-width:0; }
+  .dx-err-head { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:4px; }
+  .dx-err-status { font-size:12px; font-weight:700; color:#ef4444; text-transform:uppercase; }
+  .dx-err-id { font:600 11px ui-monospace,Menlo,Consolas,monospace; color:#9ca3af; }
+  .dx-err-ms { font:600 11px ui-monospace,Menlo,Consolas,monospace; color:#6b7280; margin-left:auto; }
+  .dx-err-meta { font-size:11.5px; color:#6b7280; margin-bottom:4px; }
+  .dx-err-msg { font-size:12px; color:#ef4444; font-family:ui-monospace,Menlo,Consolas,monospace; word-break:break-word; }
+
+  /* Cost table */
+  .dx-cost-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .dx-cost-table th { text-align:left; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#6b7280; padding:6px 8px; border-bottom:2px solid #e5e7eb; }
+  .dx-cost-table td { padding:7px 8px; border-bottom:1px solid #f3f4f6; }
+  .dx-cost-table td.num { text-align:right; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; }
+  .dx-cost-table th.num { text-align:right; }
+  .dx-cost-table tr:last-child td { border-bottom:0; }
+
+  /* Log path bar */
+  .dx-logpath { font-size:11px; color:#9ca3af; font-family:ui-monospace,Menlo,Consolas,monospace; word-break:break-all; padding:6px 18px; background:#ffffff; border-bottom:1px solid #f3f4f6; }
+
+  /* Spark bars */
+  .dx-spark { display:flex; align-items:flex-end; gap:2px; height:36px; }
+  .dx-spark span { flex:1; min-width:2px; border-radius:2px 2px 0 0; background:#2563eb; opacity:.7; }
+
+  /* Responsive */
+  @media (max-width:1100px) { .dx-split { grid-template-columns:1fr; } .dx-cap-grid { grid-template-columns:1fr; } }
+  @media (max-width:860px) { .dx-split-half { grid-template-columns:1fr; } .dx-model-grid { grid-template-columns:1fr; } .dx-tr { grid-template-columns:70px 10px 1fr 60px; } .dx-tr .dx-tr-prov { display:none; } .dx-tr .dx-tr-msg { display:none; } }
+  @media (max-width:600px) { .dx-header-row2 { flex-direction:column; } .dx-ctrl-select { min-width:0; width:100%; } }
+
+  /* Legacy diagnostics CSS kept below — no longer used but not removed */
+  .diag-shell { display:grid; gap:18px; color:#101828; }
+  .diag-hero { display:none; }
+  .diag-hero-main { display:none; }
+  .diag-kicker:before { content:""; width:9px; height:9px; border-radius:50%; background:var(--ok); }
+  .diag-actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .diag-status-strip { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+  .diag-status-card { border:1px solid var(--line); border-radius:16px; padding:14px 15px; background:#fff; min-width:0; overflow:hidden; }
+  .diag-status-card:before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:#1877f2; }
+  .diag-toolbar input, .diag-toolbar select { height:42px; border-radius:14px !important; }
+  .diag-tabs { display:flex; gap:8px; padding:6px; border:1px solid var(--line); border-radius:18px; background:#fff !important; overflow:auto; margin:0 !important; }
+  .diag-tab { flex:0 0 auto; border:0 !important; background:transparent !important; color:#667085 !important; border-radius:13px !important; padding:10px 13px !important; font-weight:900; }
+  .diag-tab.active { background:#1877f2 !important; color:#fff !important; }
+  .diag-panel-card { border:1px solid var(--line); border-radius:22px; background:#fff !important; padding:16px; min-width:0; overflow:hidden; }
+  .diag-workbench { display:grid; grid-template-columns:minmax(0,1.45fr) minmax(330px,.65fr); gap:14px; }
+  .diag-terminal-card { padding:0 !important; background:#060a11 !important; }
+  .terminal-top { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:13px 15px; border-bottom:1px solid rgba(255,255,255,.09); }
+  .terminal-lights { display:flex; gap:6px; align-items:center; }
+  .terminal-lights i { width:10px; height:10px; border-radius:50%; display:block; }
+  .diag-terminal { height:min(68vh,720px); min-height:560px; overflow:auto; padding:8px 0; font:12px/1.55 ui-monospace,Menlo,Consolas,monospace; }
+  .terminal-row { display:grid; grid-template-columns:86px 72px minmax(120px,1fr) 74px; gap:10px; padding:8px 15px; border-bottom:1px solid rgba(255,255,255,.045); cursor:pointer; }
+  .diag-side-stack { display:grid; gap:14px; }
+  .capture-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .capture-box { border:1px solid var(--line); border-radius:16px; background:#f8fafc; overflow:hidden; }
+  .capture-head { display:flex; justify-content:space-between; gap:8px; padding:9px 11px; border-bottom:1px solid var(--line); }
+  .capture-box pre { margin:0; padding:12px; max-height:300px; overflow:auto; }
+  .diag-model-list { display:grid; gap:10px; max-height:650px; overflow:auto; }
+  .model-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; border:1px solid var(--line); border-radius:18px; padding:13px; background:#fff; cursor:pointer; }
+  .model-name { font-weight:900; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .model-meta { color:#667085; font-size:11.5px; font-family:ui-monospace,Menlo,Consolas,monospace; }
+  .mini-stats { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+  .mini-chip { border:1px solid var(--line); background:#f8fafc; color:#475467; border-radius:999px; padding:3px 8px; font-size:10.5px; }
+  .severity-toggle { display:inline-flex; gap:4px; padding:4px; border:1px solid var(--line); border-radius:15px; background:#fff; }
+  .severity-toggle button { border:0; background:transparent; border-radius:11px; padding:8px 11px; cursor:pointer; font-weight:900; }
+  .diag-wide { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  .diag-path { font-size:11px; color:var(--dim); font-family:ui-monospace,Menlo,Consolas,monospace; }
 </style>
 </head>
 <body>
@@ -433,6 +727,28 @@
         </div>
       </div>
 
+      <div class="hero" id="dashboardHero">
+        <div class="hero-card">
+          <div class="hero-kicker">Claude Code compatibility layer</div>
+          <div class="hero-title">Fast-safe routing for any upstream model.</div>
+          <div class="hero-sub">Proxy-Max now keeps Anthropic tool transcripts valid, bypasses risky replay cache during live Claude Code tool streams, and exposes latency + cache health in one place.</div>
+          <div class="hero-pills">
+            <span class="pill ok"><span class="dot"></span><span id="heroCompat">tool loops protected</span></span>
+            <span class="pill"><span class="dot"></span><span id="heroPreset">preset: —</span></span>
+            <span class="pill"><span class="dot"></span><span id="heroLatency">latency: —</span></span>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <h3>Live readiness <span class="badge" id="heroReadyBadge">checking</span></h3>
+          <div class="compat-grid" id="heroReadiness">
+            <div class="compat-row"><span class="l">Provider</span><span class="r">—</span></div>
+            <div class="compat-row"><span class="l">Model</span><span class="r">—</span></div>
+            <div class="compat-row"><span class="l">Cache safety</span><span class="r">—</span></div>
+            <div class="compat-row"><span class="l">Last error</span><span class="r">—</span></div>
+          </div>
+        </div>
+      </div>
+
       <div class="stats-grid">
         <div class="stat">
           <div class="label">Requests routed</div>
@@ -450,10 +766,17 @@
           <div class="delta" id="dashSpendDelta">vs. unoptimized</div>
         </div>
         <div class="stat">
-          <div class="label">Cache hit rate</div>
+          <div class="label">Response cache hit rate</div>
           <div class="value" id="dashCacheHitRate">—</div>
           <div class="delta" id="dashCacheHitsDelta">response cache</div>
         </div>
+      </div>
+
+      <div class="savings-strip" id="dashSavingsStrip">
+        <div class="mini-metric"><div class="m-label">Optimizer saved</div><div class="m-value" id="saveOptimizerTokens">—</div><div class="m-note">trim + compress</div></div>
+        <div class="mini-metric"><div class="m-label">Replay avoided</div><div class="m-value" id="saveReplayTokens">—</div><div class="m-note">response cache</div></div>
+        <div class="mini-metric"><div class="m-label">Prompt-cache read</div><div class="m-value" id="savePromptRead">—</div><div class="m-note">provider reported</div></div>
+        <div class="mini-metric"><div class="m-label">Cache entries</div><div class="m-value" id="saveCacheEntries">—</div><div class="m-note" id="saveCacheMode">local store</div></div>
       </div>
 
       <div class="grid2">
@@ -501,6 +824,13 @@
             Spend by provider
           </h3>
           <div id="dashCostTable"><div class="small mute">No data yet.</div></div>
+        </div>
+        <div class="card">
+          <h3>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 17V9"/><path d="M13 17V7"/><path d="M18 17v-4"/></svg>
+            Latency &amp; pool health
+          </h3>
+          <div id="dashLatency" class="compat-grid"><div class="small mute">Loading…</div></div>
         </div>
         <div class="card">
           <h3>
@@ -760,7 +1090,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6a9 3 0 0 0 18 0V5"/><path d="M3 11v6a9 3 0 0 0 18 0v-6"/></svg>
               Response cache <span class="opt-tag safe">lossless · SQLite</span>
             </div>
-            <div class="opt-desc">Stores each upstream response in a local SQLite database keyed by the exact request. An identical request replays the stored response verbatim (streaming included) at zero upstream cost. Lossless — it only avoids re-asking the same question.</div>
+            <div class="opt-desc">Stores each upstream response in a local SQLite database keyed by the exact request. An identical request replays the stored response verbatim (streaming included) at zero upstream cost. For Claude Code turns, only exact retries/replays hit; normal conversational turns are usually unique.</div>
             <div class="opt-sub">
               <label>Time-to-live (minutes) <span class="small">(0 = never expire)</span></label>
               <input id="opt_rc_ttl" type="number" min="0" step="5" placeholder="60" style="max-width:200px" />
@@ -774,12 +1104,13 @@
           <div class="opt-main">
             <div class="opt-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-              Tool-result filtering <span class="opt-tag safe">lossless (ANSI only)</span>
+              Tool-result filtering <span class="opt-tag safe">fast context diet</span>
             </div>
-            <div class="opt-desc">Strips ANSI colour/escape codes from terminal output before it re-enters context each turn. Escape codes are display-only, so this is content-preserving. The two extra sub-options below <em>are</em> lossy — leave them off for zero-risk operation.</div>
+            <div class="opt-desc">Cleans terminal output before it re-enters context each turn: ANSI removal is lossless, while blank-line collapse, adjacent duplicate-line collapse, and truncation reduce noisy logs/test output.</div>
             <div class="opt-sub">
               <label class="opt-check"><input type="checkbox" id="opt_tr_ansi"> Strip ANSI / colour escape codes <span class="opt-tag safe" style="margin-left:4px">lossless</span></label>
               <label class="opt-check"><input type="checkbox" id="opt_tr_blank"> Collapse repeated blank lines <span class="opt-tag lossy" style="margin-left:4px">lossy</span></label>
+              <label class="opt-check"><input type="checkbox" id="opt_tr_dedupe"> Collapse adjacent duplicate log lines <span class="opt-tag lossy" style="margin-left:4px">lossy</span></label>
               <label style="margin-top:10px">Max characters per tool result <span class="small">(0 = no truncation)</span></label>
               <input id="opt_tr_maxChars" type="number" min="0" step="1000" placeholder="0" style="max-width:200px" />
               <div class="small warn" style="margin-top:6px">Truncation can cut off command output or file contents — keep at 0 unless you accept that risk.</div>
@@ -823,6 +1154,24 @@
           <label class="switch"><input type="checkbox" id="opt_toolCompress"><span class="slider"></span></label>
         </div>
 
+        <!-- Middle context compaction -->
+        <div class="opt-row" id="row_leanContext">
+          <div class="opt-main">
+            <div class="opt-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M4 15h10"/><path d="M4 11h16"/><path d="M4 7h10"/><path d="M17 5l3 3-3 3"/></svg>
+              Middle context compaction <span class="opt-tag lossy">conservative</span>
+            </div>
+            <div class="opt-desc">Compacts older plain-text middle turns into local summaries while preserving system prompts, tool schemas, tool_use/tool_result pairs, and newest turns exactly. This reduces long-session payloads without triggering Claude Code's common tool-call transcript errors.</div>
+            <div class="opt-sub">
+              <div class="grid2">
+                <div><label>Keep last N turns exact</label><input id="opt_lean_keepLast" type="number" min="2" step="2" placeholder="24" /></div>
+                <div><label>Summary characters</label><input id="opt_lean_summary" type="number" min="120" step="50" placeholder="700" /></div>
+              </div>
+            </div>
+          </div>
+          <label class="switch"><input type="checkbox" id="opt_leanContext"><span class="slider"></span></label>
+        </div>
+
         <!-- Prose compression -->
         <div class="opt-row" id="row_compression">
           <div class="opt-main">
@@ -844,6 +1193,26 @@
             </div>
           </div>
           <label class="switch"><input type="checkbox" id="opt_compression"><span class="slider"></span></label>
+        </div>
+
+        <!-- Laziness Logic Injection -->
+        <div class="opt-row" id="row_laziness">
+          <div class="opt-main">
+            <div class="opt-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              Laziness directive injection <span class="opt-tag safe">behavioural tuning</span>
+            </div>
+            <div class="opt-desc">Injects extreme laziness directives into the system prompt to prevent the model from writing unnecessary code, preferring standard libraries, deletion, and minimal diffs.</div>
+            <div class="opt-sub">
+              <label>Laziness intensity</label>
+              <select id="opt_laziness_mode" style="max-width:260px">
+                <option value="lite">Lite — gentle reminders</option>
+                <option value="full">Full — standard YAGNI enforcement</option>
+                <option value="extreme">Extreme — hostile to writing new code</option>
+              </select>
+            </div>
+          </div>
+          <label class="switch"><input type="checkbox" id="opt_laziness"><span class="slider"></span></label>
         </div>
 
         <div class="actions">
@@ -943,32 +1312,165 @@
 
     <!-- ══ DIAGNOSTICS VIEW ══ -->
     <section class="view" data-view="logs">
-      <div class="topbar">
-        <div><h1>Diagnostics</h1><div class="sub">Request log — every routed call, its attempts and timings.</div></div>
-      </div>
+      <div class="dx-shell">
 
-      <div class="card">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-          <h3 style="margin:0;flex:1">Request log</h3>
-          <span id="logCount" class="small" style="color:var(--dim)"></span>
-          <button class="btn secondary sm" onclick="loadLogs()">Refresh</button>
-          <a class="btn secondary sm" href="/api/logs/file?lines=2000" target="_blank" download="requests.log">Download</a>
-          <button class="btn danger sm" onclick="clearLogs()">Clear</button>
+        <!-- Header row 1: title + KPI chips + action buttons -->
+        <div class="dx-header">
+          <div class="dx-header-row1">
+            <span class="dx-title">Diagnostics</span>
+            <div class="dx-kpi-chips" id="dxKpiChips">
+              <span class="dx-chip blue"><span class="dx-chip-dot"></span><span id="dxKpiReq">0 req</span></span>
+              <span class="dx-chip" id="dxKpiErr">0 err</span>
+              <span class="dx-chip" id="dxKpiP95">P95: —</span>
+              <span class="dx-chip ok" id="dxKpiHealth">OK</span>
+            </div>
+            <div class="dx-header-actions">
+              <button class="btn secondary sm" onclick="loadDiagnostics()">Refresh</button>
+              <button class="btn secondary sm" onclick="toggleDiagLive()" id="diagLiveBtn">Live: off</button>
+              <a class="btn secondary sm" href="/api/logs/file?lines=2000" target="_blank" download="requests.log">Download</a>
+              <button class="btn danger sm" onclick="clearLogs()">Clear</button>
+            </div>
+          </div>
+          <!-- Header row 2: filter controls -->
+          <div class="dx-header-row2">
+            <input class="dx-ctrl-input" id="diagLogFilter" placeholder="Search requests, model, provider, trace ID, error..." oninput="renderDiagnosticsWorkspace()">
+            <select class="dx-ctrl-select" id="diagModelFilter" onchange="renderDiagnosticsWorkspace()"><option value="">All models</option></select>
+            <select class="dx-ctrl-select" id="diagProviderFilter" onchange="renderDiagnosticsWorkspace()"><option value="">All providers</option></select>
+            <select class="dx-ctrl-select" id="diagLogLimit" onchange="loadDiagnostics()">
+              <option value="100">100 lines</option>
+              <option value="300" selected>300 lines</option>
+              <option value="800">800 lines</option>
+              <option value="1000">1000 lines</option>
+            </select>
+          </div>
         </div>
-        <div id="logFilePath" style="font-size:11px;color:var(--dim);font-family:ui-monospace,Menlo,Consolas,monospace;margin-bottom:10px;word-break:break-all"></div>
-        <div id="logTable" style="overflow-x:auto"><div class="small" style="color:var(--dim);padding:8px 0">No requests logged yet.</div></div>
-      </div>
 
-      <div class="card">
-        <h3>API endpoints</h3>
-        <div class="kv">
-          <span class="k">Health</span><span class="v"><a href="/api/health" target="_blank">/api/health</a></span>
-          <span class="k">Optimization</span><span class="v"><a href="/api/optimization" target="_blank">/api/optimization</a></span>
-          <span class="k">Opt stats</span><span class="v"><a href="/api/optimization/stats" target="_blank">/api/optimization/stats</a></span>
-          <span class="k">Analytics</span><span class="v"><a href="/api/dashboard/overview" target="_blank">/api/dashboard/overview</a></span>
-          <span class="k">Config</span><span class="v"><a href="/api/config" target="_blank">/api/config</a> <span class="small">(secrets masked)</span></span>
-          <span class="k">Request logs</span><span class="v"><a href="/api/logs" target="_blank">/api/logs</a></span>
+        <!-- Tab bar -->
+        <div class="dx-tabbar" id="dxTabbar">
+          <button class="dx-tab active" data-dx="feed">Live Feed</button>
+          <button class="dx-tab" data-dx="models">Models</button>
+          <button class="dx-tab" data-dx="traces">Traces</button>
+          <button class="dx-tab" data-dx="errors">Errors</button>
+          <button class="dx-tab" data-dx="cost">Cost &amp; Tokens</button>
+          <button class="dx-tab" data-dx="system">System</button>
+          <!-- severity filter lives in the tab bar, only shown on feed tab -->
+          <div class="dx-sev-bar" id="dxSevBar">
+            <button class="dx-sev-btn active" data-severity="all">All</button>
+            <button class="dx-sev-btn" data-severity="error">Error</button>
+            <button class="dx-sev-btn" data-severity="warn">Warn</button>
+            <button class="dx-sev-btn" data-severity="info">Info</button>
+          </div>
         </div>
+
+        <!-- Log file path bar (persistent below tabs) -->
+        <div id="logFilePath" class="dx-logpath" style="display:none"></div>
+
+        <!-- Panel: Live Feed -->
+        <div class="dx-panel active" id="dxPanelFeed">
+          <div class="dx-split">
+            <!-- Left: terminal feed -->
+            <div class="dx-terminal">
+              <div class="dx-term-header">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div class="dx-term-lights"><i></i><i></i><i></i></div>
+                  <span class="dx-term-label">request stream</span>
+                </div>
+                <span class="dx-term-count" id="logCount">0 entries</span>
+              </div>
+              <div class="dx-term-body" id="logTable">
+                <div class="dx-tr-empty">No requests logged yet.</div>
+              </div>
+            </div>
+            <!-- Right: detail stack -->
+            <div class="dx-detail-stack">
+              <div class="dx-card">
+                <div class="dx-card-title">Health snapshot</div>
+                <div class="dx-kv" id="diagHealth"><span class="dk">Status</span><span class="dv">—</span></div>
+              </div>
+              <div class="dx-card">
+                <div class="dx-card-title">Selected capture</div>
+                <div id="diagCaptureDetail"><span class="dx-muted">Select a request row to inspect input and output captures.</span></div>
+              </div>
+              <div class="dx-card">
+                <div class="dx-card-title">Traffic &amp; latency</div>
+                <div id="diagTraffic"><span class="dx-muted">No traffic data yet.</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel: Models -->
+        <div class="dx-panel" id="dxPanelModels">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+            <span style="font-size:13px;font-weight:700;color:#111827">Per-model telemetry</span>
+            <span id="modelDiagCount" style="font-size:12px;color:#9ca3af;margin-left:4px"></span>
+          </div>
+          <div class="dx-model-grid" id="modelDiagCards">
+            <div class="dx-muted">No model diagnostics yet — run a request through the proxy.</div>
+          </div>
+          <!-- Slide-down drawer for selected model detail -->
+          <div class="dx-model-drawer" id="diagModelDetail"></div>
+        </div>
+
+        <!-- Panel: Traces -->
+        <div class="dx-panel" id="dxPanelTraces">
+          <div class="dx-split">
+            <div class="dx-card">
+              <div class="dx-card-title">Request traces</div>
+              <div id="diagTraceList" class="dx-trace-list" style="max-height:600px;overflow:auto">
+                <span class="dx-muted">No request traces yet.</span>
+              </div>
+            </div>
+            <div class="dx-card">
+              <div class="dx-card-title">Trace detail</div>
+              <div id="diagTraceDetail"><span class="dx-muted">Select a trace to inspect attempts, pipeline, payload, and errors.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel: Errors -->
+        <div class="dx-panel" id="dxPanelErrors">
+          <div class="dx-card">
+            <div class="dx-card-title" style="margin-bottom:14px">Error history</div>
+            <div id="diagErrors" class="dx-err-list">
+              <span class="dx-muted">No errors in the loaded diagnostics window.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel: Cost & Tokens -->
+        <div class="dx-panel" id="dxPanelCost">
+          <div class="dx-split-half">
+            <div class="dx-card">
+              <div class="dx-card-title">Token &amp; cost summary</div>
+              <div class="dx-kv" id="diagCost"></div>
+            </div>
+            <div class="dx-card">
+              <div class="dx-card-title">Provider spend</div>
+              <div id="diagProviderCost"><span class="dx-muted">No provider cost data yet.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel: System -->
+        <div class="dx-panel" id="dxPanelSystem">
+          <div class="dx-split-half">
+            <div class="dx-card">
+              <div class="dx-card-title">Runtime health</div>
+              <div class="dx-kv" id="diagSystem"></div>
+            </div>
+            <div class="dx-card">
+              <div class="dx-card-title">API endpoints</div>
+              <div class="dx-kv">
+                <span class="dk">Diagnostics</span><span class="dv"><a href="/api/diagnostics" target="_blank">/api/diagnostics</a></span>
+                <span class="dk">Model diag</span><span class="dv"><a href="/api/dashboard/model-diagnostics" target="_blank">/api/dashboard/model-diagnostics</a></span>
+                <span class="dk">Logs</span><span class="dv"><a href="/api/logs/file?lines=2000" target="_blank">/api/logs/file</a></span>
+                <span class="dk">Health</span><span class="dv"><a href="/api/health" target="_blank">/api/health</a></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -1116,14 +1618,14 @@ function navTo(view) {
   // per-view loaders
   if (view === 'system') refreshSystem();
   if (view === 'models') renderModelsBrowser();
-  if (view === 'logs')   loadLogs();
+  if (view === 'logs')   loadDiagnostics();
   if (view === 'launch') renderLaunchPage();
   if (view === 'optimization') loadOptimization();
 
   clearInterval(_poolTimer); _poolTimer = null;
   clearInterval(_dashTimer); _dashTimer = null;
-  if (view === 'pool') { loadPool(); _poolTimer = setInterval(loadPool, 5000); }
-  if (view === 'dashboard') { loadDashboard(); _dashTimer = setInterval(loadDashboard, 6000); }
+  if (view === 'pool') { loadPool(); _poolTimer = setInterval(loadPool, 60000); }
+  if (view === 'dashboard') { loadDashboard(); _dashTimer = setInterval(loadDashboard, 60000); }
 }
 document.addEventListener('click', e => {
   const ni = e.target.closest('.navitem'); if (ni) navTo(ni.dataset.view);
@@ -1156,6 +1658,25 @@ function escapeHtml(s) {
 function fmtNum(n) { n = Number(n)||0; return n.toLocaleString(); }
 function fmtUsd(n) { n = Number(n)||0; return '$' + (n < 0.01 ? n.toFixed(6) : n.toFixed(4)); }
 
+async function apiGet(path, timeoutMs = 12000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const r = await fetch(path, { signal: ctrl.signal, headers: { 'Accept': 'application/json' } });
+    const text = await r.text();
+    let data = {};
+    try { data = text ? JSON.parse(text) : {}; }
+    catch (e) {
+      const preview = text ? ` — ${text.slice(0, 180).replace(/\s+/g, ' ')}` : '';
+      return { ok: false, status: r.status, raw: text, error: `Bad JSON from ${path}${preview}` };
+    }
+    if (!r.ok) return { ok: false, status: r.status, data, error: data.error || `HTTP ${r.status}` };
+    return { ok: true, status: r.status, data };
+  } catch (e) {
+    return { ok: false, status: 0, error: e.name === 'AbortError' ? `Timeout loading ${path}` : e.message };
+  } finally { clearTimeout(t); }
+}
+
 // ── Bootstrap ──
 async function loadAll() {
   const [m, c, h, l] = await Promise.all([
@@ -1182,58 +1703,96 @@ window.addEventListener('hashchange', () => navTo(location.hash.slice(1)));
 
 // ════════════════════ DASHBOARD ════════════════════
 async function loadDashboard() {
-  try {
-    const [stats, overview, cost, tokens] = await Promise.all([
-      fetch('/api/optimization/stats').then(r=>r.json()).catch(()=>({})),
-      fetch('/api/dashboard/overview').then(r=>r.json()).catch(()=>({})),
-      fetch('/api/dashboard/cost-analytics').then(r=>r.json()).catch(()=>({})),
-      fetch('/api/dashboard/token-usage').then(r=>r.json()).catch(()=>({})),
-    ]);
-    renderDashboard(stats, overview, cost, tokens);
-  } catch (e) { /* keep last render */ }
+  const results = await Promise.all([
+    apiGet('/api/optimization/stats'),
+    apiGet('/api/dashboard/overview'),
+    apiGet('/api/dashboard/cost-analytics'),
+    apiGet('/api/dashboard/token-usage'),
+    apiGet('/api/dashboard/summary'),
+  ]);
+  const [statsR, overviewR, costR, tokensR, summaryR] = results;
+  const errors = results
+    .map((r, i) => r.ok ? null : `${['stats','overview','cost','tokens','summary'][i]}: ${r.error}`)
+    .filter(Boolean);
+  renderDashboard(statsR.data || {}, overviewR.data || {}, costR.data || {}, tokensR.data || {}, errors, summaryR.data || {});
 }
 
-function renderDashboard(stats, overview, cost, tokens) {
+function renderDashboard(stats, overview, cost, tokens, errors = [], summary = {}) {
   const sess = overview.current_session || {};
   const life = overview.lifetime || {};
+  renderDashboardHero(summary, stats, errors);
   $('#dashRequests').textContent = fmtNum(sess.total_requests || 0);
   $('#dashRequestsDelta').textContent = `${fmtNum(life.total_requests || 0)} lifetime`;
   $('#dashTokensSaved').textContent = fmtNum(stats.estTokensSaved || life.total_tokens_saved || 0);
   $('#dashCostSaved').textContent = fmtUsd(stats.estCostSavedUsd || 0);
 
   const cache = stats.cache || {};
-  $('#dashCacheHitRate').textContent = `${Math.round((cache.hitRate || 0) * 100)}%`;
-  $('#dashCacheHitsDelta').textContent = `${fmtNum(stats.responseCacheHits || 0)} hits / ${fmtNum(stats.responseCacheMisses || 0)} miss`;
+  const responseCache = stats.responseCache || cache || {};
+  const promptCache = stats.promptCache || {};
+  const leanContext = stats.leanContext || {};
+  const hitRate = responseCache.hitRate ?? cache.hitRate ?? 0;
+  $('#dashCacheHitRate').textContent = `${Math.round(hitRate * 100)}%`;
+  $('#dashCacheHitsDelta').textContent = `${fmtNum(responseCache.hits ?? stats.responseCacheHits ?? 0)} exact hits / ${fmtNum(responseCache.misses ?? stats.responseCacheMisses ?? 0)} exact miss`;
 
   const spent = (life.total_cost_nano_usd || 0) / 1e9;
-  $('#dashSpendDelta').textContent = `${fmtUsd(spent)} spent lifetime`;
+  const estimatedUsage = (overview.recent_requests || []).some(r => r.upstream && r.upstream.usageEstimated);
+  $('#dashSpendDelta').textContent = `${fmtUsd(spent)} spent lifetime${estimatedUsage ? ' (some estimated)' : ''}`;
+
+  $('#saveOptimizerTokens').textContent = fmtNum(stats.estTokensSaved || life.total_tokens_saved || 0);
+  $('#saveReplayTokens').textContent = fmtNum(responseCache.tokensSaved ?? stats.responseCacheTokensSaved ?? 0);
+  $('#savePromptRead').textContent = fmtNum(promptCache.readTokens || 0);
+  $('#saveCacheEntries').textContent = fmtNum(responseCache.entries ?? cache.entries ?? 0);
+  $('#saveCacheMode').textContent = `${stats.storeBackend || 'store'} · ${responseCache.includeStreaming === false ? 'JSON only' : 'streams cached'}${estimatedUsage ? ' · estimates on zero-usage responses' : ''}`;
 
   // Store backend pill
   const storePill = $('#dashStorePill');
   if (storePill) {
     const be = stats.storeBackend || '—';
     storePill.innerHTML = `<span class="dot" style="background:${be==='sqlite'?'var(--ok)':'var(--warn)'}"></span>store: ${escapeHtml(be)}`;
+    storePill.title = `Last refresh: ${new Date().toLocaleTimeString()}${errors.length ? ' • ' + errors.join(' • ') : ''}`;
   }
+  if (errors.length) console.warn('[dashboard]', errors.join('; '));
 
-  // Token usage (Anthropic-style): lifetime totals
+  // Token usage. Anthropic prompt-cache usage separates uncached input from
+  // cache reads/writes; total context input is their sum.
+  const contextInput = life.total_context_input_tokens || ((life.total_input_tokens || 0) + (life.total_cache_read_input_tokens || 0) + (life.total_cache_creation_input_tokens || 0));
+  const billableInput = life.total_billable_input_tokens || contextInput;
   $('#dashUsage').innerHTML = [
-    ['Input tokens',  fmtNum(life.total_input_tokens || 0)],
+    ['Uncached input',  fmtNum(life.total_input_tokens || 0)],
+    ['Prompt-cache read', fmtNum(life.total_cache_read_input_tokens || promptCache.readTokens || 0)],
+    ['Prompt-cache write', fmtNum(life.total_cache_creation_input_tokens || promptCache.creationTokens || 0)],
+    ['Total context input', fmtNum(contextInput)],
+    ['Billable input units', fmtNum(billableInput)],
     ['Output tokens', fmtNum(life.total_output_tokens || 0)],
-    ['Total tokens',  fmtNum((life.total_input_tokens || 0) + (life.total_output_tokens || 0))],
-    ['Cached tokens served', fmtNum(cache.cachedTokens || 0)],
-    ['Total spend',   fmtUsd(spent)],
+    ['Total tokens',  fmtNum(contextInput + (life.total_output_tokens || 0))],
+    ['Response-cache inventory', fmtNum(cache.cachedTokens || 0)],
+    ['Total spend',   `${fmtUsd(spent)}${estimatedUsage ? ' *' : ''}`],
     ['Sessions',      fmtNum(life.total_sessions || 0)],
   ].map(([k,v]) => `<div class="k">${k}</div><div class="v">${v}</div>`).join('');
 
   // Response cache detail
-  $('#dashCache').innerHTML = [
-    ['Hits',            fmtNum(stats.responseCacheHits || 0)],
-    ['Misses',          fmtNum(stats.responseCacheMisses || 0)],
-    ['Hit rate',        `${Math.round((cache.hitRate || 0) * 100)}%`],
-    ['Entries stored',  fmtNum(cache.entries || 0)],
-    ['Tokens served from cache', fmtNum(stats.responseCacheTokensSaved || 0)],
-    ['Cost avoided',    fmtUsd((stats.responseCacheCostSavedNano || 0) / 1e9)],
-  ].map(([k,v]) => `<div class="k">${k}</div><div class="v">${v}</div>`).join('');
+  const cacheRows = [
+    ['Exact replay hits', fmtNum(responseCache.hits ?? stats.responseCacheHits ?? 0)],
+    ['Misses', fmtNum(responseCache.misses ?? stats.responseCacheMisses ?? 0)],
+    ['Hit rate', `${Math.round(hitRate * 100)}%`],
+    ['Entries stored', fmtNum(responseCache.entries ?? cache.entries ?? 0)],
+    ['Bypassed', fmtNum(responseCache.bypassed ?? stats.responseCacheBypassed ?? 0)],
+    ['Too large to store', fmtNum(responseCache.tooLarge ?? stats.responseCacheTooLarge ?? 0)],
+    ['Tokens avoided', fmtNum(responseCache.tokensSaved ?? stats.responseCacheTokensSaved ?? 0)],
+    ['Stored inventory tokens', fmtNum(responseCache.storedUnservedTokens || 0)],
+    ['Cost avoided by replay', fmtUsd(((responseCache.costSavedNano ?? stats.responseCacheCostSavedNano) || 0) / 1e9)],
+    ['Response-cache TTL', responseCache.ttlLabel || ((responseCache.ttlMinutes ?? 0) === 0 ? 'Never expires' : `${fmtNum(responseCache.ttlMinutes ?? 0)} min`)],
+    ['Mode', `${responseCache.includeStreaming === false ? 'non-stream only' : 'stream + JSON'}${responseCache.cacheWebSearch ? ' · web-search on' : ''}`],
+    ['Bypass reasons', (() => { const r = responseCache.bypassReasons || {}; const parts = Object.entries(r).filter(([,v]) => v).map(([k,v]) => `${k}:${fmtNum(v)}`); return parts.length ? parts.join(' · ') : '—'; })()],
+    ['Prompt-cache reads', fmtNum(promptCache.readTokens || 0)],
+    ['Prompt-cache writes', fmtNum(promptCache.creationTokens || 0)],
+    ['Middle context compacted', `${fmtNum(leanContext.turnsCompacted || 0)} turns / ~${fmtNum(leanContext.tokensSavedEstimate || 0)} tok`],
+    ['Breakpoints injected', fmtNum(promptCache.breakpointsInjected || 0)],
+    ['Breakpoints stripped', fmtNum(promptCache.breakpointsStripped || promptCache.unsupportedStripped || 0)],
+    ['Prompt-cache est. savings', fmtUsd((promptCache.savingsNano || 0) / 1e9)],
+  ];
+  $('#dashCache').innerHTML = cacheRows.map(([k,v]) => `<div class="k">${k}</div><div class="v">${v}</div>`).join('')
+    + `<div class="small mute" style="grid-column:1/-1;margin-top:8px">Response cache only hits exact duplicate requests. Provider prompt-cache metrics come from Anthropic/Bedrock usage fields when reported.</div>`;
 
   // Optimization activity breakdown
   const rows = [
@@ -1244,6 +1803,7 @@ function renderDashboard(stats, overview, cost, tokens) {
     ['Tool-def chars saved',     fmtNum(stats.toolDescCharsSaved || 0)],
     ['Prose chars saved',        fmtNum(stats.proseCharsSaved || 0)],
     ['Cache breakpoints injected', fmtNum(stats.cacheBreakpointsInjected || 0)],
+    ['Claude Code fast-path', fmtNum(stats.claudeCodeFastPathRequests || 0)],
   ];
   $('#optActivity').innerHTML = rows.map(([k,v]) => `<div class="k">${k}</div><div class="v">${v}</div>`).join('');
   const anyActive = (stats.requests || 0) > 0;
@@ -1289,6 +1849,8 @@ function renderDashboard(stats, overview, cost, tokens) {
     $('#dashCostTable').innerHTML = '<div class="small mute">No data yet.</div>';
   }
 
+  renderLatency(summary);
+
   // recent
   const recent = overview.recent_requests || [];
   if (recent.length) {
@@ -1305,6 +1867,43 @@ function renderDashboard(stats, overview, cost, tokens) {
   }
 }
 
+function renderDashboardHero(summary, stats, errors = []) {
+  const active = summary.active || {};
+  const cc = summary.claudeCode || {};
+  const latency = summary.latency || {};
+  const cache = summary.cache || {};
+  const ok = !errors.length && cc.status !== 'watch';
+  $('#heroPreset').textContent = 'preset: ' + (summary.optimization?.preset || 'balanced');
+  $('#heroLatency').textContent = `p95: ${fmtNum(latency.p95Ms || 0)} ms`;
+  $('#heroCompat').textContent = ok ? 'tool loops protected' : 'needs attention';
+  const badge = $('#heroReadyBadge');
+  badge.textContent = ok ? 'ready' : 'watch';
+  badge.className = 'badge ' + (ok ? 'ok' : 'warn');
+  const lastErr = cc.lastError?.error ? cc.lastError.error.slice(0, 90) : 'none';
+  $('#heroReadiness').innerHTML = [
+    ['Provider', active.provider || 'not set'],
+    ['Model', active.model || 'not set'],
+    ['Cache safety', `${fmtNum(cache.entries || 0)} exact entries · ${fmtNum(cc.fastPathRequests || stats.claudeCodeFastPathRequests || 0)} fast-path`],
+    ['Last error', lastErr],
+  ].map(([k,v], i) => `<div class="compat-row ${i===3 && lastErr !== 'none' ? 'warn' : ''}"><span class="l">${escapeHtml(k)}</span><span class="r">${escapeHtml(v)}</span></div>`).join('');
+}
+
+function renderLatency(summary) {
+  const latency = summary.latency || {};
+  const pool = summary.pool || [];
+  const rows = [
+    ['Latest request', `${fmtNum(latency.latestMs || 0)} ms`],
+    ['P50 latency', `${fmtNum(latency.p50Ms || 0)} ms`],
+    ['P95 latency', `${fmtNum(latency.p95Ms || 0)} ms`],
+    ['Pool members', fmtNum(pool.length || 0)],
+  ];
+  const fanout = summary.fanout || {};
+  rows.push(['Fan-out load', `${fmtNum(fanout.inFlight || 0)} / ${fmtNum(fanout.capacity || 0)}`]);
+  rows.push(['Queued / timeouts', `${fmtNum(fanout.queuedTotal || 0)} / ${fmtNum(fanout.queueTimeouts || 0)}`]);
+  const poolRows = (fanout.members || pool).slice(0, 4).map(p => `<div class="compat-row"><span class="l">${escapeHtml(p.label || p.provider)} · ${escapeHtml(p.model || 'model')}</span><span class="r">${fmtNum(p.inFlight || 0)}/${fmtNum(p.capacity || 0)} live · ${fmtNum(p.lastMs || 0)}ms</span></div>`).join('');
+  $('#dashLatency').innerHTML = rows.map(([k,v]) => `<div class="compat-row"><span class="l">${k}</span><span class="r">${v}</span></div>`).join('') + poolRows;
+}
+
 async function clearCache() {
   try { await fetch('/api/cache/clear', { method:'POST' }); toast('Response cache cleared'); loadDashboard(); }
   catch (e) { toast(e.message, false); }
@@ -1314,9 +1913,9 @@ async function clearCache() {
 function wireOptToggles() {
   const pairs = [
     ['opt_cache','row_cache'], ['opt_responseCache','row_responseCache'],
-    ['opt_toolResults','row_toolResults'],
+    ['opt_toolResults','row_toolResults'], ['opt_leanContext','row_leanContext'],
     ['opt_history','row_history'], ['opt_toolCompress','row_toolCompress'],
-    ['opt_compression','row_compression'],
+    ['opt_compression','row_compression'], ['opt_laziness','row_laziness'],
   ];
   for (const [cb, row] of pairs) {
     const el = $('#'+cb); const r = $('#'+row);
@@ -1336,14 +1935,18 @@ async function loadOptimization() {
 }
 
 function applyOptimization(o) {
-  const c = o.compression || {}, tr = o.toolResults || {}, h = o.historyTrim || {}, tc = o.toolCompress || {}, ci = o.cacheInject || {}, rc = o.responseCache || {};
+  const c = o.compression || {}, tr = o.toolResults || {}, h = o.historyTrim || {}, tc = o.toolCompress || {}, lc = o.leanContext || {}, ci = o.cacheInject || {}, rc = o.responseCache || {};
   $('#opt_cache').checked       = ci.enabled !== false;
   $('#opt_responseCache').checked = rc.enabled !== false;
   $('#opt_rc_ttl').value        = rc.ttlMinutes ?? 60;
   $('#opt_toolResults').checked = tr.enabled !== false;
   $('#opt_tr_ansi').checked      = tr.stripAnsi !== false;
   $('#opt_tr_blank').checked     = tr.stripBlankLines === true;
-  $('#opt_tr_maxChars').value    = tr.maxChars ?? 30000;
+  $('#opt_tr_dedupe').checked    = tr.dedupeLines === true;
+  $('#opt_tr_maxChars').value    = tr.maxChars ?? 12000;
+  $('#opt_leanContext').checked  = lc.enabled !== false;
+  $('#opt_lean_keepLast').value  = lc.keepLastN ?? 24;
+  $('#opt_lean_summary').value   = lc.summaryChars ?? 700;
   $('#opt_history').checked      = h.enabled === true;
   $('#opt_hist_max').value       = h.maxMessages ?? 60;
   $('#opt_hist_keep').value      = h.keepFirstN ?? 2;
@@ -1352,13 +1955,20 @@ function applyOptimization(o) {
   $('#opt_tc_examples').checked  = tc.stripExamples !== false;
   $('#opt_compression').checked  = c.enabled === true;
   $('#opt_comp_mode').value      = c.mode || 'lite';
+  const pt = o.laziness || {};
+  if ($('#opt_laziness')) {
+    $('#opt_laziness').checked     = pt.enabled === true;
+    $('#opt_laziness_mode').value  = pt.mode || 'full';
+  }
   // sync sub-panel visibility
   $('#row_cache').classList.toggle('on', $('#opt_cache').checked);
   $('#row_responseCache').classList.toggle('on', $('#opt_responseCache').checked);
   $('#row_toolResults').classList.toggle('on', $('#opt_toolResults').checked);
+  $('#row_leanContext').classList.toggle('on', $('#opt_leanContext').checked);
   $('#row_history').classList.toggle('on', $('#opt_history').checked);
   $('#row_toolCompress').classList.toggle('on', $('#opt_toolCompress').checked);
   $('#row_compression').classList.toggle('on', $('#opt_compression').checked);
+  if ($('#row_laziness')) $('#row_laziness').classList.toggle('on', $('#opt_laziness').checked);
 }
 
 function gatherOptimization() {
@@ -1369,6 +1979,7 @@ function gatherOptimization() {
       enabled: $('#opt_toolResults').checked,
       stripAnsi: $('#opt_tr_ansi').checked,
       stripBlankLines: $('#opt_tr_blank').checked,
+      dedupeLines: $('#opt_tr_dedupe').checked,
       maxChars: Number($('#opt_tr_maxChars').value || 0),
     },
     historyTrim:  {
@@ -1381,7 +1992,13 @@ function gatherOptimization() {
       maxDescLength: Number($('#opt_tc_maxlen').value || 400),
       stripExamples: $('#opt_tc_examples').checked,
     },
+    leanContext: {
+      enabled: $('#opt_leanContext').checked,
+      keepLastN: Number($('#opt_lean_keepLast').value || 24),
+      summaryChars: Number($('#opt_lean_summary').value || 700),
+    },
     compression:  { enabled: $('#opt_compression').checked, mode: $('#opt_comp_mode').value },
+    laziness:     $('#opt_laziness') ? { enabled: $('#opt_laziness').checked, mode: $('#opt_laziness_mode').value } : undefined,
   };
 }
 
@@ -1406,6 +2023,7 @@ function renderOptStats(stats) {
     ['Est. tokens saved',        fmtNum(stats.estTokensSaved || 0)],
     ['Est. cost saved',          fmtUsd(stats.estCostSavedUsd || 0)],
     ['Total characters saved',   fmtNum(stats.totalCharsSaved || 0)],
+    ['Middle context compacted', `${fmtNum(stats.leanContextTurnsCompacted || 0)} turns`],
     ['Cache breakpoints injected', fmtNum(stats.cacheBreakpointsInjected || 0)],
     ['Response-cache hits',      `${fmtNum(stats.responseCacheHits || 0)} (${Math.round((cache.hitRate||0)*100)}%)`],
     ['Cache cost avoided',       fmtUsd((stats.responseCacheCostSavedNano || 0) / 1e9)],
@@ -1749,40 +2367,483 @@ async function removeFromPool(idx) {
 }
 async function resetCircuits() { try { await fetch('/api/pool/reset-circuits', { method: 'POST' }); toast('Circuit breakers reset — all models active'); await loadPool(); } catch (e) { toast(e.message, false); } }
 
-// ── Request Log ──
-async function loadLogs() {
+// ── Diagnostics / Request Log ──
+let _diagnosticsData = null;
+let _selectedTrace = null;
+let _selectedLogId = null;
+let _selectedModel = null;
+let _diagSeverity = 'all';
+let _diagLiveTimer = null;
+
+// ── helpers ──
+function fmtBytes(n) { n = Number(n)||0; if (n > 1024*1024) return `${(n/1024/1024).toFixed(1)} MB`; if (n > 1024) return `${(n/1024).toFixed(1)} KB`; return `${n} B`; }
+function logSeverity(e) {
+  const s = e?.finalStatus || e?.status || '';
+  if (['all-failed','mid-stream-err','queued-timeout','err','error','failed'].includes(s)) return 'error';
+  if (s === 'ok' || s === 'cache-hit' || s === 'success') return 'info';
+  return 'warn';
+}
+function logModel(e) { return e?.model || e?.request?.model || e?.attempts?.find(a => a && a.model)?.model || 'unknown'; }
+function logProvider(e) { return e?.provider || e?.attempts?.find(a => a && a.provider)?.provider || 'unknown'; }
+function logLine(e) {
+  const label = e?.label || e?.request?.lastMessagePreview || e?.attempts?.[0]?.label || logModel(e) || '?';
+  const caps = [e?.request?.inputCapture?.length ? 'in' : '', e?.responseCapture ? 'out' : '', e?.stream ? 'stream' : '', e?.hasTools || e?.request?.toolCount ? 'tools' : ''].filter(Boolean).join('+');
+  return `${label}${caps ? '  [' + caps + ']' : ''}`;
+}
+function filteredDiagLogs() {
+  const d = _diagnosticsData || {};
+  const q = ($('#diagLogFilter')?.value || '').toLowerCase();
+  const model = $('#diagModelFilter')?.value || '';
+  const provider = $('#diagProviderFilter')?.value || '';
+  return (d.requests || []).filter(e => {
+    if (_diagSeverity !== 'all' && logSeverity(e) !== _diagSeverity) return false;
+    if (model && logModel(e) !== model) return false;
+    if (provider && logProvider(e) !== provider) return false;
+    return !q || JSON.stringify(e).toLowerCase().includes(q);
+  });
+}
+function updateDiagFilterOptions(d) {
+  const logs = d.requests || [];
+  const modelEl = $('#diagModelFilter'), providerEl = $('#diagProviderFilter');
+  const fill = (el, values, label) => {
+    if (!el) return;
+    const current = el.value;
+    const opts = [...new Set(values.filter(Boolean).filter(v => v !== 'unknown'))].sort();
+    el.innerHTML = `<option value="">All ${label}</option>` + opts.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+    if (opts.includes(current)) el.value = current;
+  };
+  fill(modelEl, [...logs.map(logModel), ...(d.models || []).map(m => m.model)], 'models');
+  fill(providerEl, [...logs.map(logProvider), ...(d.models || []).map(m => m.provider)], 'providers');
+}
+// dx kv helper — produces pairs of .dk / .dv spans
+function dxKv(rows) {
+  return rows.map(([k, v]) => `<span class="dk">${escapeHtml(String(k))}</span><span class="dv">${escapeHtml(String(v ?? '—'))}</span>`).join('');
+}
+// Legacy kvHtml kept for compatibility with non-diagnostics code
+function kvHtml(rows) { return rows.map(([k,v]) => `<span class="k">${escapeHtml(k)}</span><span class="v">${escapeHtml(String(v ?? '—'))}</span>`).join(''); }
+function sparkBars(values) {
+  const nums = (values || []).slice(-48).map(Number).filter(Number.isFinite);
+  if (!nums.length) return '<span style="height:2px;background:#2563eb;flex:1"></span>';
+  const max = Math.max(...nums, 1);
+  return nums.map(n => `<span title="${fmtNum(n)}ms" style="height:${Math.max(2, Math.round((n/max)*34))}px;background:#2563eb;opacity:.7;flex:1;border-radius:2px 2px 0 0"></span>`).join('');
+}
+function entriesLine(obj) { return Object.entries(obj || {}).map(([k,v]) => `${k}:${fmtNum(v)}`).join(' · ') || '—'; }
+
+// ── Main load / workspace ──
+async function loadDiagnostics() {
   try {
-    const data = await fetch('/api/logs/file?lines=200').then(r => r.json());
-    const pathEl = $('#logFilePath');
-    if (pathEl && data.logFile) { const files = (data.logFiles || []).map(f => `${f.name} (${(f.bytes/1024).toFixed(0)} KB)`).join('  ·  '); pathEl.textContent = `Log: ${data.logFile}${files ? '   —   ' + files : ''}`; }
-    renderLogs(data.logs || [], data.total || 0);
-  } catch {}
+    const limit = $('#diagLogLimit')?.value || '300';
+    const r = await apiGet(`/api/diagnostics?lines=${encodeURIComponent(limit)}`, 20000);
+    if (!r.ok) throw new Error(r.error || 'diagnostics failed');
+    _diagnosticsData = r.data;
+    renderDiagnosticsWorkspace();
+  } catch (e) {
+    renderModelDiagnostics([], new Map(), e.message);
+    dxUpdateKpiChips({});
+  }
 }
-async function clearLogs() {
-  try { await fetch('/api/logs/clear', { method: 'POST' }); renderLogs([], 0); const pathEl = $('#logFilePath'); if (pathEl) pathEl.textContent = ''; const cnt = $('#logCount'); if (cnt) cnt.textContent = '0 entries'; toast('Log cleared'); } catch (e) { toast(e.message, false); }
+function renderDiagnosticsWorkspace() {
+  const d = _diagnosticsData || {};
+  const runtime = new Map(((d.metrics?.fanout?.members || [])).map(m => [m.model, m]));
+  updateDiagFilterOptions(d);
+  dxUpdateKpiChips(d);
+  renderDiagnosticsOverview(d);
+  renderModelDiagnostics(d.models || [], runtime);
+  renderDiagnosticsTraces(d);
+  renderDiagnosticsLogs();
+  renderDiagnosticsErrors(d);
+  renderDiagnosticsCost(d);
+  renderDiagnosticsSystem(d);
 }
+async function loadModelDiagnostics() { await loadDiagnostics(); }
+async function loadLogs() { await loadDiagnostics(); }
+
+// ── KPI chip bar ──
+function dxUpdateKpiChips(d) {
+  const o = d.overview || {}, h = d.health || {};
+  const totalReq = fmtNum(o.totalRequests || 0);
+  const errCount = fmtNum(o.failuresLoaded || 0);
+  const errPct = Math.round((o.errorRate || 0) * 100);
+  const p95 = o.p95Ms ? `P95: ${fmtNum(o.p95Ms)}ms` : 'P95: —';
+  const healthStatus = h.status || '—';
+  const reqEl = $('#dxKpiReq'); if (reqEl) reqEl.textContent = `${totalReq} req`;
+  const errEl = $('#dxKpiErr');
+  if (errEl) {
+    errEl.textContent = `${errCount} err${errPct ? ' (' + errPct + '%)' : ''}`;
+    errEl.className = 'dx-chip ' + (errPct >= 5 ? 'err' : errPct > 0 ? 'warn' : '');
+  }
+  const p95El = $('#dxKpiP95');
+  if (p95El) {
+    p95El.textContent = p95;
+    p95El.className = 'dx-chip ' + ((o.p95Ms || 0) > 30000 ? 'warn' : '');
+  }
+  const hEl = $('#dxKpiHealth');
+  if (hEl) {
+    hEl.textContent = healthStatus;
+    hEl.className = 'dx-chip ' + (h.ok === false || h.status === 'watch' ? 'warn' : 'ok');
+  }
+}
+
+// ── Live Feed tab ──
+function renderDiagnosticsOverview(d) {
+  const h = d.health || {}, m = d.metrics || {};
+  const healthEl = $('#diagHealth');
+  if (healthEl) healthEl.innerHTML = dxKv([
+    ['Status', h.status || 'unknown'], ['Provider', h.provider || 'not set'],
+    ['Pool size', fmtNum(h.poolSize || 0)], ['In flight', fmtNum(h.inFlight || 0)],
+    ['Cache backend', h.cacheBackend || '—'], ['CPU load', `${h.cpu?.loadPct ?? 0}%`],
+    ['Memory RSS', fmtBytes(h.memory?.rss || 0)], ['Uptime', `${fmtNum(h.uptimeSec || 0)}s`],
+  ]);
+  const trafficEl = $('#diagTraffic');
+  if (trafficEl) trafficEl.innerHTML = `
+    <div class="dx-spark" style="height:36px;margin-bottom:8px">${sparkBars(m.latencies || [])}</div>
+    <div class="dx-kv">${dxKv([
+      ['By status', entriesLine(m.byStatus)], ['By provider', entriesLine(m.byProvider)],
+      ['By model', entriesLine(m.byModel)], ['Peak latency', `${fmtNum((d.overview||{}).maxMs || 0)}ms`],
+    ])}</div>`;
+}
+
+function renderDiagnosticsLogs() {
+  const data = _diagnosticsData || {};
+  const filtered = filteredDiagLogs();
+  const pathEl = $('#logFilePath');
+  if (pathEl) {
+    if (data.logs?.logFile) {
+      const files = (data.logs.logFiles || []).map(f => `${f.name} (${(f.bytes/1024).toFixed(0)} KB)`).join('  ·  ');
+      pathEl.textContent = `Log: ${data.logs.logFile}${files ? '   —   ' + files : ''}`;
+      pathEl.style.display = '';
+    } else {
+      pathEl.style.display = 'none';
+    }
+  }
+  renderLogs(filtered, data.logs?.total || filtered.length);
+  if (!_selectedLogId || !filtered.some(e => String(e.id) === String(_selectedLogId))) {
+    _selectedLogId = filtered[0]?.id || null;
+  }
+  renderCaptureDetail(filtered.find(e => String(e.id) === String(_selectedLogId)) || null);
+}
+
 function renderLogs(logs, total) {
-  const cnt = $('#logCount'); if (cnt) cnt.textContent = `${total} entr${total === 1 ? 'y' : 'ies'} on disk`;
+  const cnt = $('#logCount'); if (cnt) cnt.textContent = `${logs.length} visible · ${fmtNum(total)} on disk`;
   const el = $('#logTable'); if (!el) return;
-  if (logs.length === 0) { el.innerHTML = '<div class="small" style="color:var(--dim);padding:8px 0">No requests logged yet.</div>'; return; }
-  const statusColor = s => s === 'ok' ? 'var(--ok)' : (s === 'all-failed' || s === 'mid-stream-err') ? 'var(--err)' : 'var(--warn)';
-  const rows = logs.map(e => {
+  if (!logs.length) {
+    el.innerHTML = '<div class="dx-tr-empty">No requests match the current filters.</div>';
+    return;
+  }
+  el.innerHTML = logs.map(e => {
     const t = e.time ? new Date(e.time) : new Date(e.ts || 0);
-    const time = t.toLocaleTimeString();
-    const attempts = (e.attempts || []).map(a => {
-      const skipped = a.status === 'skipped';
-      const glyph = skipped ? SVG.pause : a.status === 'ok' ? SVG.check : SVG.x;
-      const color = skipped ? 'var(--warn)' : a.status === 'ok' ? 'var(--ok)' : 'var(--err)';
-      const err = a.error ? ` — ${escapeHtml(String(a.error).slice(0, 150))}` : '';
-      return `<div style="font-size:11px;color:var(--dim);padding-left:8px;display:flex;align-items:center;gap:5px"><span class="i" style="color:${color}">${glyph}</span> ${escapeHtml(a.label || '')} <span style="color:var(--mute)">${a.durationMs}ms${err}</span></div>`;
-    }).join('');
-    const status = e.finalStatus || e.status || '?';
-    const label = e.label || (e.attempts && e.attempts[0] && e.attempts[0].label) || '?';
-    const flags = [e.stream && 'stream', e.hasTools && 'tools', e.hasSystem && 'sys'].filter(Boolean).join(' ');
-    const showAttempts = (e.attempts || []).length > 1 || ((e.attempts || []).length === 1 && (e.attempts[0].status === 'err' || e.attempts[0].status === 'skipped'));
-    return `<div style="border-bottom:1px solid var(--line);padding:8px 4px"><div style="display:flex;gap:10px;align-items:baseline"><span style="color:var(--dim);font-size:11px;font-family:ui-monospace,Menlo,Consolas,monospace;flex-shrink:0">${time}</span><span style="font-size:12px;font-weight:500;color:${statusColor(status)}">${escapeHtml(status)}</span><span style="font-size:11.5px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(label)}</span><span style="font-size:11px;color:var(--mute);flex-shrink:0">${e.totalMs}ms${e.poolSize ? ' · ' + e.poolSize + ' pool' : ''}</span>${flags ? `<span style="font-size:10px;color:var(--dim);flex-shrink:0">${escapeHtml(flags)}</span>` : ''}</div>${showAttempts ? attempts : ''}</div>`;
+    const time = Number.isFinite(t.getTime()) ? t.toLocaleTimeString() : '—';
+    const sev = logSeverity(e);
+    const isActive = String(_selectedLogId) === String(e.id);
+    const model = logModel(e), provider = logProvider(e);
+    return `<div class="dx-tr ${isActive ? 'active' : ''}" onclick="selectDiagLog('${escapeHtml(String(e.id || ''))}')">
+      <span class="dx-tr-time">${escapeHtml(time)}</span>
+      <span class="dx-tr-dot ${sev}"></span>
+      <span class="dx-tr-model" title="${escapeHtml(model)}">${escapeHtml(model)}</span>
+      <span class="dx-tr-prov" title="${escapeHtml(provider)}">${escapeHtml(provider)}</span>
+      <span class="dx-tr-msg">${escapeHtml(logLine(e))}</span>
+      <span class="dx-tr-ms">${fmtNum(e.totalMs || 0)}ms</span>
+    </div>`;
   }).join('');
-  el.innerHTML = `<div style="max-height:500px;overflow-y:auto">${rows}</div>`;
+}
+
+function selectDiagLog(id) { _selectedLogId = id; renderDiagnosticsLogs(); }
+
+function renderCaptureDetail(e) {
+  const el = $('#diagCaptureDetail');
+  if (!el) return;
+  if (!e) { el.innerHTML = '<span class="dx-muted">Select a request row to inspect input and output captures.</span>'; return; }
+  const input = [
+    e.request?.systemPreview ? `system: ${e.request.systemPreview}` : '',
+    ...(e.request?.inputCapture || []).map(m => `${m.role}: ${m.preview}`),
+  ].filter(Boolean).join('\n\n') || e.request?.lastMessagePreview || 'No input preview captured.';
+  const output = e.responseCapture || e.attempts?.find(a => a.responsePreview)?.responsePreview
+    || e.error?.message || e.attempts?.find(a => a.error)?.error || 'No output preview captured yet.';
+  const attempts = (e.attempts || []).map(a =>
+    `${a.status || '?'}  ${a.provider || '?'}  ${a.model || a.label || '?'}  ${fmtNum(a.durationMs || 0)}ms${a.error ? '\n  -- ' + a.error : ''}`
+  ).join('\n') || 'No attempts recorded.';
+  el.innerHTML = `
+    <div class="dx-kv" style="margin-bottom:10px">${dxKv([
+      ['Trace ID', e.id || '—'], ['Status', e.finalStatus || e.status || '—'],
+      ['Model', logModel(e)], ['Provider', logProvider(e)],
+      ['Latency', `${fmtNum(e.totalMs || 0)}ms`],
+    ])}</div>
+    <div class="dx-cap-grid">
+      <div class="dx-cap-box">
+        <div class="dx-cap-head"><span>Input</span><span>${fmtNum(e.request?.messageCount || 0)} msg</span></div>
+        <pre>${escapeHtml(input)}</pre>
+      </div>
+      <div class="dx-cap-box">
+        <div class="dx-cap-head"><span>Output / error</span><span>${escapeHtml(logSeverity(e))}</span></div>
+        <pre>${escapeHtml(output)}</pre>
+      </div>
+    </div>
+    <div class="dx-section-label" style="margin-top:10px">Attempts</div>
+    <pre class="dx-pre">${escapeHtml(attempts)}</pre>`;
+}
+
+function toggleDiagLive() {
+  if (_diagLiveTimer) {
+    clearInterval(_diagLiveTimer); _diagLiveTimer = null;
+    $('#diagLiveBtn').textContent = 'Live: off';
+    return;
+  }
+  _diagLiveTimer = setInterval(loadDiagnostics, 5000);
+  $('#diagLiveBtn').textContent = 'Live: on';
+  loadDiagnostics();
+}
+
+// ── Models tab ──
+function renderModelDiagnostics(models, runtime, error = null) {
+  const root = $('#modelDiagCards');
+  const cnt = $('#modelDiagCount');
+  if (!root) return;
+  if (cnt) cnt.textContent = error ? 'unavailable' : `${models.length} model${models.length === 1 ? '' : 's'}`;
+  if (error) {
+    root.innerHTML = `<div class="dx-card err"><div class="dx-card-title">Diagnostics endpoint failed</div><span class="dx-muted">${escapeHtml(error)}</span></div>`;
+    return;
+  }
+  if (!models.length) {
+    root.innerHTML = '<span class="dx-muted">No model diagnostics yet — run a request through the proxy.</span>';
+    renderModelDetail(null, runtime);
+    return;
+  }
+  if (!_selectedModel || !models.some(m => m.model === _selectedModel)) _selectedModel = models[0].model;
+
+  // Compute max avg latency across all models for relative bar widths
+  const maxAvg = Math.max(...models.map(m => m.avg_response_time_ms || 0), 1);
+
+  root.innerHTML = models.map(m => {
+    const live = runtime.get(m.model) || {};
+    const errRate = Math.round((m.error_rate || live.errorRate || 0) * 100);
+    const cacheRate = Math.round((m.cache_hit_rate || 0) * 100);
+    const successRate = m.request_count ? Math.round(((m.request_count - (m.error_count || 0)) / m.request_count) * 100) : 100;
+    const avgMs = m.avg_response_time_ms || 0;
+    const p95Ms = m.p95_response_time_ms || live.lastMs || 0;
+    const barPct = Math.round((avgMs / maxAvg) * 100);
+    const isCooling = (live.cooldownSecsLeft || 0) > 0;
+    const statusLabel = isCooling ? `cooldown ${live.cooldownSecsLeft}s` : errRate >= 20 ? `${errRate}% errors` : errRate > 0 ? `${errRate}% err` : 'active';
+    const statusCls = isCooling || errRate >= 20 ? 'err' : errRate > 0 ? 'warn' : 'active';
+    const cardCls = isCooling || errRate >= 20 ? 'err' : errRate > 0 ? 'warn' : '';
+    const isSelected = _selectedModel === m.model;
+    return `<div class="dx-model-card ${cardCls} ${isSelected ? 'active' : ''}" onclick="selectDiagModel('${escapeHtml(m.model)}')">
+      <div class="dx-mc-head">
+        <div class="dx-mc-name" title="${escapeHtml(m.model)}">${escapeHtml(m.model)}</div>
+        <span class="dx-mc-badge ${statusCls}">${escapeHtml(statusLabel)}</span>
+      </div>
+      <div class="dx-mc-sub">${escapeHtml(m.provider || live.provider || 'unknown')}${m.category ? ' · ' + m.category : ''}</div>
+      <hr class="dx-mc-divider">
+      <div class="dx-mc-stats">
+        <div><div class="dx-mc-stat-k">Requests</div><div class="dx-mc-stat-v">${fmtNum(m.request_count || live.req || 0)}</div></div>
+        <div><div class="dx-mc-stat-k">Error rate</div><div class="dx-mc-stat-v">${errRate}%</div></div>
+        <div><div class="dx-mc-stat-k">Avg latency</div><div class="dx-mc-stat-v">${fmtNum(avgMs)}ms</div></div>
+        <div><div class="dx-mc-stat-k">Success</div><div class="dx-mc-stat-v">${successRate}%</div></div>
+      </div>
+      <div class="dx-lat-bar"><div class="dx-lat-fill" style="width:${barPct}%"></div></div>
+      <div class="dx-lat-label"><span>avg ${fmtNum(avgMs)}ms</span><span>p95 ${fmtNum(p95Ms)}ms</span></div>
+      <div class="dx-mc-tokens">${fmtNum(m.total_context_input || 0)} in / ${fmtNum(m.total_output || 0)} out tokens</div>
+      <div class="dx-mc-cost-row">
+        <span>Cost: ${escapeHtml(m.cost_formatted || '$0')}</span>
+        <span>Cache: ${cacheRate}%</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  renderModelDetail(models.find(m => m.model === _selectedModel), runtime);
+}
+
+function selectDiagModel(model) {
+  _selectedModel = model;
+  const d = _diagnosticsData || {};
+  const runtime = new Map(((d.metrics?.fanout?.members || [])).map(m => [m.model, m]));
+  // Refresh card active states
+  for (const card of document.querySelectorAll('.dx-model-card')) {
+    const nameEl = card.querySelector('.dx-mc-name');
+    card.classList.toggle('active', nameEl && nameEl.getAttribute('title') === model);
+  }
+  renderModelDetail(d.models?.find(m => m.model === model) || null, runtime);
+}
+
+function renderModelDetail(m, runtime) {
+  const el = $('#diagModelDetail');
+  if (!el) return;
+  if (!m) { el.classList.remove('open'); el.innerHTML = ''; return; }
+  const live = runtime.get(m.model) || {};
+  const errRate = Math.round((m.error_rate || live.errorRate || 0) * 100);
+  const cacheRate = Math.round((m.cache_hit_rate || 0) * 100);
+  const modes = Object.entries(m.compression_modes || {}).sort((a,b) => b[1]-a[1]).slice(0,5).map(([k,v]) => `${k}:${fmtNum(v)}`).join(' · ') || 'none';
+  el.classList.add('open');
+  el.innerHTML = `
+    <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:14px">
+      <span style="font-size:15px;font-weight:700;color:#111827">${escapeHtml(m.model)}</span>
+      <span style="font-size:12px;color:#6b7280;font-family:ui-monospace,Menlo,Consolas,monospace">${escapeHtml(m.provider || live.provider || 'unknown')}</span>
+      <span class="dx-mc-badge ${errRate ? 'warn' : 'active'}" style="margin-left:auto">${errRate ? errRate + '% errors' : 'healthy'}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px 20px;margin-bottom:14px">
+      ${[
+        ['Requests', fmtNum(m.request_count || live.req || 0)],
+        ['Errors', `${fmtNum(m.error_count || live.err || 0)} (${errRate}%)`],
+        ['Avg latency', `${fmtNum(m.avg_response_time_ms || 0)}ms`],
+        ['Latest latency', `${fmtNum(m.latest_response_time_ms || live.lastMs || 0)}ms`],
+        ['Min / Max', `${fmtNum(m.min_response_time_ms || 0)} / ${fmtNum(m.max_response_time_ms || 0)}ms`],
+        ['Cost', escapeHtml(m.cost_formatted || '$0')],
+        ['Cache hit', `${cacheRate}%`],
+        ['Input tokens', fmtNum(m.total_context_input || 0)],
+        ['Output tokens', fmtNum(m.total_output || 0)],
+        ['Tokens saved', fmtNum(m.tokens_saved || 0)],
+        ['Live load', `${fmtNum(live.inFlight || 0)} / ${fmtNum(live.capacity || 0)}`],
+        ['Optimizers', modes],
+      ].map(([k, v]) => `<div><div class="dx-mc-stat-k">${escapeHtml(k)}</div><div class="dx-mc-stat-v" style="font-size:13px">${escapeHtml(String(v))}</div></div>`).join('')}
+    </div>`;
+}
+
+// ── Traces tab ──
+function renderDiagnosticsTraces(d) {
+  const visibleIds = new Set(filteredDiagLogs().map(e => String(e.id)));
+  const traces = (d.traces || []).filter(t => visibleIds.has(String(t.id)));
+  const el = $('#diagTraceList');
+  if (!el) return;
+  if (!traces.length) { el.innerHTML = '<span class="dx-muted">No request traces match the current filters.</span>'; return; }
+  el.innerHTML = traces.map(t => {
+    const sev = logSeverity(t);
+    const isActive = String(_selectedTrace) === String(t.id);
+    return `<div class="dx-trace-row ${isActive ? 'active' : ''}" onclick="selectDiagTrace('${escapeHtml(String(t.id || ''))}')">
+      <span class="dx-trace-dot ${sev}"></span>
+      <div class="dx-trace-main">
+        <div class="dx-trace-id">${escapeHtml(String(t.id || '?'))}</div>
+        <div class="dx-trace-meta">${escapeHtml(t.request?.model || t.attempts?.[0]?.model || 'unknown')} · ${(t.attempts||[]).length} attempt(s)</div>
+      </div>
+      <span class="dx-trace-status" style="color:${sev === 'error' ? '#ef4444' : sev === 'warn' ? '#f59e0b' : '#22c55e'}">${escapeHtml(t.status || '?')}</span>
+      <span class="dx-trace-ms">${fmtNum(t.totalMs || 0)}ms</span>
+    </div>`;
+  }).join('');
+  if (!_selectedTrace && traces[0]) selectDiagTrace(traces[0].id);
+}
+
+function selectDiagTrace(id) {
+  _selectedTrace = id;
+  // Update active state
+  for (const row of document.querySelectorAll('.dx-trace-row')) {
+    const idEl = row.querySelector('.dx-trace-id');
+    row.classList.toggle('active', idEl && idEl.textContent.trim() === String(id));
+  }
+  const t = (_diagnosticsData?.traces || []).find(x => String(x.id) === String(id));
+  const el = $('#diagTraceDetail');
+  if (!el || !t) return;
+  const attempts = (t.attempts || []).map((a, i) => `
+    <div class="dx-tree-step">
+      <strong>${i + 1}. ${escapeHtml(a.label || a.model || '?')}</strong>
+      <span style="font-size:11px;color:#6b7280">${escapeHtml(a.provider || '?')}</span>
+      <span style="font-size:11px;color:#6b7280;margin-left:6px">${escapeHtml(a.status || '?')}</span>
+      <span style="font-size:11px;color:#6b7280;margin-left:6px">${fmtNum(a.durationMs || 0)}ms</span>
+      ${a.error ? `<div style="color:#ef4444;font-size:11.5px;margin-top:4px">${escapeHtml(a.error)}</div>` : ''}
+    </div>`).join('') || '<span class="dx-muted">No attempts recorded.</span>';
+  const input = [
+    t.request?.systemPreview ? `system: ${t.request.systemPreview}` : '',
+    ...(t.request?.inputCapture || []).map(m => `${m.role}: ${m.preview}`),
+  ].filter(Boolean).join('\n\n') || JSON.stringify(t.request || {}, null, 2);
+  const output = t.responseCapture || t.attempts?.find(a => a.responsePreview)?.responsePreview
+    || t.error?.message || t.attempts?.find(a => a.error)?.error || 'No output preview captured.';
+  el.innerHTML = `
+    <div class="dx-kv" style="margin-bottom:12px">${dxKv([
+      ['ID', t.id || '—'], ['Status', t.status || '—'],
+      ['Total', `${fmtNum(t.totalMs || 0)}ms`], ['Time', t.time || '—'],
+      ['Messages', t.request?.messageCount ?? '—'], ['Tools', t.request?.toolCount ?? '—'],
+      ['Stream', t.request?.stream ? 'yes' : 'no'],
+    ])}</div>
+    <div class="dx-section-label">Pipeline</div>
+    <div class="dx-tree">
+      <div class="dx-tree-step"><strong>Ingress</strong> <span style="font-size:11px;color:#6b7280">${t.request?.messageCount ?? 0} messages · ${t.request?.toolCount ?? 0} tools</span></div>
+      <div class="dx-tree-step"><strong>Router / fan-out</strong> <span style="font-size:11px;color:#6b7280">capacity ${fmtNum(t.fanout?.capacity || 0)}</span></div>
+      ${attempts}
+      <div class="dx-tree-step"><strong>Egress</strong> <span style="font-size:11px;color:#6b7280">${escapeHtml(t.status || '?')} · ${fmtNum(t.totalMs || 0)}ms</span></div>
+    </div>
+    <div class="dx-section-label" style="margin-top:12px">Input / Output capture</div>
+    <div class="dx-cap-grid">
+      <div class="dx-cap-box">
+        <div class="dx-cap-head"><span>Input</span><span>${fmtNum(t.request?.messageCount || 0)} msg</span></div>
+        <pre>${escapeHtml(input)}</pre>
+      </div>
+      <div class="dx-cap-box">
+        <div class="dx-cap-head"><span>Output</span><span>${escapeHtml(t.status || '?')}</span></div>
+        <pre>${escapeHtml(output)}</pre>
+      </div>
+    </div>`;
+}
+
+// ── Errors tab ──
+function renderDiagnosticsErrors(d) {
+  const rows = d.errors || [];
+  const el = $('#diagErrors');
+  if (!el) return;
+  if (!rows.length) {
+    el.innerHTML = '<div class="dx-card ok"><div class="dx-card-title">No errors</div><span class="dx-muted">No errors in the loaded diagnostics window.</span></div>';
+    return;
+  }
+  el.innerHTML = rows.map(e => `
+    <div class="dx-err-card">
+      <div class="dx-err-head">
+        <span class="dx-err-status">${escapeHtml(e.finalStatus || e.status || 'error')}</span>
+        <span class="dx-err-id">${escapeHtml(String(e.id || '?'))}</span>
+        <span class="dx-err-ms">${fmtNum(e.totalMs || 0)}ms</span>
+      </div>
+      <div class="dx-err-meta">${escapeHtml(e.attempts?.[0]?.label || logModel(e) || 'unknown')} · ${escapeHtml(logProvider(e))}</div>
+      <div class="dx-err-msg">${escapeHtml(e.error?.message || e.attempts?.find(a=>a.error)?.error || 'No error text captured')}</div>
+    </div>`).join('');
+}
+
+// ── Cost & Tokens tab ──
+function renderDiagnosticsCost(d) {
+  const life = d.cost?.lifetime || {};
+  const costEl = $('#diagCost');
+  if (costEl) costEl.innerHTML = dxKv([
+    ['Context input', fmtNum(life.total_context_input_tokens || 0)],
+    ['Billable input', fmtNum(life.total_billable_input_tokens || 0)],
+    ['Cache read tokens', fmtNum(life.total_cache_read_input_tokens || 0)],
+    ['Cache write tokens', fmtNum(life.total_cache_creation_input_tokens || 0)],
+    ['Output tokens', fmtNum(life.total_output_tokens || 0)],
+    ['Total spend', fmtUsd((life.total_cost_nano_usd || 0)/1e9)],
+    ['Tokens saved', fmtNum(life.total_tokens_saved || 0)],
+  ]);
+  const prov = d.cost?.byProvider || [];
+  const provEl = $('#diagProviderCost');
+  if (!provEl) return;
+  if (!prov.length) { provEl.innerHTML = '<span class="dx-muted">No provider cost data yet.</span>'; return; }
+  provEl.innerHTML = `<table class="dx-cost-table">
+    <thead><tr><th>Provider</th><th class="num">Requests</th><th class="num">Spend</th></tr></thead>
+    <tbody>${prov.map(p => `<tr>
+      <td>${escapeHtml(p.provider)}</td>
+      <td class="num">${fmtNum(p.request_count)}</td>
+      <td class="num">${fmtUsd((p.total_cost_nano||0)/1e9)}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+// ── System tab ──
+function renderDiagnosticsSystem(d) {
+  const s = d.system || {}, h = d.health || {};
+  const el = $('#diagSystem');
+  if (el) el.innerHTML = dxKv([
+    ['Status', h.status || 'unknown'], ['Node', s.node || '—'],
+    ['Platform', `${s.platform || '—'} ${s.arch || ''}`], ['PID', s.pid || '—'],
+    ['CPU cores', h.cpu?.cores || '—'], ['CPU load', `${h.cpu?.loadPct ?? 0}%`],
+    ['Memory RSS', fmtBytes(h.memory?.rss || 0)], ['Heap used', fmtBytes(h.memory?.heapUsed || 0)],
+    ['Log bytes', fmtBytes(h.disk?.logBytes || 0)], ['Upstream cap', h.network?.upstreamConnections || '—'],
+    ['Store', s.store?.backend || '—'], ['Config path', s.configPath || '—'],
+    ['Log dir', s.logDir || '—'],
+  ]);
+}
+
+async function clearLogs() {
+  try {
+    await fetch('/api/logs/clear', { method: 'POST' });
+    _selectedLogId = null;
+    renderLogs([], 0);
+    renderCaptureDetail(null);
+    const pathEl = $('#logFilePath'); if (pathEl) { pathEl.textContent = ''; pathEl.style.display = 'none'; }
+    const cnt = $('#logCount'); if (cnt) cnt.textContent = '0 entries';
+    toast('Log cleared');
+  } catch (e) { toast(e.message, false); }
 }
 
 // ── Listeners ──
@@ -1796,6 +2857,32 @@ $('#limitsSaveBtn').addEventListener('click', saveLimits);
 $('#optSaveBtn').addEventListener('click', saveOptimization);
 $('#optSaveBtn2').addEventListener('click', saveOptimization);
 wireOptToggles();
+
+// dx tab switching
+if ($('#dxTabbar')) {
+  $('#dxTabbar').addEventListener('click', e => {
+    const btn = e.target.closest('.dx-tab');
+    if (!btn || !btn.dataset.dx) return;
+    const tab = btn.dataset.dx;
+    for (const b of document.querySelectorAll('.dx-tab')) b.classList.toggle('active', b === btn);
+    const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1);
+    for (const p of document.querySelectorAll('.dx-panel')) p.classList.toggle('active', p.id === 'dxPanel' + capitalize(tab));
+    // show severity bar only on feed tab
+    const sevBar = $('#dxSevBar');
+    if (sevBar) sevBar.style.display = tab === 'feed' ? '' : 'none';
+  });
+}
+
+// severity filter (inside tab bar)
+if ($('#dxSevBar')) {
+  $('#dxSevBar').addEventListener('click', e => {
+    const btn = e.target.closest('.dx-sev-btn');
+    if (!btn) return;
+    _diagSeverity = btn.dataset.severity || 'all';
+    for (const b of $('#dxSevBar').querySelectorAll('.dx-sev-btn')) b.classList.toggle('active', b === btn);
+    renderDiagnosticsWorkspace();
+  });
+}
 
 loadAll();
 </script>
