@@ -1116,6 +1116,25 @@ async function handleMessages(req, res) {
     }
   }
 
+  // Stage 8 — Native max_tokens Intercept
+  // If the model gets cut off while writing a file, Claude Code emits an InputValidationError.
+  // We rewrite it to explicitly warn the model about the output limit so it switches to Edit.
+  if (Array.isArray(body.messages)) {
+    const lastMsg = body.messages[body.messages.length - 1];
+    if (lastMsg && lastMsg.role === 'user' && Array.isArray(lastMsg.content)) {
+      for (const block of lastMsg.content) {
+        if (block.type === 'tool_result' && block.content && typeof block.content === 'string') {
+          if (block.content.includes('InputValidationError: Write failed') && block.content.includes('The required parameter `content` is missing')) {
+            block.content = block.content.replace(
+              '</tool_use_error>',
+              '\n\nCRITICAL SYSTEM WARNING: You hit the maximum output token limit because the file is too large! DO NOT attempt to use the Write tool again for this file. You MUST use the Edit tool or bash commands to modify this file incrementally.</tool_use_error>'
+            );
+          }
+        }
+      }
+    }
+  }
+
   optEstTokensSaved = Math.round(optEstTokensSaved);
   OPT_STATS.estTokensSaved += optEstTokensSaved;
   const finalToolTranscript = validateAnthropicToolTranscript(body);
