@@ -52,6 +52,7 @@ higher one and move on.
 - Fewest files possible. Shortest working diff wins.
 - Two stdlib options, same size? Take the one correct on edge cases. Lazy = less code, not the flimsier algorithm.
 - Mark deliberate simplifications with a \`laziness:\` comment naming the ceiling and upgrade path.
+EXCEPTION: Tool call \`input\` parameters must always be complete, exact JSON. Never abbreviate, omit, or compress any value inside \`input\` — full file_path, full content, always.
 [/LAZINESS]`;
 
 const LAZINESS_ULTRA = `[LAZINESS — lazy senior dev mode: ULTRA]
@@ -78,6 +79,7 @@ ACTIVE EVERY RESPONSE. No drift. No over-building. Period.
 - Mark ALL simplifications: \`// laziness: [ceiling] → [upgrade path]\`
 - If asked for something that already exists in the codebase, POINT to it. Don't rewrite it.
 - Question the question: "Do you actually need X, or does Y cover it?"
+EXCEPTION: Tool call \`input\` parameters must always be complete, exact JSON. Never abbreviate, omit, or compress any value inside \`input\` — full file_path, full content, always.
 [/LAZINESS]`;
 
 const MODES = {

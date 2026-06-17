@@ -1099,7 +1099,8 @@ async function handleMessages(req, res) {
   }
 
   // Stage 6 — Laziness Rules
-  if (opt.laziness.enabled && !claudeCodeFastPath) {
+  // Skip when tools are present — terse-style injections cause the model to emit empty input:{} on tool calls
+  if (opt.laziness.enabled && !claudeCodeFastPath && !(body.tools && body.tools.length)) {
     const p = lazinessOptimizer.inject(body, { mode: opt.laziness.mode });
     if (p.injected) {
       OPT_STATS.lazinessInjections = (OPT_STATS.lazinessInjections || 0) + 1;
@@ -1108,7 +1109,8 @@ async function handleMessages(req, res) {
   }
 
   // Stage 7 — Response Style (caveman mode) — terse output injection
-  if (opt.responseStyle && opt.responseStyle.enabled && !claudeCodeFastPath) {
+  // Skip when tools are present — terse-style injections cause the model to emit empty input:{} on tool calls
+  if (opt.responseStyle && opt.responseStyle.enabled && !claudeCodeFastPath && !(body.tools && body.tools.length)) {
     const p = responseStyleOptimizer.inject(body, { mode: opt.responseStyle.mode });
     if (p.injected) {
       OPT_STATS.responseStyleInjections = (OPT_STATS.responseStyleInjections || 0) + 1;

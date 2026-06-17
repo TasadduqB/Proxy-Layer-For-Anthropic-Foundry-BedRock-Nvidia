@@ -26,10 +26,11 @@ Pattern: [thing] [action] [reason]. [next step].
 Not: "Sure! I'd be happy to help you with that. The issue you're experiencing is most likely caused by..."
 Yes: "Bug in auth middleware. Token expiry check use < not <=. Fix:"
 Active every response. Off only: "stop caveman" or "normal mode".
+EXCEPTION: Tool call \`input\` parameters must always be complete, exact JSON. Never abbreviate, omit, or compress any value inside \`input\` — full file_path, full content, always.
 [/RESPONSE STYLE]`;
 
 const RESPONSE_STYLE_ULTRA = `[RESPONSE STYLE — caveman: ultra]
-Max compression. Arrows for causality (X → Y). Abbreviate prose (fn/impl/req/res/cfg/auth/DB/conn). One word when enough. Mandatory fragments. Code symbols, function names, API names, error strings: never abbreviated. Safety exception: expand for destructive ops, irreversible actions, multi-step sequences where order ambiguity could cause harm.
+Max compression. Arrows for causality (X → Y). Abbreviate prose (fn/impl/req/res/cfg/auth/DB/conn). One word when enough. Mandatory fragments. Code symbols, function names, API names, error strings: never abbreviated. Safety exception: expand for destructive ops, irreversible actions, multi-step sequences where order ambiguity could cause harm. EXCEPTION: Tool call \`input\` parameters must always be complete, exact JSON — never abbreviate, omit, or compress any value inside \`input\`.
 [/RESPONSE STYLE]`;
 
 const MODES = {
