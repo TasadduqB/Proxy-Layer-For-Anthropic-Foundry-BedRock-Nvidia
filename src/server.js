@@ -485,7 +485,9 @@ function getPool() {
 }
 
 const FANOUT = {
-  perMember: Math.max(1, Number(process.env.PROXY_MAX_CONCURRENCY_PER_MEMBER || 200)),
+  // Default 500: Claude Code can spin up 30+ sub-agents each with long streaming
+  // responses — 200 was too easy to saturate. Upstream provider is the real throttle.
+  perMember: Math.max(1, Number(process.env.PROXY_MAX_CONCURRENCY_PER_MEMBER || 500)),
   queueMs: Math.max(0, Number(process.env.PROXY_MAX_QUEUE_MS || 60000)),
 };
 
@@ -569,7 +571,7 @@ async function waitForPoolSlot(pool, reqId, routeClass = null) {
       for (const cfg of pool) getOrInitStat(cfg._key).queued = (getOrInitStat(cfg._key).queued || 0) + 1;
       console.log(`[proxy] [fanout-queue] ${reqId} waiting for model slot (${currentInFlight()} in-flight / cap ${pool.length * FANOUT.perMember})`);
     }
-    await new Promise(r => setTimeout(r, 75));
+    await new Promise(r => setTimeout(r, 20));
   }
 }
 
@@ -817,25 +819,30 @@ function captureResponse(res, maxBytes = 2_000_000) {
 }
 
 function setAnthropicRateLimitHeaders(res, limiterState) {
-  // Return synthetic generous limits so Claude Code doesn't self-throttle.
-  // Use actual remaining budget from our local limiter if available.
+  // Always called on every /v1/messages response so Claude Code's SDK can
+  // calibrate sub-agent concurrency. When local limits are disabled, report the
+  // maximum generous values — the upstream provider is the real throttle.
   const limits = getLimits();
+  const reportedRpm = limits.enabled ? (limits.rpm || 40000) : 40000;
+  const reportedTpm = limits.enabled ? (limits.tpm || 400000000) : 400000000;
   const nowRpm = limiterState?.reqs?.length || 0;
   const nowTpm = limiterState?.tokenSum?.() || 0;
-  const rpmRemaining = Math.max(0, (limits.rpm || 40000) - nowRpm);
-  const tpmRemaining = Math.max(0, (limits.tpm || 2000000) - nowTpm);
+  const rpmRemaining = Math.max(0, reportedRpm - nowRpm);
+  const tpmRemaining = Math.max(0, reportedTpm - nowTpm);
   const resetTime = new Date(Date.now() + 60000).toISOString();
 
-  res.setHeader('anthropic-ratelimit-requests-limit', String(limits.rpm || 40000));
+  res.setHeader('anthropic-ratelimit-requests-limit', String(reportedRpm));
   res.setHeader('anthropic-ratelimit-requests-remaining', String(rpmRemaining));
   res.setHeader('anthropic-ratelimit-requests-reset', resetTime);
-  res.setHeader('anthropic-ratelimit-tokens-limit', String(limits.tpm || 2000000));
+  res.setHeader('anthropic-ratelimit-tokens-limit', String(reportedTpm));
   res.setHeader('anthropic-ratelimit-tokens-remaining', String(tpmRemaining));
   res.setHeader('anthropic-ratelimit-tokens-reset', resetTime);
-  res.setHeader('anthropic-ratelimit-input-tokens-limit', String(Math.floor((limits.tpm || 2000000) / 2)));
+  res.setHeader('anthropic-ratelimit-input-tokens-limit', String(Math.floor(reportedTpm / 2)));
   res.setHeader('anthropic-ratelimit-input-tokens-remaining', String(Math.floor(tpmRemaining / 2)));
-  res.setHeader('anthropic-ratelimit-output-tokens-limit', String(Math.floor((limits.tpm || 2000000) / 2)));
+  res.setHeader('anthropic-ratelimit-input-tokens-reset', resetTime);
+  res.setHeader('anthropic-ratelimit-output-tokens-limit', String(Math.floor(reportedTpm / 2)));
   res.setHeader('anthropic-ratelimit-output-tokens-remaining', String(Math.floor(tpmRemaining / 2)));
+  res.setHeader('anthropic-ratelimit-output-tokens-reset', resetTime);
 }
 
 async function handleMessages(req, res) {
@@ -862,8 +869,11 @@ async function handleMessages(req, res) {
       }, { 'retry-after': String(verdict.retryAfter) });
     }
     limiter.recordRequest(now);
-    setAnthropicRateLimitHeaders(res, limiter);
   }
+  // Always send rate-limit headers on every response so Claude Code's SDK can
+  // calibrate sub-agent concurrency. Without these, the SDK defaults to very
+  // conservative parallelism and serializes sub-agents unnecessarily.
+  setAnthropicRateLimitHeaders(res, limits.enabled ? limiter : null);
 
   // Always sniff usage so analytics + cache savings have real token counts,
   // even when rate limiting is disabled.
@@ -1463,6 +1473,7 @@ async function handleCountTokens(req, res) {
   try {
     const body = await readJSONBody(req);
     const tokens = tokenCounter.estimateTokens(JSON.stringify(body), { provider: 'anthropic' });
+    setAnthropicRateLimitHeaders(res, null);
     send(res, 200, { input_tokens: tokens, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 });
   } catch (err) {
     send(res, 400, { type: 'error', error: { type: 'invalid_request_error', message: err.message } });
@@ -2241,7 +2252,7 @@ function handleV1Models(_req, res) {
   send(res, 200, { data, has_more: false, first_id: data[0].id, last_id: data[data.length - 1].id });
 }
 
-const server = http.createServer(async (req, res) => {
+const server = http.createServer({ keepAlive: true }, async (req, res) => {
   const u = new URL(req.url, 'http://localhost');
 
   // CORS — Claude Code and browser-based tests may call from different origins.
@@ -2321,6 +2332,12 @@ const server = http.createServer(async (req, res) => {
     if (!res.headersSent) send(res, 500, { error: String(err.message || err) });
   }
 });
+
+// Sub-agents maintain persistent HTTP connections and fire many requests per
+// session. Keep connections alive long enough that they don't need to re-connect
+// for every request. keepAliveTimeout > typical upstream idle timeout (60s).
+server.keepAliveTimeout = 65000;
+server.headersTimeout   = 70000;
 
 const PORT = parseInt(process.env.PORT || '8787', 10);
 const HOST = process.env.HOST || '127.0.0.1';

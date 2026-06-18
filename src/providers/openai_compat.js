@@ -29,7 +29,9 @@ function getUndiciAgent(opts = {}) {
     return new Agent({
       keepAliveTimeout: 60000,
       keepAliveMaxTimeout: 120000,
-      connections: Math.max(16, Number(process.env.PROXY_MAX_UPSTREAM_CONNECTIONS || 200)),
+      // Must be >= PROXY_MAX_CONCURRENCY_PER_MEMBER (500) so undici never internally
+      // queues requests that the proxy already counted as in-flight.
+      connections: Math.max(16, Number(process.env.PROXY_MAX_UPSTREAM_CONNECTIONS || 500)),
       pipelining: 1,
       ...opts
     });
