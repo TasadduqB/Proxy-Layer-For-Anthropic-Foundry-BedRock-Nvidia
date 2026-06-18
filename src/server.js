@@ -295,6 +295,8 @@ const OPT_STATS = {
   fanoutQueueTimeouts: 0,
   fanoutMaxConcurrent: 0,
   responseStyleInjections: 0,
+  toolCallsSkipped: 0,
+  toolCallsRepaired: 0,
 };
 
 // Restore cumulative OPT_STATS from previous runs; always reset startedAt to now.
@@ -1307,6 +1309,23 @@ async function handleMessages(req, res) {
       logEntry.attempts.push(attemptLog);
       logEntry.totalMs = Date.now() - reqStart;
       if (res._capturedBody) logEntry.responseCapture = compactText(res._capturedBody, 1400);
+      // Capture tool-call repair events (skipped truncated calls, repaired JSON).
+      // _toolRepairs is written by createAnthropicSSEEmitter (streaming) and
+      // buildAnthropicResponse (non-streaming) when arg repair fires.
+      const toolRepairs = res._toolRepairs;
+      if (toolRepairs && toolRepairs.length) {
+        logEntry.toolRepairs = toolRepairs;
+        let skipped = 0, repaired = 0;
+        for (const r of toolRepairs) {
+          if (r.status === 'skipped') skipped++;
+          else if (r.status === 'repaired') repaired++;
+        }
+        if (skipped) OPT_STATS.toolCallsSkipped += skipped;
+        if (repaired) OPT_STATS.toolCallsRepaired += repaired;
+        markOptStatsDirty();
+        const summary = toolRepairs.map(r => `${r.tool}:${r.status}(${r.rawLen}b)`).join(', ');
+        console.warn(`[proxy] [tool-repair] req=${reqId} provider=${cfg.kind} ${summary}`);
+      }
       pushLog(logEntry);
       // Log analytics after success. Token counts come from the sniffUsage
       // callback which fires on res.end(); we use setImmediate to ensure it
@@ -1733,6 +1752,10 @@ async function handleDashboardSummaryData() {
       queueTimeouts: OPT_STATS.fanoutQueueTimeouts || 0,
       maxConcurrent: OPT_STATS.fanoutMaxConcurrent || 0,
       members: poolRuntimeSnapshot(),
+    },
+    toolRepair: {
+      skipped: OPT_STATS.toolCallsSkipped || 0,
+      repaired: OPT_STATS.toolCallsRepaired || 0,
     },
     pool: poolData,
     recent: requestHistory,

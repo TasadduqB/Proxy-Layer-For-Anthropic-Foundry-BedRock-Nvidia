@@ -799,9 +799,17 @@ function createAnthropicSSEEmitter(res, model) {
           try {
             if (Object.keys(JSON.parse(finalArgs)).length === 0) {
               console.warn(`[proxy] [stream-repair] skipping ${block.name} — args truncated beyond recovery (${rawArgs.length} raw chars)`);
+              if (!res._toolRepairs) res._toolRepairs = [];
+              res._toolRepairs.push({ tool: block.name, status: 'skipped', rawLen: rawArgs.length, reason: 'truncated' });
               continue;
             }
           } catch { /* invalid JSON — forward as-is, Claude Code will error */ }
+        }
+
+        // Track repairs where the JSON was invalid but recoverable.
+        if (rawArgs && finalArgs !== rawArgs) {
+          if (!res._toolRepairs) res._toolRepairs = [];
+          res._toolRepairs.push({ tool: block.name, status: 'repaired', rawLen: rawArgs.length, repairedLen: finalArgs.length });
         }
       }
 
@@ -889,19 +897,27 @@ function createAnthropicSSEEmitter(res, model) {
 }
 
 // Build a non-stream Anthropic Messages response from accumulated parts.
-function buildAnthropicResponse({ model, text, thinking, toolCalls, stopReason, usage }) {
+function buildAnthropicResponse({ model, text, thinking, toolCalls, stopReason, usage, repairs = null }) {
   const content = [];
   if (thinking) content.push({ type: 'thinking', thinking, signature: Buffer.from('proxy-max').toString('base64') });
   if (text) content.push({ type: 'text', text });
   for (const tc of toolCalls || []) {
-    let input = {};
     const rawArgs = (tc.arguments || '').trim();
-    try { input = JSON.parse(repairJSON(tc.arguments)); } catch { input = {}; }
+    const repairedStr = repairJSON(tc.arguments);
+    let input = {};
+    try { input = JSON.parse(repairedStr); } catch { input = {}; }
     // If the model sent non-empty arguments but repair produced {} the JSON was
-    // unrecoverably truncated (max_tokens mid-value).  Skip the tool call so
+    // unrecoverably truncated (max_tokens mid-value). Skip the tool call so
     // Claude Code sees the max_tokens stop reason and retries gracefully instead
     // of hitting InputValidationError: file_path/content missing.
-    if (rawArgs && rawArgs !== '{}' && Object.keys(input).length === 0) continue;
+    if (rawArgs && rawArgs !== '{}' && Object.keys(input).length === 0) {
+      if (repairs) repairs.push({ tool: tc.name || '?', status: 'skipped', rawLen: rawArgs.length, reason: 'truncated' });
+      continue;
+    }
+    // Track JSON repairs (args were invalid but recoverable).
+    if (repairs && rawArgs && repairedStr !== rawArgs && Object.keys(input).length > 0) {
+      repairs.push({ tool: tc.name || '?', status: 'repaired', rawLen: rawArgs.length, repairedLen: repairedStr.length });
+    }
     content.push({ type: 'tool_use', id: tc.id || newId('toolu'), name: tc.name, input });
   }
   if (content.length === 0) content.push({ type: 'text', text: '' });

@@ -722,15 +722,19 @@ async function callWithWebSearchLoop(providerCfg, sanitizedBody, originalBody, r
     emitter.setUsage((lastJson && lastJson.usage) || {});
     emitter.end();
   } else {
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify(buildAnthropicResponse({
+    const repairs = [];
+    const responseBody = buildAnthropicResponse({
       model: requestedModel,
       text: lastText,
       thinking: lastThinking,
       toolCalls: lastToolCalls,
       stopReason: lastStopReason,
-      usage: lastJson && lastJson.usage
-    })));
+      usage: lastJson && lastJson.usage,
+      repairs,
+    });
+    if (repairs.length) res._toolRepairs = (res._toolRepairs || []).concat(repairs);
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify(responseBody));
   }
 }
 
@@ -839,15 +843,19 @@ async function callOpenAICompatible(providerCfg, body, res) {
     throw err;
   }
   const { text, thinking, toolCalls, stopReason } = parseResponse(json, isResponsesApi);
-  res.setHeader('Content-Type', 'application/json');
-  res.end(JSON.stringify(buildAnthropicResponse({
+  const repairs = [];
+  const responseBody = buildAnthropicResponse({
     model: body._requestedModel || cfg.model,
     text,
     thinking,
     toolCalls,
     stopReason,
-    usage: json.usage
-  })));
+    usage: json.usage,
+    repairs,
+  });
+  if (repairs.length) res._toolRepairs = (res._toolRepairs || []).concat(repairs);
+  res.setHeader('Content-Type', 'application/json');
+  res.end(JSON.stringify(responseBody));
 }
 
 // Standard chat/completions SSE streaming.
