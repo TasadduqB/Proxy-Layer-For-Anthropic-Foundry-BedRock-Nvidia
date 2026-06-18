@@ -238,7 +238,9 @@ async function performWebSearch(query) {
 async function executeProxyTools(toolCalls) {
   const results = [];
   for (const tc of toolCalls) {
-    if (tc.name === 'web_search') {
+    // Accept both 'web_search' (Claude Code CLI tool name) and
+    // 'web_search_20250305' (Anthropic server tool type used as name).
+    if (tc.name === 'web_search' || tc.name?.startsWith('web_search')) {
       let args = {};
       try { args = JSON.parse(tc.arguments || '{}'); } catch {}
       const searchResults = await performWebSearch(args.query || '');
@@ -573,6 +575,29 @@ function buildResponsesInput(body) {
         } else {
           parts.push({ type: 'input_text', text: titlePart + contextPart });
         }
+      } else if (block.type === 'server_tool_result') {
+        // Result of Anthropic server-executed tool (e.g. native web_search from Anthropic API).
+        const rawContent = typeof block.content === 'string'
+          ? block.content
+          : (block.content || []).map(c => {
+              if (c.encrypted_content) return '[Encrypted search result]';
+              return `**${c.title || 'Result'}**\nURL: ${c.url || ''}\n${c.text || ''}`;
+            }).join('\n\n');
+        const out2 = block.is_error ? `[Server tool error] ${rawContent}` : rawContent;
+        const normalizedId = normalizeResponsesCallId(block.tool_use_id);
+        const callId = functionCallIdsByToolUseId.get(block.tool_use_id) || functionCallIdsByToolUseId.get(normalizedId);
+        if (callId && seenFunctionCalls.has(callId)) {
+          input.push({ type: 'function_call_output', call_id: callId, output: out2 });
+        } else {
+          parts.push({ type: 'input_text', text: `[Server tool result for ${block.tool_use_id || 'unknown'}]\n${out2}` });
+        }
+      } else if (block.type === 'web_search_tool_result') {
+        // Anthropic-native web_search result block in conversation history.
+        const results = (block.content || []).map(r => {
+          if (r.encrypted_content) return '[Encrypted search result]';
+          return `**${r.title || 'Result'}**\nURL: ${r.url || ''}\n${r.text || ''}`;
+        }).join('\n\n');
+        if (results) parts.push({ type: 'input_text', text: `[Web Search Results]\n${results}` });
       }
     }
     if (parts.length) input.push({ role: m.role, content: parts });
@@ -607,9 +632,12 @@ async function callWithWebSearchLoop(providerCfg, sanitizedBody, originalBody, r
     const payloadNonStream = { ...payload, stream: false };
 
     const controller = new AbortController();
-    // Non-streaming calls in the web search loop can take significantly longer
-    // than streaming calls — use a generous 5-minute timeout per iteration.
-    const webSearchTimeoutMs = Math.max(connectTimeoutMs, 300000);
+    // Non-streaming calls in the web search loop need a generous timeout —
+    // models taking 10+ minutes to respond mid-loop should not abort.
+    // Configurable via providerCfg.webSearchTimeoutMs; defaults to 10 min.
+    const webSearchTimeoutMs = Number(providerCfg.webSearchTimeoutMs) > 0
+      ? Number(providerCfg.webSearchTimeoutMs)
+      : Math.max(connectTimeoutMs, 600000);
     const timer = setTimeout(() => controller.abort(), webSearchTimeoutMs);
     let upstream;
     try {
@@ -621,7 +649,7 @@ async function callWithWebSearchLoop(providerCfg, sanitizedBody, originalBody, r
         });
     } catch (err) {
       clearTimeout(timer);
-      if (err.name === 'AbortError') throw new Error(`Upstream timed out (${connectTimeoutMs}ms)`);
+      if (err.name === 'AbortError') throw new Error(`Upstream timed out after ${webSearchTimeoutMs}ms in web-search loop`);
       throw err;
     }
     clearTimeout(timer);
@@ -645,8 +673,8 @@ async function callWithWebSearchLoop(providerCfg, sanitizedBody, originalBody, r
     lastJson = json; lastText = text; lastThinking = thinking;
     lastStopReason = stopReason;
 
-    const searchCalls = (toolCalls || []).filter(tc => tc.name === 'web_search');
-    const otherCalls  = (toolCalls || []).filter(tc => tc.name !== 'web_search');
+    const searchCalls = (toolCalls || []).filter(tc => tc.name === 'web_search' || tc.name?.startsWith('web_search'));
+    const otherCalls  = (toolCalls || []).filter(tc => tc.name !== 'web_search' && !tc.name?.startsWith('web_search'));
     lastToolCalls = otherCalls;
 
     if (searchCalls.length === 0) break; // done — emit below

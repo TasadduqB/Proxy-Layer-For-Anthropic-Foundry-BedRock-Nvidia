@@ -118,6 +118,22 @@ function anthropicToOpenAIMessages(body) {
           return `**${r.title || 'Result'}**\nURL: ${r.url || ''}\n${r.text || ''}`;
         }).join('\n\n');
         if (results) parts.push(`[Web Search Results]\n${results}`);
+      } else if (block.type === 'server_tool_result') {
+        // Result of an Anthropic server-executed tool (e.g. native web_search from Anthropic API).
+        // Treat as a tool message — the matching server_tool_use was already registered in seenToolCallIds.
+        const id = block.tool_use_id;
+        const rawContent = typeof block.content === 'string'
+          ? block.content
+          : (block.content || []).map(c => {
+              if (c.encrypted_content) return '[Encrypted search result]';
+              return `**${c.title || 'Result'}**\nURL: ${c.url || ''}\n${c.text || ''}`;
+            }).join('\n\n');
+        if (!id || !seenToolCallIds.has(id)) {
+          if (rawContent) parts.push(`[Server tool result] ${rawContent}`.slice(0, 4000));
+        } else {
+          const content = block.is_error ? `[Server tool error] ${rawContent}` : rawContent;
+          out.push({ role: 'tool', tool_call_id: id, content });
+        }
       }
     }
     if (parts.length || toolCalls.length) {
