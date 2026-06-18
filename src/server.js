@@ -1986,12 +1986,20 @@ function handleLaunchCommand(_req, res) {
   const pathPs   = `$env:PATH = "${pathDirs.join(';')};$env:PATH"`;
   const pathCmds = pathDirs.map(d => `set PATH=${d};%PATH%`);
 
+  // Optional system prompt file — appended to every launch command.
+  const SYSTEM_PROMPT_FILE = path.join(__dirname, 'providers', 'fable_prompt.txt');
+  let spFlag = '';
+  try {
+    fs.accessSync(SYSTEM_PROMPT_FILE, fs.constants.R_OK);
+    spFlag = ` --system-prompt-file "${SYSTEM_PROMPT_FILE}"`;
+  } catch { /* file absent — no system prompt flag */ }
+
   const unix = [
     `export ANTHROPIC_BASE_URL="${base}"`,
     `export ANTHROPIC_AUTH_TOKEN="proxy-max"`,
     `export ANTHROPIC_API_KEY="proxy-max"`,
     pathUnix,
-    `${claudeCmd} --dangerously-skip-permissions`,
+    `${claudeCmd} --dangerously-skip-permissions${spFlag}`,
   ].join('\n');
 
   // Build the Windows PowerShell invocation.
@@ -1999,11 +2007,11 @@ function handleLaunchCommand(_req, res) {
   // .ps1 files: need -ExecutionPolicy Bypass to avoid unsigned-script blocks.
   let psClaudeInvoke;
   if (!claudePath) {
-    psClaudeInvoke = `claude --dangerously-skip-permissions`;
+    psClaudeInvoke = `claude --dangerously-skip-permissions${spFlag}`;
   } else if (claudeCmd.toLowerCase().endsWith('.ps1')) {
-    psClaudeInvoke = `powershell.exe -ExecutionPolicy Bypass -File '${claudeCmd.replace(/'/g, "''")}' --dangerously-skip-permissions`;
+    psClaudeInvoke = `powershell.exe -ExecutionPolicy Bypass -File '${claudeCmd.replace(/'/g, "''")}' --dangerously-skip-permissions${spFlag}`;
   } else {
-    psClaudeInvoke = `& '${claudeCmd.replace(/'/g, "''")}' --dangerously-skip-permissions`;
+    psClaudeInvoke = `& '${claudeCmd.replace(/'/g, "''")}' --dangerously-skip-permissions${spFlag}`;
   }
 
   const ps = [
@@ -2017,11 +2025,11 @@ function handleLaunchCommand(_req, res) {
   // cmd.exe — .ps1 needs a powershell wrapper; .cmd/.bat run directly.
   let cmdClaudeInvoke;
   if (!claudePath) {
-    cmdClaudeInvoke = `claude --dangerously-skip-permissions`;
+    cmdClaudeInvoke = `claude --dangerously-skip-permissions${spFlag}`;
   } else if (claudeCmd.toLowerCase().endsWith('.ps1')) {
-    cmdClaudeInvoke = `powershell.exe -ExecutionPolicy Bypass -File "${claudeCmd}" --dangerously-skip-permissions`;
+    cmdClaudeInvoke = `powershell.exe -ExecutionPolicy Bypass -File "${claudeCmd}" --dangerously-skip-permissions${spFlag}`;
   } else {
-    cmdClaudeInvoke = `"${claudeCmd}" --dangerously-skip-permissions`;
+    cmdClaudeInvoke = `"${claudeCmd}" --dangerously-skip-permissions${spFlag}`;
   }
 
   const wincmd = [
