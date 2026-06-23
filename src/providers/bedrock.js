@@ -89,38 +89,8 @@ function buildBedrockPayload(body) {
   return payload;
 }
 
-// Parse the AWS event-stream binary frames.
+// Parse the AWS event-stream binary frames (streaming).
 // Frame layout: [TotalLen 4B][HeadersLen 4B][PreludeCRC 4B][Headers][Payload][MessageCRC 4B]
-function* parseEventStream(buf) {
-  let offset = 0;
-  while (offset + 16 <= buf.length) {
-    const totalLen = buf.readUInt32BE(offset);
-    if (offset + totalLen > buf.length) return { rest: buf.slice(offset) };
-    const headersLen = buf.readUInt32BE(offset + 4);
-    const headersStart = offset + 12;
-    const headersEnd = headersStart + headersLen;
-    const payloadStart = headersEnd;
-    const payloadEnd = offset + totalLen - 4;
-    const payload = buf.slice(payloadStart, payloadEnd);
-
-    // Parse headers (we only need :event-type / :message-type)
-    const headers = {};
-    let p = headersStart;
-    while (p < headersEnd) {
-      const nameLen = buf.readUInt8(p); p += 1;
-      const name = buf.slice(p, p + nameLen).toString('utf8'); p += nameLen;
-      const type = buf.readUInt8(p); p += 1;
-      if (type === 7) { // string
-        const valLen = buf.readUInt16BE(p); p += 2;
-        headers[name] = buf.slice(p, p + valLen).toString('utf8'); p += valLen;
-      } else { p = headersEnd; break; } // skip unknown header types
-    }
-    yield { headers, payload };
-    offset += totalLen;
-  }
-  return { rest: buf.slice(offset) };
-}
-
 async function* iterEventStream(response) {
   const reader = response.body.getReader();
   let buf = Buffer.alloc(0);
