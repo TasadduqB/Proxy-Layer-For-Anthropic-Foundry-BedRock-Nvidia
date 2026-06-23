@@ -116,8 +116,36 @@ try {
 
 function estimateRequestTokens(body, provider = 'anthropic') {
   try {
-    const inputText = JSON.stringify({ system: body?.system || '', messages: body?.messages || [], tools: body?.tools || [], thinking: body?.thinking || null });
-    const inputTokens = tokenCounter.estimateTokens(inputText, { provider });
+    // Sum tokens over the textual leaves of the request rather than
+    // JSON.stringify-ing the whole body. Avoids allocating a multi-MB string for
+    // large conversations and stops counting JSON punctuation/escaping (which
+    // previously inflated the estimate). Small leaves (tool input / schema) are
+    // stringified individually.
+    let inputTokens = 0;
+    const add = (s) => {
+      if (s == null || s === '') return;
+      inputTokens += tokenCounter.estimateTokens(typeof s === 'string' ? s : JSON.stringify(s), { provider });
+    };
+
+    if (typeof body?.system === 'string') add(body.system);
+    else if (Array.isArray(body?.system)) for (const b of body.system) add(b?.text);
+
+    if (Array.isArray(body?.messages)) {
+      for (const m of body.messages) {
+        if (typeof m?.content === 'string') { add(m.content); continue; }
+        if (!Array.isArray(m?.content)) continue;
+        for (const blk of m.content) {
+          if (blk?.text != null) add(blk.text);
+          else if (blk?.content != null) add(blk.content);   // tool_result content
+          else if (blk?.input != null) add(blk.input);       // tool_use args
+        }
+      }
+    }
+
+    if (Array.isArray(body?.tools)) {
+      for (const t of body.tools) { add(t?.name); add(t?.description); add(t?.input_schema); }
+    }
+
     const outputTokens = Math.max(1, Math.round(Number(body?.max_tokens || 0) * 0.08)) || 0;
     return { inputTokens, outputTokens };
   } catch {
@@ -1000,6 +1028,8 @@ async function handleMessages(req, res) {
   // provider (handled later in sanitizeBodyForProvider for Bedrock).
   const optApplied = [];     // human-readable list of stages that fired
   let optEstTokensSaved = 0; // rough estimate (~4 chars / token)
+  let messagesMutated = false; // set when a stage rewrites body.messages — the
+                               // final transcript re-validation is only needed then.
   OPT_STATS.requests++;
   if (claudeCodeFastPath) OPT_STATS.claudeCodeFastPathRequests++;
 
@@ -1015,6 +1045,7 @@ async function handleMessages(req, res) {
     const r = trf.filterMessages(body.messages);
     if (r.savedChars > 0) {
       body.messages = r.messages;
+      messagesMutated = true;
       OPT_STATS.toolResultsFiltered += r.filteredCount;
       OPT_STATS.toolResultCharsSaved += r.savedChars;
       optEstTokensSaved += r.savedChars / 4;
@@ -1038,6 +1069,7 @@ async function handleMessages(req, res) {
         body.messages = beforeTrimMessages;
         optApplied.push('history-skip(tool-pairs)');
       } else {
+        messagesMutated = true;
         OPT_STATS.historyMessagesTrimmed += r.trimmed;
         // Estimate ~250 tokens per dropped message (conservative).
         optEstTokensSaved += r.trimmed * 250;
@@ -1075,6 +1107,7 @@ async function handleMessages(req, res) {
         body.messages = beforeLeanMessages;
         optApplied.push('middle-context-skip(tool-pairs)');
       } else {
+        messagesMutated = true;
         OPT_STATS.leanContextTurnsCompacted += r.compacted;
         OPT_STATS.leanContextCharsSaved += r.savedChars;
         optEstTokensSaved += r.savedChars / 4;
@@ -1154,16 +1187,21 @@ async function handleMessages(req, res) {
 
   optEstTokensSaved = Math.round(optEstTokensSaved);
   OPT_STATS.estTokensSaved += optEstTokensSaved;
-  const finalToolTranscript = validateAnthropicToolTranscript(body);
-  if (!finalToolTranscript.ok) {
-    const preview = finalToolTranscript.orphanToolResults.slice(0, 5).map(o => `${o.id}@${o.index}`).join(', ');
-    return send(res, 400, {
-      type: 'error',
-      error: {
-        type: 'invalid_request_error',
-        message: `Proxy optimization produced an invalid Anthropic tool transcript (${preview}); refusing to forward upstream.`
-      }
-    });
+  // The request was already validated at entry (line ~909). Only re-validate if a
+  // stage actually rewrote body.messages — otherwise the transcript is unchanged
+  // and re-walking every message is pure overhead on the hot path.
+  if (messagesMutated) {
+    const finalToolTranscript = validateAnthropicToolTranscript(body);
+    if (!finalToolTranscript.ok) {
+      const preview = finalToolTranscript.orphanToolResults.slice(0, 5).map(o => `${o.id}@${o.index}`).join(', ');
+      return send(res, 400, {
+        type: 'error',
+        error: {
+          type: 'invalid_request_error',
+          message: `Proxy optimization produced an invalid Anthropic tool transcript (${preview}); refusing to forward upstream.`
+        }
+      });
+    }
   }
 
   body._optApplied = optApplied;
