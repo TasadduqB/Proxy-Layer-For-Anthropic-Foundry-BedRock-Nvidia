@@ -110,29 +110,6 @@ const {
   newId
 } = require('./_common');
 
-const fs = require('fs');
-const path = require('path');
-
-let fablePrompt = '';
-try {
-  fablePrompt = fs.readFileSync(path.join(__dirname, 'fable_prompt.txt'), 'utf8').trim() + '\n\n';
-} catch (e) {
-  // Ignored if missing
-}
-
-// Returns true if the request uses Anthropic-native computer-use tools
-// (type like "bash_20241022") rather than Claude Code CLI tool definitions
-// (which always have an input_schema). The fable computer-use system prompt
-// must ONLY be injected for computer-use sessions, not for Claude Code CLI.
-function isComputerUseSession(tools) {
-  if (!tools || tools.length === 0) return false;
-  return tools.some(t => t.type && !t.input_schema && (
-    t.type.startsWith('bash_') ||
-    t.type.startsWith('text_editor_') ||
-    t.type.startsWith('computer_')
-  ));
-}
-
 // Returns true if the request contains a web_search tool.
 function hasWebSearchTool(tools) {
   if (!tools || tools.length === 0) return false;
@@ -383,12 +360,7 @@ function buildPayload(body, model, cfg, isResponsesApi) {
   }
 
   // Inject a tool-use enforcement system prompt for non-Claude models.
-  // IMPORTANT: The fable computer-use prompt (which describes a Linux sandbox at
-  // /home/claude) must ONLY be injected for actual computer-use sessions, never for
-  // Claude Code CLI sessions. Injecting it in CLI sessions causes the model to think
-  // it's inside a sandboxed VM and hallucinate filesystem paths and command results.
   if (hasTools && payload.messages && payload.messages.length > 0) {
-    const compUse = isComputerUseSession(body.tools);
     const sysIdx = payload.messages.findIndex(m => m.role === 'system');
 
     // Core anti-simulation instruction — mandatory for every tool-using request.
@@ -402,11 +374,7 @@ RULES — violation causes immediate failure:
 5. If a tool call fails, report the actual error message — do not guess the result.
 [END MANDATORY]`;
 
-    let systemAddition = toolHint;
-    // Only prepend the Fable computer-use environment description for real computer-use sessions.
-    if (fablePrompt && compUse) {
-      systemAddition = '\n\n' + fablePrompt + toolHint;
-    }
+    const systemAddition = toolHint;
 
     if (sysIdx >= 0) {
       payload.messages[sysIdx].content += systemAddition;
