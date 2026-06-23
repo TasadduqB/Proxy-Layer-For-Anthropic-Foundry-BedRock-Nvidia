@@ -328,6 +328,12 @@ function buildPayload(body, model, cfg, isResponsesApi) {
     stop: body.stop_sequences
   };
 
+  // OpenAI/Azure/NVIDIA only emit a usage object on streaming responses when
+  // explicitly asked. Without this, the proxy never sees real token counts on
+  // streamed requests and falls back to a (rough, inflated) local estimate —
+  // the root cause of wildly wrong "tokens used" figures in the dashboard.
+  if (payload.stream) payload.stream_options = { include_usage: true };
+
   // Azure newer models (chat/completions) require max_completion_tokens;
   // legacy AOAI / non-Azure use max_tokens.
   // Clamp to model context window to avoid negative / oversized values.
@@ -1161,6 +1167,7 @@ function buildRequest(cfg) {
 module.exports = {
   callOpenAICompatible,
   _test: {
+    buildPayload,
     buildResponsesPayload,
     buildResponsesInput,
     parseResponse,

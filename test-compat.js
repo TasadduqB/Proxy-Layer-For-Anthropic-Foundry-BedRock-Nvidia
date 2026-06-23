@@ -50,6 +50,21 @@ function testResponsesParallelCallIdsRemainDistinct() {
   assert.deepStrictEqual(parsed.toolCalls.map(t => t.id), ['call_a', 'call_b']);
 }
 
+function testStreamingRequestsIncludeUsage() {
+  // Streamed chat-completions must ask for usage, else the proxy can't read real
+  // token counts and falls back to an inflated local estimate.
+  const streamed = openaiCompat.buildPayload(
+    { stream: true, messages: [{ role: 'user', content: 'HI' }] },
+    'gpt-x', { kind: 'azure' }, false);
+  assert.deepStrictEqual(streamed.stream_options, { include_usage: true });
+
+  // Non-streamed requests must NOT carry stream_options.
+  const nonStream = openaiCompat.buildPayload(
+    { stream: false, messages: [{ role: 'user', content: 'HI' }] },
+    'gpt-x', { kind: 'azure' }, false);
+  assert.strictEqual(nonStream.stream_options, undefined);
+}
+
 function testHistoryTrimmerKeepsToolPairs() {
   const messages = [
     { role: 'user', content: 'start' },
@@ -142,6 +157,7 @@ async function main() {
   testResponsesCallIdRoundTrip();
 testResponsesDoesNotSynthesizeFcCallId();
 testResponsesParallelCallIdsRemainDistinct();
+  testStreamingRequestsIncludeUsage();
   testHistoryTrimmerKeepsToolPairs();
   testCacheKeepsToolIdsDistinct();
   await testFanoutHandlesParallelRequests();

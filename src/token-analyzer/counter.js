@@ -5,11 +5,15 @@
 
 class TokenCounter {
   constructor() {
-    // Provider-specific character multipliers (empirical analysis)
+    // Per-CHARACTER token multipliers. Each branch below consumes one character
+    // (a word run consumes its letters one-for-one) and adds `1 * multiplier`,
+    // so these values are tokens-per-character. English prose averages ~4 chars
+    // per token, hence ~0.25 for alphabetic runs. (Earlier values were ~1.0+,
+    // which charged roughly one token PER LETTER and inflated every estimate ~4x.)
     this.multipliers = {
-      openai:    { words: 1.02, numbers: 1.55, cjk: 0.85, symbols: 0.4, math_symbols: 2.68, emoji: 2.12 },
-      gemini:    { words: 1.15, numbers: 2.8,  cjk: 0.68, symbols: 0.38, math_symbols: 1.05, emoji: 1.08 },
-      anthropic: { words: 1.13, numbers: 1.63, cjk: 1.21, symbols: 0.4, math_symbols: 4.52, emoji: 2.6 },
+      openai:    { words: 0.25, numbers: 0.42, cjk: 0.85, symbols: 0.4, math_symbols: 1.0, emoji: 2.12 },
+      gemini:    { words: 0.27, numbers: 0.45, cjk: 0.68, symbols: 0.38, math_symbols: 1.0, emoji: 1.08 },
+      anthropic: { words: 0.27, numbers: 0.42, cjk: 1.0, symbols: 0.4, math_symbols: 1.1, emoji: 2.6 },
     };
 
     this.charRanges = {
