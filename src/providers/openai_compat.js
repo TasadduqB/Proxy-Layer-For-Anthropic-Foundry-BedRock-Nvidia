@@ -408,7 +408,7 @@ function buildPayload(body, model, cfg, isResponsesApi) {
   if (cfg?.kind === 'nvidia') {
     const kwargs = { ...(payload.chat_template_kwargs || {}) };
     if (hasTools) kwargs.force_nonempty_content = true;
-    if (body.thinking && body.thinking.type === 'enabled') {
+    if (body.thinking && body.thinking.type === 'enabled' && isReasoningModel(model)) {
       kwargs.enable_thinking = true;
       if (body.thinking.budget_tokens != null) payload.reasoning_budget = body.thinking.budget_tokens;
     }
@@ -809,16 +809,36 @@ async function callOpenAICompatible(providerCfg, body, res) {
   }
 
   if (!upstream.ok) {
-    clearTimeout(timer);
-    const errText = await upstream.text();
-    const err = new Error(`Upstream ${upstream.status} from ${url}: ${errText.slice(0, 600)}`);
-    err.status = upstream.status;
-    err.contentType = upstream.headers.get('content-type') || null;
-    err.stage = 'upstream-response';
-    err.debug = {
-      responsePreview: errText.slice(0, 2000)
-    };
-    throw err;
+    if (cfg.kind === 'nvidia' && upstream.status === 400 && (payload.chat_template_kwargs || payload.reasoning_budget != null)) {
+      const firstErrText = await upstream.text();
+      console.warn(`[proxy] [nvidia-compat] upstream 400; retrying without NVIDIA-only kwargs (${firstErrText.slice(0, 200)})`);
+      const retryPayload = withoutNvidiaCompatFields(payload);
+      const retryController = new AbortController();
+      const retryTimer = setTimeout(() => retryController.abort(), connectTimeoutMs);
+      try {
+        upstream = await fetchWithRetries(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...headers },
+          body: JSON.stringify(retryPayload),
+          signal: retryController.signal,
+        }, 'chat-completions-nvidia-compat-retry');
+      } finally {
+        clearTimeout(retryTimer);
+      }
+    }
+
+    if (!upstream.ok) {
+      clearTimeout(timer);
+      const errText = await upstream.text();
+      const err = new Error(`Upstream ${upstream.status} from ${url}: ${errText.slice(0, 600)}`);
+      err.status = upstream.status;
+      err.contentType = upstream.headers.get('content-type') || null;
+      err.stage = 'upstream-response';
+      err.debug = {
+        responsePreview: errText.slice(0, 2000)
+      };
+      throw err;
+    }
   }
 
   if (body.stream) {
@@ -1151,9 +1171,17 @@ function resolveNvidiaConfig(cfg) {
   const modelFromUrl = m[1]; // e.g. "deepseek-ai/deepseek-v4-pro"
   return {
     ...cfg,
-    model: cfg.model || modelFromUrl,
+    // build.nvidia.com URL is source-of-truth for model selection.
+    model: modelFromUrl,
     endpoint: 'https://integrate.api.nvidia.com/v1'
   };
+}
+
+function withoutNvidiaCompatFields(payload) {
+  const p = { ...payload };
+  delete p.chat_template_kwargs;
+  delete p.reasoning_budget;
+  return p;
 }
 
 function modelForUpstream(cfg) {

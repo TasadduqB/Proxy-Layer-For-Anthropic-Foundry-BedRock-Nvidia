@@ -175,6 +175,7 @@ module.exports = {
     { group: 'MoonshotAI / Z.ai / Stepfun / MiniMax',
       models: [
         { id: 'moonshotai/kimi-k2.6',      label: 'Kimi K2.6 (1T MoE)' },
+        { id: 'z-ai/glm-5.2',              label: 'GLM 5.2 (agentic coding)' },
         { id: 'z-ai/glm-5.1',              label: 'GLM 5.1 (agentic flagship)' },
         { id: 'stepfun-ai/step-3.7-flash', label: 'Step 3.7 Flash (MoE multimodal)' },
         { id: 'stepfun-ai/step-3.5-flash', label: 'Step 3.5 Flash' },
