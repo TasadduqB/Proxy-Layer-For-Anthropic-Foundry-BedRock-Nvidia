@@ -159,8 +159,24 @@ function estimateRequestTokens(body, provider = 'anthropic') {
 function nonZeroUsage(usage, body, provider = 'anthropic') {
   let inputTokens = Math.max(0, Number(usage?.inputTokens) || 0);
   let outputTokens = Math.max(0, Number(usage?.outputTokens) || 0);
+  const totalTokens = Math.max(0, Number(usage?.totalTokens) || 0);
+
+  // Some providers report only total_tokens. Reconstruct missing side(s) when possible.
+  if (outputTokens === 0 && inputTokens > 0 && totalTokens > inputTokens) {
+    outputTokens = totalTokens - inputTokens;
+  }
+  if (inputTokens === 0 && outputTokens > 0 && totalTokens > outputTokens) {
+    inputTokens = totalTokens - outputTokens;
+  }
+
   const estimatedInput = inputTokens === 0;
   if (estimatedInput) inputTokens = estimateRequestTokens(body, provider).inputTokens;
+
+  // Re-evaluate from total after input fallback.
+  if (outputTokens === 0 && totalTokens > inputTokens) {
+    outputTokens = totalTokens - inputTokens;
+  }
+
   const estimatedOutput = outputTokens === 0;
   if (estimatedOutput) outputTokens = Math.max(1, Math.round(Number(body?.max_tokens || 0) * 0.08)) || 0;
   return { inputTokens, outputTokens, estimated: estimatedInput || estimatedOutput };
@@ -814,8 +830,9 @@ function sniffUsage(res, onUsage) {
     const cacheCreation = lastNumber('cache_creation_input_tokens', 'cache_creation_tokens')
       || detailNumber('cache_write_input_tokens', 'cache_write_tokens');
     const usage = {
-      inputTokens: lastNumber('input_tokens', 'prompt_tokens'),
-      outputTokens: lastNumber('output_tokens', 'completion_tokens'),
+      inputTokens: lastNumber('input_tokens', 'prompt_tokens', 'prompt_token_count', 'inputTokenCount', 'prompt_eval_count'),
+      outputTokens: lastNumber('output_tokens', 'completion_tokens', 'completion_token_count', 'outputTokenCount', 'eval_count'),
+      totalTokens: lastNumber('total_tokens', 'totalTokenCount'),
       cacheCreationInputTokens: cacheCreation,
       cacheReadInputTokens: cacheRead,
     };
@@ -2031,6 +2048,226 @@ function runCapture(command, args, timeoutMs = 4000) {
   return null;
 }
 
+function parseGithubRepo(repoUrl = '') {
+  const raw = String(repoUrl || '').trim();
+  if (!raw) return null;
+  let m = raw.match(/^https?:\/\/github\.com\/([^/]+)\/([^/.]+)(?:\.git)?\/?$/i);
+  if (m) return { owner: m[1], repo: m[2] };
+  m = raw.match(/^git@github\.com:([^/]+)\/([^/.]+)(?:\.git)?$/i);
+  if (m) return { owner: m[1], repo: m[2] };
+  return null;
+}
+
+function getUpdateArchiveCandidates() {
+  const candidates = [];
+  const explicit = CONFIG?.update?.archiveUrl || process.env.PROXY_MAX_UPDATE_URL;
+  if (explicit) candidates.push(explicit);
+
+  let pkgRepo = null;
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+    pkgRepo = typeof pkg.repository === 'string' ? pkg.repository : pkg.repository?.url;
+  } catch {}
+
+  const gh = parseGithubRepo(pkgRepo || runCapture('git', ['config', '--get', 'remote.origin.url']) || '');
+  if (gh) {
+    const ref = String(CONFIG?.update?.ref || process.env.PROXY_MAX_UPDATE_REF || 'main').trim() || 'main';
+    // Primary: configured ref. Then common fallback refs for repos not using main.
+    candidates.push(`https://codeload.github.com/${gh.owner}/${gh.repo}/tar.gz/refs/heads/${ref}`);
+    if (ref !== 'main') candidates.push(`https://codeload.github.com/${gh.owner}/${gh.repo}/tar.gz/refs/heads/main`);
+    if (ref !== 'master') candidates.push(`https://codeload.github.com/${gh.owner}/${gh.repo}/tar.gz/refs/heads/master`);
+  }
+
+  return [...new Set(candidates.filter(Boolean))];
+}
+
+function shouldPreserveLocalEntry(name) {
+  const n = String(name || '');
+  if (!n) return false;
+  if (n === 'config.json' || n === 'logs' || n === 'node_modules' || n === '.git') return true;
+  if (n === '.env' || n === '.env.local') return true;
+  return n.startsWith('.env.');
+}
+
+function copyTreeSync(srcDir, dstDir) {
+  const stat = fs.lstatSync(srcDir);
+  if (stat.isDirectory()) {
+    fs.mkdirSync(dstDir, { recursive: true });
+    for (const ent of fs.readdirSync(srcDir, { withFileTypes: true })) {
+      copyTreeSync(path.join(srcDir, ent.name), path.join(dstDir, ent.name));
+    }
+    return;
+  }
+  fs.mkdirSync(path.dirname(dstDir), { recursive: true });
+  fs.copyFileSync(srcDir, dstDir);
+}
+
+function replaceProjectFromExtract(extractedRoot) {
+  const currentEntries = fs.readdirSync(ROOT, { withFileTypes: true });
+  for (const ent of currentEntries) {
+    if (shouldPreserveLocalEntry(ent.name)) continue;
+    fs.rmSync(path.join(ROOT, ent.name), { recursive: true, force: true });
+  }
+
+  const newEntries = fs.readdirSync(extractedRoot, { withFileTypes: true });
+  for (const ent of newEntries) {
+    if (shouldPreserveLocalEntry(ent.name)) continue;
+    copyTreeSync(path.join(extractedRoot, ent.name), path.join(ROOT, ent.name));
+  }
+}
+
+async function downloadArchiveToFile(url, filePath) {
+  const r = await fetch(url, {
+    headers: {
+      'user-agent': 'proxy-max-updater',
+      'accept': 'application/gzip, application/x-gzip, application/octet-stream, */*'
+    }
+  });
+  if (!r.ok) throw new Error(`download failed (${r.status})`);
+  const buf = Buffer.from(await r.arrayBuffer());
+  fs.writeFileSync(filePath, buf);
+  return buf.length;
+}
+
+// Pure Node.js tar.gz extractor — no external `tar` binary required, so the
+// archive-update path works identically on Windows/macOS/Linux with nothing
+// installed beyond Node itself. Handles ustar + GNU long-name + PAX path
+// overrides (what GitHub's codeload archives use) and guards against zip-slip
+// path traversal.
+function parseTarOctal(buf) {
+  const s = buf.toString('ascii').replace(/\0/g, '').trim();
+  if (!s) return 0;
+  // PAX/GNU base-256 encoding starts with 0x80 in the first byte; we only need
+  // decimal-range sizes for source archives, so plain octal covers all cases.
+  const n = parseInt(s, 8);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function extractTarGzPureJs(archiveFile, destDir) {
+  const zlib = require('zlib');
+  const gzipped = fs.readFileSync(archiveFile);
+  const buffer = zlib.gunzipSync(gzipped);
+
+  let offset = 0;
+  let longName = null;
+  let paxPath = null;
+  const destResolved = path.resolve(destDir);
+
+  while (offset + 512 <= buffer.length) {
+    const header = buffer.subarray(offset, offset + 512);
+    if (header.every(b => b === 0)) { offset += 512; continue; }
+
+    const rawName = header.subarray(0, 100).toString('utf8').replace(/\0.*$/s, '');
+    const size = parseTarOctal(header.subarray(124, 136));
+    const typeFlag = String.fromCharCode(header[156] || 0);
+    const prefix = header.subarray(345, 500).toString('utf8').replace(/\0.*$/s, '');
+
+    offset += 512;
+    const dataStart = offset;
+    const dataEnd = dataStart + size;
+    const paddedBlocks = Math.ceil(size / 512) * 512;
+
+    if (typeFlag === 'x' || typeFlag === 'g') {
+      // PAX extended header record(s): "<len> <key>=<value>\n"
+      const data = buffer.subarray(dataStart, dataEnd).toString('utf8');
+      let idx = 0;
+      while (idx < data.length) {
+        const spaceIdx = data.indexOf(' ', idx);
+        if (spaceIdx === -1) break;
+        const len = parseInt(data.slice(idx, spaceIdx), 10);
+        if (!len || len <= 0) break;
+        const record = data.slice(idx, idx + len);
+        const eqIdx = record.indexOf('=');
+        if (eqIdx !== -1) {
+          const key = record.slice(spaceIdx - idx + 1, eqIdx);
+          const value = record.slice(eqIdx + 1, len - 1);
+          if (key === 'path') paxPath = value;
+        }
+        idx += len;
+      }
+      offset += paddedBlocks;
+      continue;
+    }
+    if (typeFlag === 'L') {
+      // GNU long-name extension: data block holds the real entry name.
+      longName = buffer.subarray(dataStart, dataEnd).toString('utf8').replace(/\0+$/, '');
+      offset += paddedBlocks;
+      continue;
+    }
+
+    const entryName = paxPath || longName || (prefix ? `${prefix}/${rawName}` : rawName);
+    longName = null;
+    paxPath = null;
+
+    if (entryName) {
+      const targetPath = path.resolve(destDir, entryName);
+      if (!targetPath.startsWith(destResolved + path.sep) && targetPath !== destResolved) {
+        throw new Error(`Refusing to extract entry outside target directory: ${entryName}`);
+      }
+      if (typeFlag === '5') {
+        fs.mkdirSync(targetPath, { recursive: true });
+      } else if (typeFlag === '0' || typeFlag === '' || typeFlag === '\0') {
+        fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+        fs.writeFileSync(targetPath, buffer.subarray(dataStart, dataEnd));
+      }
+      // Symlinks and other special types are skipped intentionally for safety.
+    }
+    offset += paddedBlocks;
+  }
+}
+
+async function extractUpdateArchive(stream, archiveFile, tmpBase) {
+  const tarPath = installer.which('tar');
+  if (tarPath && runCapture(tarPath, ['--version'])) {
+    stream({ type: 'log', msg: '[update] Extracting via system tar...' });
+    const extractStep = await runStepStreaming(stream, tarPath, ['-xzf', archiveFile, '-C', tmpBase]);
+    if (extractStep.code === 0) return;
+    stream({ type: 'log', msg: '[update] system tar failed, falling back to built-in extractor...', level: 'warn' });
+  } else {
+    stream({ type: 'log', msg: '[update] No system tar found — using built-in Node.js extractor...' });
+  }
+  extractTarGzPureJs(archiveFile, tmpBase);
+}
+
+async function updateFromArchive(stream) {
+  const candidates = getUpdateArchiveCandidates();
+  if (!candidates.length) {
+    throw new Error('No update source configured. Set update.archiveUrl in config.json or package repository URL.');
+  }
+
+  const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), 'proxy-max-update-'));
+  const archiveFile = path.join(tmpBase, 'update.tar.gz');
+
+  let selectedUrl = null;
+  let downloadBytes = 0;
+  let lastErr = null;
+  for (const url of candidates) {
+    stream({ type: 'log', msg: `[update] Downloading package: ${url}` });
+    try {
+      downloadBytes = await downloadArchiveToFile(url, archiveFile);
+      selectedUrl = url;
+      break;
+    } catch (err) {
+      lastErr = err;
+      stream({ type: 'log', msg: `[update] download failed for ${url}: ${err.message}`, level: 'warn' });
+    }
+  }
+  if (!selectedUrl) throw lastErr || new Error('Could not download update package');
+
+  stream({ type: 'log', msg: `[update] Downloaded ${Math.round(downloadBytes / 1024)} KB` });
+  await extractUpdateArchive(stream, archiveFile, tmpBase);
+
+  const extracted = fs.readdirSync(tmpBase, { withFileTypes: true }).find(d => d.isDirectory() && !d.name.startsWith('.'));
+  if (!extracted) throw new Error('Update archive did not contain a project directory');
+  const extractedRoot = path.join(tmpBase, extracted.name);
+
+  stream({ type: 'log', msg: '[update] Replacing application files (preserving config/logs/env/node_modules)...' });
+  replaceProjectFromExtract(extractedRoot);
+
+  try { fs.rmSync(tmpBase, { recursive: true, force: true }); } catch {}
+  return { source: selectedUrl, changed: true };
+}
+
 function scheduleSelfRestart() {
   const serverScript = path.join(ROOT, 'src', 'server.js');
   const launcherScript = [
@@ -2086,50 +2323,63 @@ async function handleSelfUpdate(req, res) {
   };
 
   try {
-    stream({ type: 'log', msg: '[update] Checking repository state...' });
+    stream({ type: 'log', msg: '[update] Checking installation mode...' });
     const insideGit = runCapture('git', ['rev-parse', '--is-inside-work-tree']);
-    if (insideGit !== 'true') {
-      return finish({ ok: false, error: 'This folder is not a git repository.' });
-    }
+    let before = null;
+    let after = null;
+    let changed = false;
+    let mode = 'archive';
+    let source = null;
 
-    const branch = runCapture('git', ['rev-parse', '--abbrev-ref', 'HEAD']) || 'unknown';
-    const before = runCapture('git', ['rev-parse', '--short', 'HEAD']) || null;
-    const remote = runCapture('git', ['config', '--get', 'remote.origin.url']) || 'origin';
-    stream({ type: 'log', msg: `[update] Branch: ${branch}` });
-    stream({ type: 'log', msg: `[update] Remote: ${remote}` });
+    if (insideGit === 'true') {
+      mode = 'git';
+      const branch = runCapture('git', ['rev-parse', '--abbrev-ref', 'HEAD']) || 'unknown';
+      before = runCapture('git', ['rev-parse', '--short', 'HEAD']) || null;
+      const remote = runCapture('git', ['config', '--get', 'remote.origin.url']) || 'origin';
+      stream({ type: 'log', msg: `[update] Mode: git worktree` });
+      stream({ type: 'log', msg: `[update] Branch: ${branch}` });
+      stream({ type: 'log', msg: `[update] Remote: ${remote}` });
 
-    const fetchStep = await runStepStreaming(stream, 'git', ['fetch', '--all', '--tags', '--prune']);
-    if (fetchStep.code !== 0) {
-      return finish({ ok: false, error: 'git fetch failed', code: fetchStep.code });
-    }
-
-    const upstream = runCapture('git', ['rev-parse', '--abbrev-ref', `${branch}@{upstream}`]);
-    const originHead = runCapture('git', ['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD']);
-    const targetRef = upstream || originHead || `origin/${branch}`;
-
-    stream({ type: 'log', msg: `[update] Hard-syncing worktree to ${targetRef}...` });
-    const resetStep = await runStepStreaming(stream, 'git', ['reset', '--hard', targetRef]);
-    if (resetStep.code !== 0) {
-      return finish({ ok: false, error: `git reset --hard ${targetRef} failed`, code: resetStep.code });
-    }
-
-    stream({ type: 'log', msg: '[update] Removing stale untracked files (git clean -fd)...' });
-    const cleanStep = await runStepStreaming(stream, 'git', ['clean', '-fd']);
-    if (cleanStep.code !== 0) {
-      return finish({ ok: false, error: 'git clean -fd failed', code: cleanStep.code });
-    }
-
-    if (fs.existsSync(path.join(ROOT, '.gitmodules'))) {
-      stream({ type: 'log', msg: '[update] Syncing submodules...' });
-      const subStep = await runStepStreaming(stream, 'git', ['submodule', 'update', '--init', '--recursive']);
-      if (subStep.code !== 0) {
-        return finish({ ok: false, error: 'git submodule update failed', code: subStep.code });
+      const fetchStep = await runStepStreaming(stream, 'git', ['fetch', '--all', '--tags', '--prune']);
+      if (fetchStep.code !== 0) {
+        return finish({ ok: false, error: 'git fetch failed', code: fetchStep.code });
       }
-    }
 
-    const after = runCapture('git', ['rev-parse', '--short', 'HEAD']) || null;
-    const changed = !!before && !!after && before !== after;
-    stream({ type: 'log', msg: changed ? `[update] Updated commit ${before} -> ${after}` : `[update] Already up to date (${after || before || 'unknown'})` });
+      const upstream = runCapture('git', ['rev-parse', '--abbrev-ref', `${branch}@{upstream}`]);
+      const originHead = runCapture('git', ['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD']);
+      const targetRef = upstream || originHead || `origin/${branch}`;
+
+      stream({ type: 'log', msg: `[update] Hard-syncing worktree to ${targetRef}...` });
+      const resetStep = await runStepStreaming(stream, 'git', ['reset', '--hard', targetRef]);
+      if (resetStep.code !== 0) {
+        return finish({ ok: false, error: `git reset --hard ${targetRef} failed`, code: resetStep.code });
+      }
+
+      stream({ type: 'log', msg: '[update] Removing stale untracked files (git clean -fd)...' });
+      const cleanStep = await runStepStreaming(stream, 'git', ['clean', '-fd']);
+      if (cleanStep.code !== 0) {
+        return finish({ ok: false, error: 'git clean -fd failed', code: cleanStep.code });
+      }
+
+      if (fs.existsSync(path.join(ROOT, '.gitmodules'))) {
+        stream({ type: 'log', msg: '[update] Syncing submodules...' });
+        const subStep = await runStepStreaming(stream, 'git', ['submodule', 'update', '--init', '--recursive']);
+        if (subStep.code !== 0) {
+          return finish({ ok: false, error: 'git submodule update failed', code: subStep.code });
+        }
+      }
+
+      after = runCapture('git', ['rev-parse', '--short', 'HEAD']) || null;
+      changed = !!before && !!after && before !== after;
+      source = remote;
+      stream({ type: 'log', msg: changed ? `[update] Updated commit ${before} -> ${after}` : `[update] Already up to date (${after || before || 'unknown'})` });
+    } else {
+      stream({ type: 'log', msg: '[update] Mode: package install (no .git). Using archive update...' });
+      const archiveResult = await updateFromArchive(stream);
+      changed = !!archiveResult.changed;
+      source = archiveResult.source || null;
+      stream({ type: 'log', msg: '[update] Package files replaced from archive.' });
+    }
 
     const npmPath = installer.which('npm') || 'npm';
     const hasLockfile = fs.existsSync(path.join(ROOT, 'package-lock.json'));
@@ -2137,16 +2387,16 @@ async function handleSelfUpdate(req, res) {
     stream({ type: 'log', msg: `[update] Installing dependencies (npm ${npmArgs.join(' ')})...` });
     const npmStep = await runStepStreaming(stream, npmPath, npmArgs);
     if (npmStep.code !== 0) {
-      return finish({ ok: false, error: `npm ${npmArgs[0]} failed`, code: npmStep.code, before, after });
+      return finish({ ok: false, error: `npm ${npmArgs[0]} failed`, code: npmStep.code, before, after, mode, source });
     }
 
     stream({ type: 'log', msg: '[update] Update completed successfully.' });
     if (!restart) {
-      return finish({ ok: true, restarted: false, before, after, changed });
+      return finish({ ok: true, restarted: false, before, after, changed, mode, source });
     }
 
     scheduleSelfRestart();
-    finish({ ok: true, restarted: true, before, after, changed });
+    finish({ ok: true, restarted: true, before, after, changed, mode, source });
     setTimeout(() => {
       console.log('[proxy] restart requested after self-update; exiting process...');
       process.exit(0);
@@ -2506,6 +2756,7 @@ const server = http.createServer({ keepAlive: true }, async (req, res) => {
     // /v1/models — Claude Code Anthropic SDK may query this on startup.
     if (u.pathname === '/v1/models' && req.method === 'GET') return handleV1Models(req, res);
     if (u.pathname === '/api/models') {
+      const forceRefresh = u.searchParams.get('refresh') === '1';
       const catalog = {
         ...MODELS,
         bedrock: MODELS.bedrock,
@@ -2516,7 +2767,7 @@ const server = http.createServer({ keepAlive: true }, async (req, res) => {
       const nvidiaApiKey = CONFIG?.providers?.nvidia?.apiKey;
       if (nvidiaApiKey) {
         try {
-          const liveNvidia = await fetchLiveNvidiaModelGroups(nvidiaApiKey);
+          const liveNvidia = await fetchLiveNvidiaModelGroups(nvidiaApiKey, { forceRefresh });
           if (liveNvidia && liveNvidia.length) {
             catalog.nvidia = liveNvidia;
           }

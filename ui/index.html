@@ -1527,6 +1527,12 @@
 const $ = sel => document.querySelector(sel);
 const state = { provider:null, models:{}, config:{providers:{}}, system:null, launchInfo:null };
 
+async function refreshModels(force = false) {
+  const suffix = force ? '?refresh=1' : '';
+  state.models = await fetch('/api/models' + suffix).then(r => r.json());
+  return state.models;
+}
+
 // ── Inline SVG icon set (no emojis) ──
 const SVG = {
   check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
@@ -1723,13 +1729,12 @@ async function apiGet(path, timeoutMs = 12000) {
 
 // ── Bootstrap ──
 async function loadAll() {
-  const [m, c, h, l] = await Promise.all([
-    fetch('/api/models').then(r=>r.json()),
+  const [c, h, l] = await Promise.all([
     fetch('/api/config').then(r=>r.json()),
     fetch('/api/health').then(r=>r.json()),
     fetch('/api/limits').then(r=>r.json()).catch(()=>null)
   ]);
-  state.models = m;
+  await refreshModels(false);
   state.config = c;
   $('#cfgPathPill').textContent = 'config: ' + (c.configPath || '—');
   setHealth(h);
@@ -1779,14 +1784,16 @@ function renderDashboard(stats, overview, cost, tokens, errors = [], summary = {
   $('#dashCacheHitsDelta').textContent = `${fmtNum(responseCache.hits ?? stats.responseCacheHits ?? 0)} exact hits / ${fmtNum(responseCache.misses ?? stats.responseCacheMisses ?? 0)} exact miss`;
 
   const spent = (life.total_cost_nano_usd || 0) / 1e9;
-  const estimatedUsage = (overview.recent_requests || []).some(r => r.upstream && r.upstream.usageEstimated);
-  $('#dashSpendDelta').textContent = `${fmtUsd(spent)} spent lifetime${estimatedUsage ? ' (some estimated)' : ''}`;
+  const estimatedUsage = Number(life.estimated_usage_requests || 0);
+  const estimatedPricing = Number(life.estimated_pricing_requests || 0);
+  const hasEstimated = estimatedUsage > 0 || estimatedPricing > 0;
+  $('#dashSpendDelta').textContent = `${fmtUsd(spent)} spent lifetime${hasEstimated ? ` (${estimatedUsage} usage est, ${estimatedPricing} pricing est)` : ''}`;
 
   $('#saveOptimizerTokens').textContent = fmtNum(stats.estTokensSaved || life.total_tokens_saved || 0);
   $('#saveReplayTokens').textContent = fmtNum(responseCache.tokensSaved ?? stats.responseCacheTokensSaved ?? 0);
   $('#savePromptRead').textContent = fmtNum(promptCache.readTokens || 0);
   $('#saveCacheEntries').textContent = fmtNum(responseCache.entries ?? cache.entries ?? 0);
-  $('#saveCacheMode').textContent = `${stats.storeBackend || 'store'} · ${responseCache.includeStreaming === false ? 'JSON only' : 'streams cached'}${estimatedUsage ? ' · estimates on zero-usage responses' : ''}`;
+  $('#saveCacheMode').textContent = `${stats.storeBackend || 'store'} · ${responseCache.includeStreaming === false ? 'JSON only' : 'streams cached'}${hasEstimated ? ' · estimates on zero-usage responses' : ''}`;
 
   // Store backend pill
   const storePill = $('#dashStorePill');
@@ -1809,8 +1816,10 @@ function renderDashboard(stats, overview, cost, tokens, errors = [], summary = {
     ['Billable input units', fmtNum(billableInput)],
     ['Output tokens', fmtNum(life.total_output_tokens || 0)],
     ['Total tokens',  fmtNum(contextInput + (life.total_output_tokens || 0))],
+    ['Estimated usage rows', fmtNum(estimatedUsage)],
+    ['Estimated pricing rows', fmtNum(estimatedPricing)],
     ['Response-cache inventory', fmtNum(cache.cachedTokens || 0)],
-    ['Total spend',   `${fmtUsd(spent)}${estimatedUsage ? ' *' : ''}`],
+    ['Total spend',   `${fmtUsd(spent)}${hasEstimated ? ' *' : ''}`],
     ['Sessions',      fmtNum(life.total_sessions || 0)],
   ].map(([k,v]) => `<div class="k">${k}</div><div class="v">${v}</div>`).join('');
 
@@ -1862,15 +1871,20 @@ function renderDashboard(stats, overview, cost, tokens, errors = [], summary = {
   if (models.length) {
     const maxCost = Math.max(...models.map(m => (costModels[m.model]?.total_cost_nano || 0)), 1);
     $('#dashTokenTable').innerHTML = `<table class="data">
-      <thead><tr><th>Model</th><th class="num">Reqs</th><th class="num">In</th><th class="num">Out</th><th class="num">Cost</th><th style="width:120px">Spend</th></tr></thead>
+      <thead><tr><th>Model</th><th class="num">Reqs</th><th class="num">Ctx In</th><th class="num">Bill In</th><th class="num">Out</th><th class="num">Total</th><th class="num">Cost</th><th style="width:120px">Spend</th></tr></thead>
       <tbody>${models.map(m => {
         const c = costModels[m.model] || {};
         const pct = Math.round(((c.total_cost_nano||0)/maxCost)*100);
+        const ctxIn = Number(m.total_context_input || m.total_input || 0);
+        const billIn = Number(m.total_billable_input || ctxIn);
+        const out = Number(m.total_output || 0);
         return `<tr>
           <td class="mono" style="font-size:12px">${escapeHtml(m.model)}</td>
           <td class="num">${fmtNum(m.request_count)}</td>
-          <td class="num">${fmtNum(m.total_input)}</td>
-          <td class="num">${fmtNum(m.total_output)}</td>
+          <td class="num">${fmtNum(ctxIn)}</td>
+          <td class="num">${fmtNum(billIn)}</td>
+          <td class="num">${fmtNum(out)}</td>
+          <td class="num">${fmtNum(ctxIn + out)}</td>
           <td class="num">${escapeHtml(c.cost_formatted || '$0')}</td>
           <td><div class="bar-track"><div class="bar" style="width:${pct}%"></div></div></td>
         </tr>`;
@@ -2224,6 +2238,16 @@ function selectProvider(p) {
   } else if (p === 'cloudflare') {
     $('#cf_accountId').value = saved.accountId || ''; $('#cf_apiKey').value = saved.apiKey || '';
   }
+  if (p === 'nvidia') {
+    // Pull fresh build.nvidia.com catalog on selection so new models appear quickly.
+    refreshModels(true).then(() => {
+      fillModelSelect(p);
+      if (saved.model) {
+        const exists = [...$('#modelSelect').options].some(o => o.value === saved.model);
+        if (exists) $('#modelSelect').value = saved.model;
+      }
+    }).catch(() => {});
+  }
   renderLaunchCard();
 }
 function extractNvidiaModelFromUrl(url) { const m = (url || '').match(/^https?:\/\/build\.nvidia\.com\/([^?#]+?)\/?$/); return m ? m[1] : null; }
@@ -2246,6 +2270,10 @@ async function save() {
   if (!r.ok) return toast('Save failed', false);
   toast('Saved & activated');
   state.config = await fetch('/api/config').then(r=>r.json());
+  if (state.provider === 'nvidia') {
+    await refreshModels(true);
+    fillModelSelect('nvidia');
+  }
   setHealth(await fetch('/api/health').then(r=>r.json()));
   renderLaunchCard();
 }
