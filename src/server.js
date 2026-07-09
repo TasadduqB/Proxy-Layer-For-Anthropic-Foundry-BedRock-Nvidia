@@ -2008,6 +2008,154 @@ async function handleInstall(req, res) {
   });
 }
 
+let SELF_UPDATE_IN_PROGRESS = false;
+
+function runStepStreaming(send, command, args, opts = {}) {
+  return new Promise(resolve => {
+    const child = spawn(command, args, { cwd: ROOT, env: { ...process.env, ...(opts.env || {}) } });
+    child.stdout.on('data', d => send({ type: 'log', msg: d.toString() }));
+    child.stderr.on('data', d => send({ type: 'log', msg: d.toString(), level: 'warn' }));
+    child.on('error', err => {
+      send({ type: 'log', msg: `[update] failed to start ${command}: ${err.message}`, level: 'warn' });
+      resolve({ code: 1, signal: null });
+    });
+    child.on('close', (code, signal) => resolve({ code: code ?? 1, signal: signal || null }));
+  });
+}
+
+function runCapture(command, args, timeoutMs = 4000) {
+  try {
+    const r = spawnSync(command, args, { cwd: ROOT, encoding: 'utf8', timeout: timeoutMs });
+    if (r.status === 0) return (r.stdout || '').trim();
+  } catch {}
+  return null;
+}
+
+function scheduleSelfRestart() {
+  const serverScript = path.join(ROOT, 'src', 'server.js');
+  const launcherScript = [
+    'const { spawn } = require("child_process");',
+    `const nodeBin = ${JSON.stringify(process.execPath)};`,
+    `const serverScript = ${JSON.stringify(serverScript)};`,
+    `const cwd = ${JSON.stringify(ROOT)};`,
+    'setTimeout(() => {',
+    '  const child = spawn(nodeBin, [serverScript], {',
+    '    cwd,',
+    '    detached: true,',
+    '    stdio: "ignore",',
+    '    env: process.env',
+    '  });',
+    '  child.unref();',
+    '}, 1200);',
+  ].join(' ');
+
+  const env = {
+    ...process.env,
+    PORT: String(PORT),
+    HOST,
+  };
+  const launcher = spawn(process.execPath, ['-e', launcherScript], {
+    cwd: ROOT,
+    detached: true,
+    stdio: 'ignore',
+    env,
+  });
+  launcher.unref();
+}
+
+async function handleSelfUpdate(req, res) {
+  if (SELF_UPDATE_IN_PROGRESS) {
+    return send(res, 409, { error: 'Update already in progress' });
+  }
+  SELF_UPDATE_IN_PROGRESS = true;
+
+  const u = new URL(req.url, 'http://localhost');
+  const restart = u.searchParams.get('restart') !== '0';
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive'
+  });
+
+  const stream = (line) => res.write(`data: ${JSON.stringify(line)}\n\n`);
+  const finish = (payload) => {
+    stream({ type: 'done', ...payload });
+    res.end();
+    SELF_UPDATE_IN_PROGRESS = false;
+  };
+
+  try {
+    stream({ type: 'log', msg: '[update] Checking repository state...' });
+    const insideGit = runCapture('git', ['rev-parse', '--is-inside-work-tree']);
+    if (insideGit !== 'true') {
+      return finish({ ok: false, error: 'This folder is not a git repository.' });
+    }
+
+    const branch = runCapture('git', ['rev-parse', '--abbrev-ref', 'HEAD']) || 'unknown';
+    const before = runCapture('git', ['rev-parse', '--short', 'HEAD']) || null;
+    const remote = runCapture('git', ['config', '--get', 'remote.origin.url']) || 'origin';
+    stream({ type: 'log', msg: `[update] Branch: ${branch}` });
+    stream({ type: 'log', msg: `[update] Remote: ${remote}` });
+
+    const fetchStep = await runStepStreaming(stream, 'git', ['fetch', '--all', '--tags', '--prune']);
+    if (fetchStep.code !== 0) {
+      return finish({ ok: false, error: 'git fetch failed', code: fetchStep.code });
+    }
+
+    const upstream = runCapture('git', ['rev-parse', '--abbrev-ref', `${branch}@{upstream}`]);
+    const originHead = runCapture('git', ['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD']);
+    const targetRef = upstream || originHead || `origin/${branch}`;
+
+    stream({ type: 'log', msg: `[update] Hard-syncing worktree to ${targetRef}...` });
+    const resetStep = await runStepStreaming(stream, 'git', ['reset', '--hard', targetRef]);
+    if (resetStep.code !== 0) {
+      return finish({ ok: false, error: `git reset --hard ${targetRef} failed`, code: resetStep.code });
+    }
+
+    stream({ type: 'log', msg: '[update] Removing stale untracked files (git clean -fd)...' });
+    const cleanStep = await runStepStreaming(stream, 'git', ['clean', '-fd']);
+    if (cleanStep.code !== 0) {
+      return finish({ ok: false, error: 'git clean -fd failed', code: cleanStep.code });
+    }
+
+    if (fs.existsSync(path.join(ROOT, '.gitmodules'))) {
+      stream({ type: 'log', msg: '[update] Syncing submodules...' });
+      const subStep = await runStepStreaming(stream, 'git', ['submodule', 'update', '--init', '--recursive']);
+      if (subStep.code !== 0) {
+        return finish({ ok: false, error: 'git submodule update failed', code: subStep.code });
+      }
+    }
+
+    const after = runCapture('git', ['rev-parse', '--short', 'HEAD']) || null;
+    const changed = !!before && !!after && before !== after;
+    stream({ type: 'log', msg: changed ? `[update] Updated commit ${before} -> ${after}` : `[update] Already up to date (${after || before || 'unknown'})` });
+
+    const npmPath = installer.which('npm') || 'npm';
+    const hasLockfile = fs.existsSync(path.join(ROOT, 'package-lock.json'));
+    const npmArgs = hasLockfile ? ['ci', '--no-audit', '--no-fund'] : ['install', '--no-audit', '--no-fund'];
+    stream({ type: 'log', msg: `[update] Installing dependencies (npm ${npmArgs.join(' ')})...` });
+    const npmStep = await runStepStreaming(stream, npmPath, npmArgs);
+    if (npmStep.code !== 0) {
+      return finish({ ok: false, error: `npm ${npmArgs[0]} failed`, code: npmStep.code, before, after });
+    }
+
+    stream({ type: 'log', msg: '[update] Update completed successfully.' });
+    if (!restart) {
+      return finish({ ok: true, restarted: false, before, after, changed });
+    }
+
+    scheduleSelfRestart();
+    finish({ ok: true, restarted: true, before, after, changed });
+    setTimeout(() => {
+      console.log('[proxy] restart requested after self-update; exiting process...');
+      process.exit(0);
+    }, 800);
+  } catch (err) {
+    finish({ ok: false, error: String(err.message || err) });
+  }
+}
+
 function handleLaunchCommand(_req, res) {
   const port = parseInt(process.env.PORT || '8787', 10);
   const host = process.env.HOST || '127.0.0.1';
@@ -2380,6 +2528,7 @@ const server = http.createServer({ keepAlive: true }, async (req, res) => {
     }
     if (u.pathname === '/api/system' && req.method === 'GET') return await handleSystem(req, res);
     if (u.pathname === '/api/install' && req.method === 'POST') return await handleInstall(req, res);
+    if (u.pathname === '/api/update' && req.method === 'POST') return await handleSelfUpdate(req, res);
     if (u.pathname === '/api/config' && req.method === 'GET') return handleConfigGet(req, res);
     if (u.pathname === '/api/config' && req.method === 'POST') return await handleConfigPost(req, res);
     if (u.pathname === '/api/test' && req.method === 'POST') return await handleTest(req, res);

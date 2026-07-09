@@ -1343,9 +1343,11 @@
           <button class="btn" id="installAll">Install missing</button>
           <button class="btn secondary" id="installClaude">Install Anthropic CLI</button>
           <button class="btn secondary" id="installNode">Install Node + npm</button>
+          <button class="btn secondary" id="selfUpdateBtn">Force sync from GitHub + restart</button>
           <span class="small" id="installHint"></span>
         </div>
         <div class="small" style="margin-top:10px;color:var(--dim)">When admin rights aren't available, installs fall back to a per-user prefix and a portable Node tarball.</div>
+        <div class="small" style="margin-top:6px;color:var(--warn)">Force sync overwrites local tracked changes and removes untracked files in this repo before reinstall + restart.</div>
       </div>
 
       <div class="card"><h3>Install console</h3><div class="console" id="installConsole">Idle.</div></div>
@@ -2342,6 +2344,64 @@ async function runInstall(what) {
   }
 }
 
+async function runSelfUpdate() {
+  const con = $('#installConsole');
+  const btn = $('#selfUpdateBtn');
+  if (btn) btn.disabled = true;
+  con.textContent = '[update] Starting self-update...\n';
+  try {
+    const r = await fetch('/api/update?restart=1', { method: 'POST' });
+    if (!r.ok || !r.body) {
+      let msg = 'Update request failed';
+      try {
+        const j = await r.json();
+        if (j && j.error) msg = j.error;
+      } catch {}
+      throw new Error(msg);
+    }
+    const reader = r.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let idx;
+      while ((idx = buf.indexOf('\n\n')) >= 0) {
+        const chunk = buf.slice(0, idx); buf = buf.slice(idx + 2);
+        const lines = chunk.split('\n').filter(l => l.startsWith('data:')).map(l => l.slice(5).trim());
+        for (const l of lines) {
+          try {
+            const evt = JSON.parse(l);
+            if (evt.type === 'log') {
+              con.insertAdjacentHTML('beforeend', `${escapeHtml(evt.msg)}\n`);
+              con.scrollTop = con.scrollHeight;
+            } else if (evt.type === 'done') {
+              if (evt.ok) {
+                con.insertAdjacentHTML('beforeend', `[update] done${evt.before && evt.after ? ` (${escapeHtml(evt.before)} -> ${escapeHtml(evt.after)})` : ''}\n`);
+                con.insertAdjacentHTML('beforeend', evt.restarted
+                  ? '[update] restarting proxy now...\n'
+                  : '[update] restart not requested.\n');
+                toast(evt.restarted ? 'Update complete. Restarting proxy now...' : 'Update complete.');
+              } else {
+                con.insertAdjacentHTML('beforeend', `[update] failed: ${escapeHtml(evt.error || 'unknown error')}\n`);
+                toast(`Update failed: ${evt.error || 'unknown error'}`, false);
+              }
+              con.scrollTop = con.scrollHeight;
+            }
+          } catch {}
+        }
+      }
+    }
+  } catch (e) {
+    con.insertAdjacentHTML('beforeend', `[update] ${escapeHtml(e.message)}\n`);
+    con.scrollTop = con.scrollHeight;
+    toast(`Update failed: ${e.message}`, false);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 // ── Model Pool ──
 let _poolData = { pool: [], rrIndex: 0 };
 async function loadPool() { try { _poolData = await fetch('/api/pool').then(r => r.json()); renderPool(_poolData); } catch {} }
@@ -2911,6 +2971,7 @@ $('#refreshSys').addEventListener('click', refreshSystem);
 $('#installAll').addEventListener('click', () => runInstall('all'));
 $('#installClaude').addEventListener('click', () => runInstall('claude'));
 $('#installNode').addEventListener('click', () => runInstall('node'));
+$('#selfUpdateBtn').addEventListener('click', runSelfUpdate);
 $('#saveBtn').addEventListener('click', save);
 $('#testBtn').addEventListener('click', testConn);
 $('#limitsSaveBtn').addEventListener('click', saveLimits);
