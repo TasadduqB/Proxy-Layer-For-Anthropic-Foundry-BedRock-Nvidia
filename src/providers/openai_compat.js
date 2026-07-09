@@ -75,9 +75,28 @@ const CERT_ERROR_CODES = new Set([
   'CERT_HAS_EXPIRED', 'ERR_TLS_CERT_ALTNAME_INVALID',
   'DEPTH_ZERO_SELF_SIGNED_CERT', 'UNABLE_TO_GET_ISSUER_CERT_LOCALLY'
 ]);
+const TRANSIENT_HTTP_STATUSES = new Set([408, 409, 425, 429, 500, 502, 503, 504, 529]);
+const DEFAULT_RETRY_ATTEMPTS = Math.max(1, Number(process.env.PROXY_MAX_UPSTREAM_RETRIES || 3));
+const DEFAULT_RETRY_BASE_MS = Math.max(50, Number(process.env.PROXY_MAX_UPSTREAM_RETRY_BASE_MS || 250));
+const DEFAULT_RETRY_MAX_MS = Math.max(DEFAULT_RETRY_BASE_MS, Number(process.env.PROXY_MAX_UPSTREAM_RETRY_MAX_MS || 2500));
+
 function isCertError(err) {
   const code = err?.cause?.code || err?.code || '';
   return CERT_ERROR_CODES.has(code);
+}
+
+function shouldRetryUpstreamStatus(status) {
+  return TRANSIENT_HTTP_STATUSES.has(Number(status));
+}
+
+function retryDelayMs(attempt) {
+  const exp = Math.min(DEFAULT_RETRY_MAX_MS, DEFAULT_RETRY_BASE_MS * Math.pow(2, Math.max(0, attempt - 1)));
+  const jitter = Math.floor(Math.random() * Math.max(1, Math.floor(exp * 0.25)));
+  return Math.min(DEFAULT_RETRY_MAX_MS, exp + jitter);
+}
+
+async function sleep(ms) {
+  await new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // Fetch with automatic insecure retry on TLS cert errors.
@@ -97,6 +116,30 @@ async function fetchWithCertFallback(url, opts) {
     enableInsecureTlsFallback(`TLS cert error (${err?.cause?.code})`);
     return await fetch(url, opts);
   }
+}
+
+async function fetchWithRetries(url, opts, contextLabel = 'upstream') {
+  let lastErr = null;
+  for (let attempt = 1; attempt <= DEFAULT_RETRY_ATTEMPTS; attempt++) {
+    try {
+      const resp = await fetchWithCertFallback(url, opts);
+      if (!shouldRetryUpstreamStatus(resp.status) || attempt === DEFAULT_RETRY_ATTEMPTS) {
+        return resp;
+      }
+      const delay = retryDelayMs(attempt);
+      console.warn(`[proxy] [retry] ${contextLabel} status=${resp.status} attempt=${attempt}/${DEFAULT_RETRY_ATTEMPTS} delay=${delay}ms`);
+      await sleep(delay);
+      continue;
+    } catch (err) {
+      lastErr = err;
+      if (err?.name === 'AbortError' || attempt === DEFAULT_RETRY_ATTEMPTS) throw err;
+      const delay = retryDelayMs(attempt);
+      console.warn(`[proxy] [retry] ${contextLabel} network-error attempt=${attempt}/${DEFAULT_RETRY_ATTEMPTS} delay=${delay}ms: ${err.message}`);
+      await sleep(delay);
+    }
+  }
+  if (lastErr) throw lastErr;
+  throw new Error(`Failed to fetch ${contextLabel}`);
 }
 
 const {
@@ -337,7 +380,10 @@ function buildPayload(body, model, cfg, isResponsesApi) {
   // Azure newer models (chat/completions) require max_completion_tokens;
   // legacy AOAI / non-Azure use max_tokens.
   // Clamp to model context window to avoid negative / oversized values.
-  const safeMaxTokens = clampMaxTokens(body, model);
+  // NVIDIA Build publishes models with rapidly changing context windows.
+  // Avoid proxy-side over-clamping there (can cause false context errors);
+  // let NVIDIA enforce native limits per model.
+  const safeMaxTokens = cfg?.kind === 'nvidia' ? body.max_tokens : clampMaxTokens(body, model);
   if (safeMaxTokens != null) {
     if (isAzure) payload.max_completion_tokens = safeMaxTokens;
     else payload.max_tokens = safeMaxTokens;
@@ -356,13 +402,17 @@ function buildPayload(body, model, cfg, isResponsesApi) {
 
   const hasTools = !!(tools && tools.length > 0);
 
-  // NVIDIA reasoning models gate reasoning behind chat_template_kwargs.enable_thinking.
-  // CRITICAL: only enable thinking when NO tools are present — enabling thinking while
-  // tools are defined causes NVIDIA models to text-simulate tool calls instead of
-  // emitting structured tool_calls (the root cause of "simulation mode" behavior).
-  if (cfg?.kind === 'nvidia' && body.thinking && body.thinking.type === 'enabled' && !hasTools) {
-    payload.chat_template_kwargs = { enable_thinking: true };
-    if (body.thinking.budget_tokens != null) payload.reasoning_budget = body.thinking.budget_tokens;
+  // NVIDIA: normalize chat template controls.
+  // - Many Build models require force_nonempty_content for robust tool-call parsing.
+  // - Reasoning is surfaced via enable_thinking and optionally reasoning_budget.
+  if (cfg?.kind === 'nvidia') {
+    const kwargs = { ...(payload.chat_template_kwargs || {}) };
+    if (hasTools) kwargs.force_nonempty_content = true;
+    if (body.thinking && body.thinking.type === 'enabled') {
+      kwargs.enable_thinking = true;
+      if (body.thinking.budget_tokens != null) payload.reasoning_budget = body.thinking.budget_tokens;
+    }
+    if (Object.keys(kwargs).length > 0) payload.chat_template_kwargs = kwargs;
   }
 
   // Inject a tool-use enforcement system prompt for non-Claude models.
@@ -620,12 +670,12 @@ async function callWithWebSearchLoop(providerCfg, sanitizedBody, originalBody, r
     const timer = setTimeout(() => controller.abort(), webSearchTimeoutMs);
     let upstream;
     try {
-      upstream = await fetchWithCertFallback(url, {
+      upstream = await fetchWithRetries(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify(payloadNonStream),
         signal: controller.signal,
-        });
+      }, 'web-search-loop');
     } catch (err) {
       clearTimeout(timer);
       if (err.name === 'AbortError') throw new Error(`Upstream timed out after ${webSearchTimeoutMs}ms in web-search loop`);
@@ -740,12 +790,12 @@ async function callOpenAICompatible(providerCfg, body, res) {
 
   let upstream;
   try {
-    upstream = await fetchWithCertFallback(url, {
+    upstream = await fetchWithRetries(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...headers },
       body: JSON.stringify(payload),
       signal: controller.signal,
-    });
+    }, 'chat-completions');
   } catch (err) {
     clearTimeout(timer);
     if (err.name === 'AbortError') throw new Error(`Upstream connection timed out after ${connectTimeoutMs}ms (URL: ${url})`);
@@ -846,10 +896,23 @@ async function streamChatCompletions(upstream, emitter, idleTimeoutMs) {
       continue;
     }
     const delta = choice.delta || {};
-    // Reasoning models (NVIDIA Nemotron, DeepSeek R1, etc.) stream the chain of
-    // thought separately in reasoning_content -> surface as Anthropic thinking.
-    if (delta.reasoning_content) emitter.deltaThinking(delta.reasoning_content);
-    if (delta.content) emitter.deltaText(delta.content);
+    // Reasoning models (NVIDIA Nemotron, DeepSeek, Qwen, etc.) may emit either
+    // reasoning_content or reasoning. Surface both as Anthropic thinking blocks.
+    const reasoningDelta = delta.reasoning_content || delta.reasoning;
+    if (reasoningDelta) {
+      emitter.deltaThinking(typeof reasoningDelta === 'string' ? reasoningDelta : JSON.stringify(reasoningDelta));
+    }
+
+    if (Array.isArray(delta.content)) {
+      const text = delta.content.map(part => {
+        if (!part) return '';
+        if (typeof part === 'string') return part;
+        return part.text || '';
+      }).join('');
+      if (text) emitter.deltaText(text);
+    } else if (delta.content) {
+      emitter.deltaText(delta.content);
+    }
     if (delta.tool_calls) {
       for (const tc of delta.tool_calls) emitter.deltaToolCall(tc.index ?? 0, tc);
     }
@@ -1027,9 +1090,17 @@ function parseResponse(json, isResponsesApi) {
   if (!isResponsesApi && json.choices) {
     const choice = json.choices[0];
     const msg = choice?.message || {};
+    const text = Array.isArray(msg.content)
+      ? msg.content.map(part => {
+          if (!part) return '';
+          if (typeof part === 'string') return part;
+          return part.text || '';
+        }).join('')
+      : (msg.content || '');
+    const thinking = msg.reasoning_content || msg.reasoning || '';
     return {
-      text: msg.content || '',
-      thinking: msg.reasoning_content || '',
+      text,
+      thinking: typeof thinking === 'string' ? thinking : JSON.stringify(thinking),
       toolCalls: (msg.tool_calls || []).map(tc => ({
         id: tc.id, name: tc.function?.name, arguments: tc.function?.arguments
       })),

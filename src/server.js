@@ -6,6 +6,7 @@ const v8 = require('v8');
 const { spawn, spawnSync } = require('child_process');
 
 const { callOpenAICompatible } = require('./providers/openai_compat');
+const { fetchLiveNvidiaModelGroups } = require('./providers/nvidia_models');
 const { countTokens: estimateTokens } = require('./token-analyzer/counter');
 const { callBedrock } = require('./providers/bedrock');
 const MODELS = require('./models');
@@ -2310,16 +2311,22 @@ function handleV1Models(_req, res) {
   const supportsVision        = provider !== 'nvidia';
 
   const data = [
-    { type: 'model', id: 'claude-fable-5',            display_name: 'Claude Fable 5',     created_at: '2026-06-01T00:00:00Z', max_input_tokens: 1000000, max_tokens: 128000, capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: supportsComputerUse, prompt_caching: supportsPromptCaching } },
-    { type: 'model', id: 'claude-opus-4-8',           display_name: 'Claude Opus 4.8',    created_at: '2026-05-01T00:00:00Z', max_input_tokens: 1000000, max_tokens: 128000, capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: supportsComputerUse, prompt_caching: supportsPromptCaching } },
-    { type: 'model', id: 'claude-opus-4-7',           display_name: 'Claude Opus 4.7',    created_at: '2026-03-01T00:00:00Z', max_input_tokens: 1000000, max_tokens: 128000, capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: supportsComputerUse, prompt_caching: supportsPromptCaching } },
-    { type: 'model', id: 'claude-opus-4-6',           display_name: 'Claude Opus 4.6',    created_at: '2025-11-01T00:00:00Z', max_input_tokens: 1000000, max_tokens: 128000, capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: supportsComputerUse, prompt_caching: supportsPromptCaching } },
-    { type: 'model', id: 'claude-opus-4-20250514',    display_name: 'Claude Opus 4',      created_at: '2025-05-14T00:00:00Z', max_input_tokens: 200000, max_tokens: 32000, capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: supportsComputerUse, prompt_caching: supportsPromptCaching } },
-    { type: 'model', id: 'claude-sonnet-4-6',         display_name: 'Claude Sonnet 4.6',  created_at: '2025-11-01T00:00:00Z', max_input_tokens: 1000000, max_tokens: 64000, capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: false, prompt_caching: supportsPromptCaching } },
-    { type: 'model', id: 'claude-sonnet-4-20250514',  display_name: 'Claude Sonnet 4',    created_at: '2025-05-14T00:00:00Z', max_input_tokens: 200000, max_tokens: 16000, capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: false, prompt_caching: supportsPromptCaching } },
-    { type: 'model', id: 'claude-haiku-4-5',          display_name: 'Claude Haiku 4.5',   created_at: '2025-10-01T00:00:00Z', max_input_tokens: 200000, max_tokens: 64000, capabilities: { vision: supportsVision, tool_use: true, extended_thinking: false, computer_use: false, prompt_caching: supportsPromptCaching } },
-    { type: 'model', id: 'claude-haiku-4-5-20251001', display_name: 'Claude Haiku 4.5',   created_at: '2025-10-01T00:00:00Z', max_input_tokens: 200000, max_tokens: 64000, capabilities: { vision: supportsVision, tool_use: true, extended_thinking: false, computer_use: false, prompt_caching: supportsPromptCaching } },
-    { type: 'model', id: 'claude-3-5-sonnet-20241022', display_name: 'Claude 3.5 Sonnet', created_at: '2024-10-22T00:00:00Z', max_input_tokens: 200000, max_tokens: 8192,  capabilities: { vision: supportsVision, tool_use: true, extended_thinking: false, computer_use: false, prompt_caching: supportsPromptCaching } },
+    { type: 'model', id: 'claude-sonnet-5',            display_name: 'Claude Sonnet 5',            created_at: '2026-06-30T00:00:00Z', max_input_tokens: 1000000, max_tokens: 128000, capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: supportsComputerUse, prompt_caching: supportsPromptCaching } },
+    { type: 'model', id: 'claude-fable-5',             display_name: 'Claude Fable 5',             created_at: '2026-06-09T00:00:00Z', max_input_tokens: 1000000, max_tokens: 128000, capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: supportsComputerUse, prompt_caching: supportsPromptCaching } },
+    { type: 'model', id: 'claude-mythos-5',            display_name: 'Claude Mythos 5',            created_at: '2026-06-09T00:00:00Z', max_input_tokens: 1000000, max_tokens: 128000, capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: supportsComputerUse, prompt_caching: supportsPromptCaching } },
+    { type: 'model', id: 'claude-mythos-preview',      display_name: 'Claude Mythos Preview',      created_at: '2026-04-07T00:00:00Z', max_input_tokens: 1000000, max_tokens: 128000, capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: supportsComputerUse, prompt_caching: supportsPromptCaching } },
+    { type: 'model', id: 'claude-opus-4-8',            display_name: 'Claude Opus 4.8',            created_at: '2026-05-28T00:00:00Z', max_input_tokens: 1000000, max_tokens: 128000, capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: supportsComputerUse, prompt_caching: supportsPromptCaching } },
+    { type: 'model', id: 'claude-opus-4-7',            display_name: 'Claude Opus 4.7',            created_at: '2026-04-16T00:00:00Z', max_input_tokens: 1000000, max_tokens: 128000, capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: supportsComputerUse, prompt_caching: supportsPromptCaching } },
+    { type: 'model', id: 'claude-opus-4-6',            display_name: 'Claude Opus 4.6',            created_at: '2026-02-05T00:00:00Z', max_input_tokens: 1000000, max_tokens: 128000, capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: supportsComputerUse, prompt_caching: supportsPromptCaching } },
+    { type: 'model', id: 'claude-sonnet-4-6',          display_name: 'Claude Sonnet 4.6',          created_at: '2026-02-17T00:00:00Z', max_input_tokens: 1000000, max_tokens: 64000,  capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: false, prompt_caching: supportsPromptCaching } },
+    { type: 'model', id: 'claude-haiku-4-5',           display_name: 'Claude Haiku 4.5',           created_at: '2025-10-15T00:00:00Z', max_input_tokens: 200000,  max_tokens: 64000,  capabilities: { vision: supportsVision, tool_use: true, extended_thinking: false, computer_use: false, prompt_caching: supportsPromptCaching } },
+    { type: 'model', id: 'claude-haiku-4-5-20251001',  display_name: 'Claude Haiku 4.5 (dated)',   created_at: '2025-10-01T00:00:00Z', max_input_tokens: 200000,  max_tokens: 64000,  capabilities: { vision: supportsVision, tool_use: true, extended_thinking: false, computer_use: false, prompt_caching: supportsPromptCaching } },
+    { type: 'model', id: 'claude-opus-4-5',            display_name: 'Claude Opus 4.5',            created_at: '2025-11-24T00:00:00Z', max_input_tokens: 200000,  max_tokens: 64000,  capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: supportsComputerUse, prompt_caching: supportsPromptCaching } },
+    { type: 'model', id: 'claude-opus-4-5-20251101',   display_name: 'Claude Opus 4.5 (dated)',    created_at: '2025-11-01T00:00:00Z', max_input_tokens: 200000,  max_tokens: 64000,  capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: supportsComputerUse, prompt_caching: supportsPromptCaching } },
+    { type: 'model', id: 'claude-sonnet-4-5',          display_name: 'Claude Sonnet 4.5',          created_at: '2025-09-29T00:00:00Z', max_input_tokens: 200000,  max_tokens: 64000,  capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: false, prompt_caching: supportsPromptCaching } },
+    { type: 'model', id: 'claude-sonnet-4-5-20250929', display_name: 'Claude Sonnet 4.5 (dated)',  created_at: '2025-09-29T00:00:00Z', max_input_tokens: 200000,  max_tokens: 64000,  capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: false, prompt_caching: supportsPromptCaching } },
+    { type: 'model', id: 'claude-opus-4-1',            display_name: 'Claude Opus 4.1',            created_at: '2025-08-05T00:00:00Z', max_input_tokens: 200000,  max_tokens: 64000,  capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: supportsComputerUse, prompt_caching: supportsPromptCaching } },
+    { type: 'model', id: 'claude-opus-4-1-20250805',   display_name: 'Claude Opus 4.1 (dated)',    created_at: '2025-08-05T00:00:00Z', max_input_tokens: 200000,  max_tokens: 64000,  capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: supportsComputerUse, prompt_caching: supportsPromptCaching } },
   ];
   send(res, 200, { data, has_more: false, first_id: data[0].id, last_id: data[data.length - 1].id });
 }
@@ -2350,7 +2357,27 @@ const server = http.createServer({ keepAlive: true }, async (req, res) => {
     }
     // /v1/models — Claude Code Anthropic SDK may query this on startup.
     if (u.pathname === '/v1/models' && req.method === 'GET') return handleV1Models(req, res);
-    if (u.pathname === '/api/models') return send(res, 200, MODELS);
+    if (u.pathname === '/api/models') {
+      const catalog = {
+        ...MODELS,
+        bedrock: MODELS.bedrock,
+        azure: MODELS.azure,
+        nvidia: MODELS.nvidia,
+        cloudflare: MODELS.cloudflare,
+      };
+      const nvidiaApiKey = CONFIG?.providers?.nvidia?.apiKey;
+      if (nvidiaApiKey) {
+        try {
+          const liveNvidia = await fetchLiveNvidiaModelGroups(nvidiaApiKey);
+          if (liveNvidia && liveNvidia.length) {
+            catalog.nvidia = liveNvidia;
+          }
+        } catch (err) {
+          console.warn(`[proxy] [nvidia-model-sync] ${err.message}`);
+        }
+      }
+      return send(res, 200, catalog);
+    }
     if (u.pathname === '/api/system' && req.method === 'GET') return await handleSystem(req, res);
     if (u.pathname === '/api/install' && req.method === 'POST') return await handleInstall(req, res);
     if (u.pathname === '/api/config' && req.method === 'GET') return handleConfigGet(req, res);

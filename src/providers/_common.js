@@ -708,10 +708,14 @@ function createAnthropicSSEEmitter(res, model, toolDefs = []) {
       stop: 'end_turn',
       length: 'max_tokens',
       tool_calls: 'tool_use',
+      tool_call: 'tool_use',
+      function_call: 'tool_use',
       tool_use: 'tool_use',
       end_turn: 'end_turn',
       max_tokens: 'max_tokens',
       stop_sequence: 'stop_sequence',
+      content_filter: 'refusal',
+      eos: 'end_turn',
       model_context_window_exceeded: 'model_context_window_exceeded',
       refusal: 'refusal',
       pause_turn: 'pause_turn'
@@ -977,8 +981,10 @@ function buildAnthropicResponse({ model, text, thinking, toolCalls, stopReason, 
   if (content.length === 0) content.push({ type: 'text', text: '' });
   const map = {
     stop: 'end_turn', length: 'max_tokens', tool_calls: 'tool_use',
-    tool_use: 'tool_use', end_turn: 'end_turn', max_tokens: 'max_tokens',
+    tool_call: 'tool_use', function_call: 'tool_use', tool_use: 'tool_use', end_turn: 'end_turn', max_tokens: 'max_tokens',
     stop_sequence: 'stop_sequence',
+    content_filter: 'end_turn',
+    eos: 'end_turn',
     model_context_window_exceeded: 'model_context_window_exceeded',
     refusal: 'refusal',
     pause_turn: 'pause_turn'
