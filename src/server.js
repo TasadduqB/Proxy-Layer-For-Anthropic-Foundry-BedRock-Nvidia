@@ -753,7 +753,7 @@ process.once('SIGTERM', () => { try { flushLogLines(); flushOptStats(); } finall
 
 // ---- Rate limiting (sliding 60s window for requests + tokens) ----
 
-const DEFAULT_LIMITS = { enabled: false, rpm: 10000, tpm: 10000000 };
+const DEFAULT_LIMITS = { enabled: false, rpm: 10000, tpm: 10000000, dailyCapUsd: 0 };
 
 function getLimits() {
   const l = CONFIG.limits || {};
@@ -761,7 +761,10 @@ function getLimits() {
     // Local limits are opt-in. If config omits `limits.enabled`, do not throttle.
     enabled: l.enabled === true,
     rpm: Number.isFinite(Number(l.rpm)) ? Number(l.rpm) : DEFAULT_LIMITS.rpm,
-    tpm: Number.isFinite(Number(l.tpm)) ? Number(l.tpm) : DEFAULT_LIMITS.tpm
+    tpm: Number.isFinite(Number(l.tpm)) ? Number(l.tpm) : DEFAULT_LIMITS.tpm,
+    // 0/undefined = no spend cap. Modeled on LiteLLM-style budget enforcement:
+    // a rolling 24h USD ceiling across the whole proxy (all keys/models/providers).
+    dailyCapUsd: Number.isFinite(Number(l.dailyCapUsd)) ? Number(l.dailyCapUsd) : DEFAULT_LIMITS.dailyCapUsd
   };
 }
 
@@ -791,6 +794,18 @@ class RateLimiter {
 }
 
 const limiter = new RateLimiter();
+
+// Rolling 24h USD spend tracker, enforced independently of the rpm/tpm limiter.
+class SpendTracker {
+  constructor() { this.entries = []; }
+  prune(now) {
+    const cutoff = now - 86400000;
+    while (this.entries.length && this.entries[0].ts < cutoff) this.entries.shift();
+  }
+  total(now) { this.prune(now); return this.entries.reduce((s, e) => s + e.usd, 0); }
+  record(now, usd) { if (usd > 0) this.entries.push({ ts: now, usd }); }
+}
+const spendTracker = new SpendTracker();
 
 // Tee res.write/res.end to extract real token usage from the response (works
 // for both non-streaming JSON usage objects and streaming SSE message events).
@@ -923,6 +938,18 @@ async function handleMessages(req, res) {
     }
     limiter.recordRequest(now);
   }
+  if (limits.dailyCapUsd > 0) {
+    const spent = spendTracker.total(Date.now());
+    if (spent >= limits.dailyCapUsd) {
+      return send(res, 429, {
+        type: 'error',
+        error: {
+          type: 'budget_exceeded_error',
+          message: `Proxy daily spend cap reached ($${spent.toFixed(2)}/$${limits.dailyCapUsd.toFixed(2)} in the last 24h). Raise the cap in Optimization settings or wait for the window to roll over.`
+        }
+      }, { 'retry-after': '3600' });
+    }
+  }
   // Always send rate-limit headers on every response so Claude Code's SDK can
   // calibrate sub-agent concurrency. Without these, the SDK defaults to very
   // conservative parallelism and serializes sub-agents unnecessarily.
@@ -951,6 +978,15 @@ async function handleMessages(req, res) {
       }
     });
   }
+
+  // Claude Code sends opt-in Anthropic beta feature flags via the `anthropic-beta`
+  // header (ANTHROPIC_BETAS env var, or its own default set). Stash them on the
+  // body so providers that speak the native Anthropic protocol (Bedrock) can
+  // forward them upstream; providers that don't understand them simply ignore
+  // this internal field, same as `_requestedModel` below.
+  const requestedBetas = String(req.headers['anthropic-beta'] || '')
+    .split(',').map(s => s.trim()).filter(Boolean);
+  if (requestedBetas.length) body._requestedBetas = requestedBetas;
 
   const opt = getOptimization();
   const timingsStart = Date.now();
@@ -1419,6 +1455,7 @@ async function handleMessages(req, res) {
             cachedTokens: cacheReadTokens,
             cacheCreationTokens: cacheCreateTokens,
           });
+          if (costResult?.cost_nano_usd) spendTracker.record(Date.now(), costResult.cost_nano_usd / 1e9);
           if (cacheReadTokens || cacheCreateTokens) {
             OPT_STATS.promptCacheReadTokens += cacheReadTokens;
             OPT_STATS.promptCacheCreationTokens += cacheCreateTokens;
@@ -1869,7 +1906,7 @@ function handleLimitsGet(_req, res) {
   limiter.prune(now);
   send(res, 200, {
     limits: getLimits(),
-    usage: { rpm: limiter.reqs.length, tpm: limiter.tokenSum(), windowSeconds: 60 }
+    usage: { rpm: limiter.reqs.length, tpm: limiter.tokenSum(), windowSeconds: 60, spendUsd: spendTracker.total(now), spendWindowHours: 24 }
   });
 }
 
@@ -1886,6 +1923,11 @@ async function handleLimitsPost(req, res) {
     const n = Number(body.tpm);
     if (!Number.isFinite(n) || n < 0) return send(res, 400, { error: 'tpm must be a non-negative number' });
     next.tpm = Math.floor(n);
+  }
+  if (body.dailyCapUsd != null) {
+    const n = Number(body.dailyCapUsd);
+    if (!Number.isFinite(n) || n < 0) return send(res, 400, { error: 'dailyCapUsd must be a non-negative number' });
+    next.dailyCapUsd = n;
   }
   CONFIG.limits = next;
   saveConfig(CONFIG);
@@ -2019,6 +2061,13 @@ async function handleInstall(req, res) {
   const child = spawn(process.execPath, args, { cwd: ROOT, env });
   child.stdout.on('data', d => send({ type: 'log', msg: d.toString() }));
   child.stderr.on('data', d => send({ type: 'log', msg: d.toString(), level: 'warn' }));
+  // Without this handler, a spawn failure (e.g. ENOENT/EINVAL) emits an
+  // unhandled 'error' event, which Node throws and crashes the whole server.
+  child.on('error', err => {
+    send({ type: 'log', msg: `Failed to start installer: ${err.message}`, level: 'error' });
+    send({ type: 'done', code: 1, system: buildSystem() });
+    res.end();
+  });
   child.on('close', code => {
     send({ type: 'done', code, system: buildSystem() });
     res.end();
@@ -2270,20 +2319,30 @@ async function updateFromArchive(stream) {
 
 function scheduleSelfRestart() {
   const serverScript = path.join(ROOT, 'src', 'server.js');
+  // `detached: true` on macOS/libuv calls posix_spawn() with POSIX_SPAWN_SETSID,
+  // which is known to fail with EINVAL on some macOS/libuv combinations depending
+  // on how the parent process itself was started. Guard the inner spawn against
+  // that: if the detached attempt errors, retry without `detached` (still safe
+  // to outlive the parent thanks to stdio:"ignore" + unref()).
   const launcherScript = [
     'const { spawn } = require("child_process");',
     `const nodeBin = ${JSON.stringify(process.execPath)};`,
     `const serverScript = ${JSON.stringify(serverScript)};`,
     `const cwd = ${JSON.stringify(ROOT)};`,
-    'setTimeout(() => {',
+    'function startServer(detached) {',
     '  const child = spawn(nodeBin, [serverScript], {',
     '    cwd,',
-    '    detached: true,',
+    '    detached,',
     '    stdio: "ignore",',
     '    env: process.env',
     '  });',
-    '  child.unref();',
-    '}, 1200);',
+    '  child.on("error", err => {',
+    '    if (detached && err && err.code === "EINVAL") { startServer(false); return; }',
+    '    console.error("[update] failed to restart server:", err && err.message);',
+    '  });',
+    '  if (detached) child.unref();',
+    '}',
+    'setTimeout(() => startServer(true), 1200);',
   ].join(' ');
 
   const env = {
@@ -2291,13 +2350,23 @@ function scheduleSelfRestart() {
     PORT: String(PORT),
     HOST,
   };
-  const launcher = spawn(process.execPath, ['-e', launcherScript], {
-    cwd: ROOT,
-    detached: true,
-    stdio: 'ignore',
-    env,
-  });
-  launcher.unref();
+  function spawnLauncher(detached) {
+    const launcher = spawn(process.execPath, ['-e', launcherScript], {
+      cwd: ROOT,
+      detached,
+      stdio: 'ignore',
+      env,
+    });
+    // Same EINVAL guard as the inner spawn above — without this handler a
+    // spawn failure here would throw an unhandled 'error' event and crash
+    // the proxy process right as the update finishes.
+    launcher.on('error', err => {
+      if (detached && err && err.code === 'EINVAL') { spawnLauncher(false); return; }
+      console.error('[update] failed to schedule self-restart:', err && err.message);
+    });
+    if (detached) launcher.unref();
+  }
+  spawnLauncher(true);
 }
 
 async function handleSelfUpdate(req, res) {
@@ -2701,12 +2770,18 @@ function handleV1Models(_req, res) {
   // Surface a realistic-looking Claude model list so Claude Code doesn't fall into
   // degraded mode. The actual upstream model is transparent to the CLI.
   // Include max_input_tokens, max_tokens, capabilities so the SDK can use them.
-  const provider = CONFIG.provider;
-  // Determine capabilities based on active provider.
-  const supportsComputerUse   = provider === 'bedrock';
-  const supportsThinking      = provider !== 'nvidia';
-  const supportsPromptCaching = provider !== 'nvidia' && provider !== 'cloudflare';
-  const supportsVision        = provider !== 'nvidia';
+  // Capabilities must reflect every pool member a request could actually land on
+  // (fanout can mix provider kinds), not just the single "active" CONFIG.provider —
+  // otherwise Claude Code could be told a capability is available when only some
+  // pool members actually support it. Advertise a capability only if ALL members
+  // that could serve a request support it (conservative intersection).
+  const pool = getPool();
+  const kinds = pool.length ? pool.map(p => p.kind) : [CONFIG.provider];
+  const allKindsSupport = (fn) => kinds.length > 0 && kinds.every(fn);
+  const supportsComputerUse   = allKindsSupport(k => k === 'bedrock');
+  const supportsThinking      = allKindsSupport(k => k !== 'nvidia');
+  const supportsPromptCaching = allKindsSupport(k => k !== 'nvidia' && k !== 'cloudflare');
+  const supportsVision        = allKindsSupport(k => k !== 'nvidia');
 
   const data = [
     { type: 'model', id: 'claude-sonnet-5',            display_name: 'Claude Sonnet 5',            created_at: '2026-06-30T00:00:00Z', max_input_tokens: 1000000, max_tokens: 128000, capabilities: { vision: supportsVision, tool_use: true, extended_thinking: supportsThinking, computer_use: supportsComputerUse, prompt_caching: supportsPromptCaching } },

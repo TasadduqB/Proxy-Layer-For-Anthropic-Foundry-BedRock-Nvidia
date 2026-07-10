@@ -538,6 +538,26 @@ function createAnthropicSSEEmitter(res, model, toolDefs = []) {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
   }
 
+  // Claude Code aborts a streaming connection that goes quiet for 180-300s
+  // (its idle/byte watchdog is active by default on any non-first-party host,
+  // i.e. every request that goes through this proxy — see API_FORCE_IDLE_TIMEOUT
+  // in the Claude Code docs). Slow-to-first-token upstreams (Bedrock/Azure/NVIDIA
+  // cold starts, long extended-thinking pauses) can exceed that window with zero
+  // bytes written. Send a low-frequency keep-alive so the connection never goes
+  // idle long enough to trip the watchdog, in a form that's valid at any point in
+  // the stream: a raw SSE comment before message_start (protocol-safe, ignored by
+  // parsers), and a real `ping` event afterward (the same event the real
+  // Anthropic API sends periodically on long streams).
+  let keepAliveTimer = setInterval(() => {
+    if (res.writableEnded) { clearInterval(keepAliveTimer); return; }
+    if (started) send('ping', { type: 'ping' });
+    else res.write(': keep-alive\n\n');
+  }, 15000);
+  if (keepAliveTimer.unref) keepAliveTimer.unref();
+  function stopKeepAlive() {
+    if (keepAliveTimer) { clearInterval(keepAliveTimer); keepAliveTimer = null; }
+  }
+
   function start(usage = {}) {
     if (started) return;
     started = true;
@@ -899,6 +919,7 @@ function createAnthropicSSEEmitter(res, model, toolDefs = []) {
       usage: deltaUsage
     });
     send('message_stop', { type: 'message_stop' });
+    stopKeepAlive();
     if (res.__proxyTrace) {
       res.__proxyTrace.note({
         stopReason,
@@ -913,6 +934,7 @@ function createAnthropicSSEEmitter(res, model, toolDefs = []) {
   }
 
   function fail(err) {
+    stopKeepAlive();
     const message = String(err && err.message || err);
     if (res.__proxyTrace) {
       res.__proxyTrace.note({

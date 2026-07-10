@@ -85,6 +85,12 @@ function buildBedrockPayload(body) {
   // for older models that still accept them.
   if (body.thinking && body.thinking.type === 'adaptive') payload.thinking = body.thinking;
   else if (body.thinking && body.thinking.type === 'enabled' && !isModernClaudeModel(body.model || '')) payload.thinking = body.thinking;
+  // Bedrock speaks the native Anthropic Messages payload, so beta feature flags
+  // the client requested via the `anthropic-beta` header (see server.js) are
+  // forwarded as-is — Bedrock recognizes the same identifiers as the direct API.
+  if (Array.isArray(body._requestedBetas) && body._requestedBetas.length) {
+    payload.anthropic_beta = body._requestedBetas;
+  }
   for (const k of Object.keys(payload)) if (payload[k] === undefined) delete payload[k];
   return payload;
 }
