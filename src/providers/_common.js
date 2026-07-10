@@ -293,6 +293,39 @@ function sanitizeForUpstream(body, opts = {}) {
   return out;
 }
 
+// Finds the index of the closing '}' matching the opening '{' at `start`,
+// correctly skipping over braces that appear inside string values (e.g. YAML
+// / GitHub Actions `${{ ... }}` expressions or Jinja/Helm templates embedded
+// in a "content" field). A naive non-greedy regex like `\{[\s\S]*?\}` stops
+// at the FIRST closing brace it sees, truncating such payloads mid-content
+// and silently dropping (or corrupting) the tool call. Returns -1 if the
+// braces never balance before the end of the string (truncated input).
+function findMatchingBrace(text, start) {
+  let depth = 0, inString = false, escape = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (escape) { escape = false; continue; }
+    if (ch === '\\' && inString) { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) return i;
+    }
+  }
+  return -1;
+}
+
+// Parses a captured tool-call JSON blob, retrying through repairJSON if the
+// raw text doesn't parse cleanly (e.g. an unescaped control character from
+// multi-line YAML content that slipped past brace-matching).
+function parseToolCallBlob(blob) {
+  try { return JSON.parse(blob); } catch {}
+  try { return JSON.parse(repairJSON(blob)); } catch {}
+  return null;
+}
+
 // Intercepts and parses simulated tool calls (plain text) into structured tool calls.
 function parseSimulatedTools(text) {
   if (!text) return [];
@@ -311,13 +344,11 @@ function parseSimulatedTools(text) {
   // Pattern 2: <tool_call>{"name":"bash","arguments":{...}}</tool_call>  (used by some models)
   const toolCallRegex = /<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/g;
   while ((match = toolCallRegex.exec(text)) !== null) {
-    try {
-      const obj = JSON.parse(match[1]);
-      if (obj.name) {
-        const args = obj.arguments || obj.input || obj.params || {};
-        tools.push({ name: obj.name, arguments: typeof args === 'string' ? args : JSON.stringify(args) });
-      }
-    } catch {}
+    const obj = parseToolCallBlob(match[1]);
+    if (obj && obj.name) {
+      const args = obj.arguments || obj.input || obj.params || {};
+      tools.push({ name: obj.name, arguments: typeof args === 'string' ? args : JSON.stringify(args) });
+    }
   }
 
   // Pattern 3: <function_calls><invoke name="bash"><command>ls</command></invoke></function_calls>
@@ -333,28 +364,40 @@ function parseSimulatedTools(text) {
   }
 
   // Pattern 4: ```json\n{ "name": "bash", "arguments": {...} }\n```
-  const mdJsonRegex = /```(?:json)?\s*(\{\s*"name"\s*:\s*"[^"]+"\s*(?:,\s*"(?:arguments|input|params)"\s*:\s*(?:\{[\s\S]*?\}|"[^"]*"))?\s*\})\s*```/g;
-  while ((match = mdJsonRegex.exec(text)) !== null) {
-    try {
-      const obj = JSON.parse(match[1]);
-      if (obj.name) {
+  // Brace-matched (not regex-bounded) so nested braces inside string values
+  // (e.g. YAML/GitHub Actions `${{ }}` expressions in a "content" field)
+  // don't truncate the captured JSON early.
+  {
+    const fenceStartRegex = /```(?:json)?\s*\{/g;
+    let fm;
+    while ((fm = fenceStartRegex.exec(text)) !== null) {
+      const braceStart = fm.index + fm[0].length - 1;
+      if (!/^\{\s*"name"\s*:\s*"[^"]+"/.test(text.slice(braceStart))) continue;
+      const braceEnd = findMatchingBrace(text, braceStart);
+      if (braceEnd === -1) continue;
+      const obj = parseToolCallBlob(text.slice(braceStart, braceEnd + 1));
+      if (obj && obj.name) {
         const args = obj.arguments || obj.input || obj.params || {};
         tools.push({ name: obj.name, arguments: typeof args === 'string' ? args : JSON.stringify(args) });
       }
-    } catch {}
+    }
   }
 
-  // Pattern 5: bare JSON at start of text {"name": "bash", "arguments": {...}}
-  const nakedJsonRegex = /^\{\s*"name"\s*:\s*"[^"]+"\s*(?:,\s*"(?:arguments|input|params)"\s*:\s*\{[\s\S]*?\})?\s*\}/m;
-  match = nakedJsonRegex.exec(text);
-  if (match) {
-    try {
-      const obj = JSON.parse(match[0]);
-      if (obj.name) {
-        const args = obj.arguments || obj.input || obj.params || {};
-        tools.push({ name: obj.name, arguments: typeof args === 'string' ? args : JSON.stringify(args) });
+  // Pattern 5: bare JSON at start of a line: {"name": "bash", "arguments": {...}}
+  // Also brace-matched for the same reason as Pattern 4.
+  {
+    const nakedStartRegex = /^\{\s*"name"\s*:\s*"[^"]+"/m;
+    const nm = nakedStartRegex.exec(text);
+    if (nm) {
+      const braceEnd = findMatchingBrace(text, nm.index);
+      if (braceEnd !== -1) {
+        const obj = parseToolCallBlob(text.slice(nm.index, braceEnd + 1));
+        if (obj && obj.name) {
+          const args = obj.arguments || obj.input || obj.params || {};
+          tools.push({ name: obj.name, arguments: typeof args === 'string' ? args : JSON.stringify(args) });
+        }
       }
-    } catch {}
+    }
   }
 
   // Pattern 6: Incomplete JSON at start of text (when cut off by max_tokens)
@@ -375,6 +418,7 @@ function parseSimulatedTools(text) {
 
   return tools;
 }
+
 
 function enhanceToolDescription(tool) {
   const base = tool.description
