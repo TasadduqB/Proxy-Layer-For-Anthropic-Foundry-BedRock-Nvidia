@@ -2078,14 +2078,32 @@ let SELF_UPDATE_IN_PROGRESS = false;
 
 function runStepStreaming(send, command, args, opts = {}) {
   return new Promise(resolve => {
-    const child = spawn(command, args, { cwd: ROOT, env: { ...process.env, ...(opts.env || {}) } });
-    child.stdout.on('data', d => send({ type: 'log', msg: d.toString() }));
-    child.stderr.on('data', d => send({ type: 'log', msg: d.toString(), level: 'warn' }));
-    child.on('error', err => {
-      send({ type: 'log', msg: `[update] failed to start ${command}: ${err.message}`, level: 'warn' });
-      resolve({ code: 1, signal: null });
-    });
-    child.on('close', (code, signal) => resolve({ code: code ?? 1, signal: signal || null }));
+    function attempt(useShell) {
+      const child = spawn(command, args, {
+        cwd: ROOT,
+        env: { ...process.env, ...(opts.env || {}) },
+        shell: useShell
+      });
+      child.stdout.on('data', d => send({ type: 'log', msg: d.toString() }));
+      child.stderr.on('data', d => send({ type: 'log', msg: d.toString(), level: 'warn' }));
+      child.on('error', err => {
+        // Resolved binary paths (e.g. npm, which is often a multi-hop symlink
+        // ending in a `#!/usr/bin/env node` script) can occasionally fail to
+        // spawn directly with EINVAL/ENOENT depending on how the parent
+        // process itself was launched. Retrying once through the shell lets
+        // /bin/sh perform its own exec/shebang resolution instead of Node's.
+        // Only enabled at call sites with hardcoded, trusted arguments.
+        if (!useShell && opts.shellFallback && (err.code === 'EINVAL' || err.code === 'ENOENT')) {
+          send({ type: 'log', msg: `[update] ${command} failed to spawn directly (${err.code}), retrying via shell...`, level: 'warn' });
+          attempt(true);
+          return;
+        }
+        send({ type: 'log', msg: `[update] failed to start ${command}: ${err.message}`, level: 'warn' });
+        resolve({ code: 1, signal: null });
+      });
+      child.on('close', (code, signal) => resolve({ code: code ?? 1, signal: signal || null }));
+    }
+    attempt(false);
   });
 }
 
@@ -2369,6 +2387,76 @@ function scheduleSelfRestart() {
   spawnLauncher(true);
 }
 
+// Installs project dependencies with layered auto-recovery, since this runs
+// unattended right after an update and has no human around to fix problems:
+//   - auto-resolve: re-locate npm (incl. auto-installing a portable Node/npm
+//     via installer.ensureNode() if none can be found at all)
+//   - auto-fix: repair a missing executable bit on the resolved npm binary
+//   - auto-delete path: wipe a possibly-corrupted node_modules and retry
+//     clean (falling back from `npm ci` to `npm install` if the lockfile
+//     itself is the problem)
+async function installDependencies(stream) {
+  const lockfilePath = path.join(ROOT, 'package-lock.json');
+  const nodeModulesPath = path.join(ROOT, 'node_modules');
+
+  async function resolveNpm() {
+    let npmPath = installer.which('npm');
+    if (!npmPath) {
+      stream({ type: 'log', msg: '[update] npm not found, auto-installing a portable Node/npm...', level: 'warn' });
+      try {
+        const ensured = await installer.ensureNode();
+        npmPath = ensured && ensured.npm;
+      } catch (err) {
+        stream({ type: 'log', msg: `[update] auto-install of portable Node failed: ${err.message}`, level: 'warn' });
+      }
+    }
+    return npmPath || 'npm';
+  }
+
+  function autoFixPermissions(npmPath) {
+    try {
+      if (fs.existsSync(npmPath)) {
+        const st = fs.statSync(npmPath);
+        if (st.isFile() && (st.mode & 0o111) === 0) {
+          stream({ type: 'log', msg: '[update] npm binary missing executable bit, auto-fixing permissions...', level: 'warn' });
+          fs.chmodSync(npmPath, st.mode | 0o111);
+        }
+      }
+    } catch {}
+  }
+
+  function npmArgsFor() {
+    const hasLockfile = fs.existsSync(lockfilePath);
+    return hasLockfile ? ['ci', '--no-audit', '--no-fund'] : ['install', '--no-audit', '--no-fund'];
+  }
+
+  let npmPath = await resolveNpm();
+  autoFixPermissions(npmPath);
+
+  let npmArgs = npmArgsFor();
+  stream({ type: 'log', msg: `[update] Installing dependencies (npm ${npmArgs.join(' ')})...` });
+  let npmStep = await runStepStreaming(stream, npmPath, npmArgs, { shellFallback: true });
+
+  if (npmStep.code !== 0) {
+    stream({ type: 'log', msg: '[update] Dependency install failed, auto-deleting node_modules and retrying a clean install...', level: 'warn' });
+    try { fs.rmSync(nodeModulesPath, { recursive: true, force: true }); } catch {}
+
+    // A stale/mismatched lockfile can make `npm ci` fail even on a clean
+    // node_modules — fall back to `npm install` on retry so it can self-heal.
+    if (npmArgs[0] === 'ci') npmArgs = ['install', '--no-audit', '--no-fund'];
+
+    // Re-resolve in case the first attempt picked a broken/unspawnable path.
+    npmPath = await resolveNpm();
+    autoFixPermissions(npmPath);
+
+    stream({ type: 'log', msg: `[update] Retrying (npm ${npmArgs.join(' ')})...` });
+    npmStep = await runStepStreaming(stream, npmPath, npmArgs, { shellFallback: true });
+  }
+
+  npmStep.attemptedArgs = npmArgs;
+  return npmStep;
+}
+
 async function handleSelfUpdate(req, res) {
   if (SELF_UPDATE_IN_PROGRESS) {
     return send(res, 409, { error: 'Update already in progress' });
@@ -2450,13 +2538,9 @@ async function handleSelfUpdate(req, res) {
       stream({ type: 'log', msg: '[update] Package files replaced from archive.' });
     }
 
-    const npmPath = installer.which('npm') || 'npm';
-    const hasLockfile = fs.existsSync(path.join(ROOT, 'package-lock.json'));
-    const npmArgs = hasLockfile ? ['ci', '--no-audit', '--no-fund'] : ['install', '--no-audit', '--no-fund'];
-    stream({ type: 'log', msg: `[update] Installing dependencies (npm ${npmArgs.join(' ')})...` });
-    const npmStep = await runStepStreaming(stream, npmPath, npmArgs);
+    const npmStep = await installDependencies(stream);
     if (npmStep.code !== 0) {
-      return finish({ ok: false, error: `npm ${npmArgs[0]} failed`, code: npmStep.code, before, after, mode, source });
+      return finish({ ok: false, error: `npm ${npmStep.attemptedArgs[0]} failed`, code: npmStep.code, before, after, mode, source });
     }
 
     stream({ type: 'log', msg: '[update] Update completed successfully.' });
