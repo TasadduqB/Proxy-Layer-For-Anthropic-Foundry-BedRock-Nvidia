@@ -154,11 +154,17 @@ function anthropicToOpenAIMessages(body) {
 }
 
 // Descriptions for Anthropic built-in tools (no description field in the API payload).
+// Keyed by both the bare name and all known versioned type strings so type-only tools
+// (e.g. { type: 'bash_20241022' } with no name field) still get a useful description.
 const BUILTIN_TOOL_DESCRIPTIONS = {
-  web_search:         'Search the internet for current information. Use when you need up-to-date facts, news, documentation, or any information not reliably in your training data. Always pass a concise, specific query.',
-  bash:               'Execute a bash shell command and return its stdout/stderr output. Use for file operations, running scripts, reading system state, or any shell task.',
-  str_replace_editor: 'View and edit files by replacing exact strings. Commands: view, create, str_replace, insert, undo_edit.',
-  computer:           'Control the computer screen, keyboard, and mouse for GUI automation.',
+  web_search:              'Search the internet for current information. Use when you need up-to-date facts, news, documentation, or any information not reliably in your training data. Always pass a concise, specific query.',
+  web_search_20250305:     'Search the internet for current information. Use when you need up-to-date facts, news, documentation, or any information not reliably in your training data. Always pass a concise, specific query.',
+  bash:                    'Execute a bash shell command and return its stdout/stderr/exit-code output. Use for ALL shell operations: running scripts, git clone/add/commit/push/pull, file downloads (curl/wget), installs, reading system state, or any shell task.',
+  bash_20241022:           'Execute a bash shell command and return its stdout/stderr/exit-code output. Use for ALL shell operations: running scripts, git clone/add/commit/push/pull, file downloads (curl/wget), installs, reading system state, or any shell task.',
+  str_replace_editor:      'View and edit files by replacing exact strings. Commands: view, create, str_replace, insert, undo_edit.',
+  text_editor_20241022:    'View and edit files by replacing exact strings. Commands: view, create, str_replace, insert, undo_edit.',
+  computer:                'Control the computer screen, keyboard, and mouse for GUI automation.',
+  computer_20241022:       'Control the computer screen, keyboard, and mouse for GUI automation.',
 };
 
 // Anthropic computer use tools don't come with an explicit input_schema.
@@ -421,10 +427,12 @@ function parseSimulatedTools(text) {
 
 
 function enhanceToolDescription(tool) {
+  const toolId = tool.name || tool.type || '';
   const base = tool.description
     || BUILTIN_TOOL_DESCRIPTIONS[tool.name]
-    || `Tool: ${tool.name}`;
-  if (!/^(Bash|bash)$/.test(tool.name || '')) return base;
+    || BUILTIN_TOOL_DESCRIPTIONS[tool.type]
+    || (toolId ? `Tool: ${toolId}` : 'Tool');
+  if (!/^(Bash|bash|bash_[0-9a-z]+)$/i.test(toolId)) return base;
   return `${base}\nPython portability: do not assume python3 exists. In Bash use: command -v python3 >/dev/null 2>&1 && PY=python3 || PY=python; $PY -m pytest ... . On Windows use python or py -3.`;
 }
 
