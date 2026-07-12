@@ -147,6 +147,8 @@ const {
   anthropicToolsToOpenAI,
   COMPUTER_USE_SCHEMAS,
   sanitizeForUpstream,
+  enhanceToolDescription,
+  toolNameForOpenAI,
   createAnthropicSSEEmitter,
   buildAnthropicResponse,
   iterSSE,
@@ -478,9 +480,7 @@ On Windows use python or py -3. If python3 is missing, try python or py before f
     payload.tools = body.tools.map((t, i) => ({
       type: 'function',
       name: toolNameForOpenAI(t, i),
-      description: /^(Bash|bash)$/.test(t.name || '')
-        ? `${t.description || `Native computer use tool: ${t.name}`}\nPython portability: do not assume python3 exists. In Bash use: command -v python3 >/dev/null 2>&1 && PY=python3 || PY=python; $PY -m pytest ... . On Windows use python or py -3.`
-        : (t.description || `Native computer use tool: ${t.name || t.type || `tool_${i}`}`),
+      description: enhanceToolDescription(t),
       parameters: t.input_schema || COMPUTER_USE_SCHEMAS[t.type] || { type: 'object', properties: {} }
     }));
   }
@@ -492,11 +492,6 @@ On Windows use python or py -3. If python3 is missing, try python or py before f
   }
   for (const k of Object.keys(payload)) if (payload[k] === undefined) delete payload[k];
   return payload;
-}
-
-function toolNameForOpenAI(tool, idx = 0) {
-  const raw = String(tool?.name || tool?.type || `tool_${idx}`);
-  return raw.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 64) || `tool_${idx}`;
 }
 
 function responsesTextPart(role, text) {

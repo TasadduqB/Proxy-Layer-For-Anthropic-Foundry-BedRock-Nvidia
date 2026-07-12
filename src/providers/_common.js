@@ -842,10 +842,11 @@ function createAnthropicSSEEmitter(res, model, toolDefs = []) {
             try { if (Object.keys(JSON.parse(repArgs)).length === 0) continue; } catch {}
           }
           const bIndex = nextBlockIndex++;
+          const simToolId = newId('toolu');
           send('content_block_start', {
             type: 'content_block_start',
             index: bIndex,
-            content_block: { type: 'tool_use', id: newId('toolu'), name: st.name, input: {} }
+            content_block: { type: 'tool_use', id: simToolId, name: st.name, input: {} }
           });
           send('content_block_delta', {
             type: 'content_block_delta',
@@ -853,7 +854,10 @@ function createAnthropicSSEEmitter(res, model, toolDefs = []) {
             delta: { type: 'input_json_delta', partial_json: repArgs }
           });
           send('content_block_stop', { type: 'content_block_stop', index: bIndex });
-          toolBlocks.set(bIndex, { index: bIndex, name: st.name, argsBuf: rawStArgs });
+          // Mark as already emitted so the main toolBlocks loop skips re-emission.
+          // Without this flag the loop re-emits with id:undefined, producing a
+          // duplicate block that Claude Code may execute twice or reject.
+          toolBlocks.set(bIndex, { index: bIndex, id: simToolId, name: st.name, argsBuf: rawStArgs, _simEmitted: true });
         }
       } else {
         // False alarm, flush it as text
@@ -876,6 +880,11 @@ function createAnthropicSSEEmitter(res, model, toolDefs = []) {
       // On max_tokens, skip blocks where the model was cut off before any
       // argument bytes arrived (nothing recoverable to forward).
       if (!block.argsBuf && stopReason === 'max_tokens') continue;
+  // Simulated tool blocks were already fully emitted (content_block_start /
+  // delta / stop) in the simulation section above. Count them for the
+  // stopReason check but skip re-emission — that would produce a duplicate
+  // block with id:undefined on the second pass.
+  if (block._simEmitted) { activeToolBlocks.set(idx, block); continue; }
 
       // Validate + repair the fully accumulated argument JSON before emitting.
       // Because we buffered instead of streaming chunks, these bytes have not
@@ -1057,7 +1066,7 @@ function buildAnthropicResponse({ model, text, thinking, toolCalls, stopReason, 
     stop: 'end_turn', length: 'max_tokens', tool_calls: 'tool_use',
     tool_call: 'tool_use', function_call: 'tool_use', tool_use: 'tool_use', end_turn: 'end_turn', max_tokens: 'max_tokens',
     stop_sequence: 'stop_sequence',
-    content_filter: 'end_turn',
+    content_filter: 'refusal',
     eos: 'end_turn',
     model_context_window_exceeded: 'model_context_window_exceeded',
     refusal: 'refusal',
@@ -1149,6 +1158,8 @@ module.exports = {
   sanitizeForUpstream,
   anthropicToOpenAIMessages,
   anthropicToolsToOpenAI,
+  enhanceToolDescription,
+  toolNameForOpenAI,
   createAnthropicSSEEmitter,
   buildAnthropicResponse,
   iterSSE
