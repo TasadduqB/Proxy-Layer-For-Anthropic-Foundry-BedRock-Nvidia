@@ -777,7 +777,7 @@ function createAnthropicSSEEmitter(res, model, toolDefs = []) {
     });
   }
 
-  function deltaToolCall(idx, tc) {
+  function deltaToolCall(idx, tc, opts = {}) {
     start();
     let block = toolBlocks.get(idx);
     if (!block) {
@@ -797,11 +797,25 @@ function createAnthropicSSEEmitter(res, model, toolDefs = []) {
       toolBlocks.set(idx, block);
     }
     if (tc.function?.name && !block.name) block.name = restoreName(tc.function.name);
-    if (tc.function?.arguments) {
+    if (tc.function?.arguments != null && tc.function.arguments !== '') {
       const incoming = tc.function.arguments;
-      if (incoming.startsWith(block.argsBuf) && incoming.length > block.argsBuf.length) {
+      if (opts.cumulative) {
+        // Caller supplied the FULL, authoritative arguments snapshot (a stream
+        // done/completed event or a non-stream response). Trust it outright — this
+        // also repairs any drift the incremental deltas may have accumulated.
         block.argsBuf = incoming;
-      } else if (!block.argsBuf.endsWith(incoming)) {
+      } else if (block.argsBuf === '') {
+        block.argsBuf = incoming;
+      } else if (incoming.length > block.argsBuf.length && incoming.startsWith(block.argsBuf)) {
+        // Provider re-sends the full arguments-so-far in each chunk (cumulative
+        // streaming). Replace rather than append.
+        block.argsBuf = incoming;
+      } else {
+        // Genuine incremental fragment — always append.
+        // NOTE: this must NOT dedup chunks that match the buffer's tail. A prior
+        // `endsWith()` guard here silently dropped legitimate repeated fragments
+        // (e.g. recurring whitespace/lines in a file-edit's old_string/new_string),
+        // corrupting the JSON so edits failed to apply. Repeated content is real.
         block.argsBuf += incoming;
       }
       // Arguments are buffered here — NOT streamed in real-time.

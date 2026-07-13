@@ -741,7 +741,7 @@ async function callWithWebSearchLoop(providerCfg, sanitizedBody, originalBody, r
     if (lastThinking) emitter.deltaThinking(lastThinking);
     if (lastText)     emitter.deltaText(lastText);
     lastToolCalls.forEach((tc, i) => {
-      emitter.deltaToolCall(i, { id: tc.id, function: { name: tc.name, arguments: tc.arguments } });
+      emitter.deltaToolCall(i, { id: tc.id, function: { name: tc.name, arguments: tc.arguments } }, { cumulative: true });
     });
     emitter.setStopReason(lastStopReason);
     emitter.setUsage((lastJson && lastJson.usage) || {});
@@ -958,7 +958,7 @@ function emitResponsesFunctionCall(emitter, idx, item) {
   emitter.deltaToolCall(idx, {
     id,
     function: { name: item.name || '', arguments: item.arguments || item.argsBuf || '' }
-  });
+  }, { cumulative: true });
   return true;
 }
 
