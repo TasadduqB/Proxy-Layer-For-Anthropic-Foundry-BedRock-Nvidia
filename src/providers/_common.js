@@ -508,20 +508,43 @@ function _jsonDepth(str) {
   };
 }
 
-// Escape unescaped control characters (code < 0x20) inside JSON string values.
-// Models sometimes embed literal newlines or tabs in content/file_path strings,
-// causing JSON.parse to fail with "unescaped control character" even when the
-// surrounding structure is otherwise valid (common with multi-line YAML content).
+// Repair the two string-level defects that make model-generated tool JSON
+// unparseable even when the surrounding structure is sound:
+//   1. Unescaped control chars (code < 0x20) — literal newlines/tabs embedded in
+//      content/file_path strings (common with multi-line YAML/code content).
+//   2. Invalid backslash escapes — JSON only permits \" \\ \/ \b \f \n \r \t \uXXXX.
+//      Models routinely emit code/regex/Windows paths with raw backslashes such as
+//      C:\Users, \d+, \., \frac, which make JSON.parse throw. Structural
+//      brace/quote closing can never fix these, so file edits carrying such content
+//      would reach Claude Code as "not a valid JSON" and the edit would be rejected.
+// Only invoked on the repair path (after JSON.parse already failed), so valid
+// payloads are never touched. Idempotent: valid escapes are preserved as-is.
+const VALID_ESCAPE_CHARS = new Set(['"', '\\', '/', 'b', 'f', 'n', 'r', 't']);
 function sanitizeControlChars(str) {
   let result = '';
   let inString = false;
-  let escape = false;
   for (let i = 0; i < str.length; i++) {
     const ch = str[i];
     const code = str.charCodeAt(i);
-    if (escape) { escape = false; result += ch; continue; }
-    if (ch === '\\' && inString) { escape = true; result += ch; continue; }
     if (ch === '"') { inString = !inString; result += ch; continue; }
+    if (inString && ch === '\\') {
+      const next = str[i + 1];
+      if (next === 'u') {
+        // \uXXXX requires exactly four hex digits — otherwise the backslash is stray.
+        if (/^[0-9a-fA-F]{4}$/.test(str.slice(i + 2, i + 6))) {
+          result += str.slice(i, i + 6);
+          i += 5;
+        } else {
+          result += '\\\\'; // escape the lone backslash; keep the 'u' as literal text
+        }
+      } else if (next !== undefined && VALID_ESCAPE_CHARS.has(next)) {
+        result += '\\' + next; // valid escape — copy both, skip the escaped char
+        i += 1;
+      } else {
+        result += '\\\\'; // invalid or trailing escape — escape the backslash itself
+      }
+      continue;
+    }
     if (inString && code < 0x20) {
       if      (code === 0x0A) result += '\\n';
       else if (code === 0x0D) result += '\\r';
@@ -534,6 +557,79 @@ function sanitizeControlChars(str) {
   return result;
 }
 
+// Escape unescaped double-quotes that appear INSIDE a JSON string value. Models
+// frequently emit file-edit content containing raw quotes (code, JSON snippets,
+// dialogue) without escaping them, e.g. {"new_string":"const x = "hi";"}. Pure
+// structural repair (closing braces/quotes) can never fix these, so such edits
+// would reach Claude Code as "not a valid JSON". Heuristic: a `"` closes the
+// current string only when the next non-space char is a structural separator
+// (, } ] :) or end-of-input; otherwise it's a stray inner quote and is escaped.
+// Only invoked on the repair path (after parsing already failed); idempotent on
+// already-valid JSON because every quote there IS followed by a separator.
+function escapeUnescapedQuotes(str) {
+  let result = '';
+  let inString = false;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (!inString) {
+      result += ch;
+      if (ch === '"') inString = true;
+      continue;
+    }
+    if (ch === '\\') {
+      // Copy the escape pair verbatim (sanitizeControlChars ran first, so all
+      // backslash escapes here are already valid).
+      result += ch;
+      if (i + 1 < str.length) { result += str[i + 1]; i++; }
+      continue;
+    }
+    if (ch === '"') {
+      let j = i + 1;
+      while (j < str.length && (str[j] === ' ' || str[j] === '\t' || str[j] === '\n' || str[j] === '\r')) j++;
+      const next = str[j];
+      if (next === undefined || next === ',' || next === '}' || next === ']' || next === ':') {
+        result += ch;          // legitimate closing quote
+        inString = false;
+      } else {
+        result += '\\"';       // stray inner quote — escape it
+      }
+      continue;
+    }
+    result += ch;
+  }
+  return result;
+}
+
+// Staged best-effort repair for streamed/parsed tool-call argument JSON. Returns
+// a string that JSON.parses when at all recoverable, else the closest sanitized
+// form (caller decides whether to skip). Order: valid → control/escape sanitize →
+// unescaped inner quotes → trailing commas → structural close (truncation).
+function repairToolArgs(str) {
+  if (!str) return str;
+  const trimmed = String(str).trim();
+  if (!trimmed) return str;
+  try { JSON.parse(trimmed); return trimmed; } catch {}
+
+  const sanitized = sanitizeControlChars(trimmed);
+  try { JSON.parse(sanitized); return sanitized; } catch {}
+
+  const quoted = escapeUnescapedQuotes(sanitized);
+  try { JSON.parse(quoted); return quoted; } catch {}
+
+  const noTrail = quoted.replace(/,\s*([}\]])/g, '$1');
+  try { JSON.parse(noTrail); return noTrail; } catch {}
+
+  const { openBraces, openBrackets, inString, escape } = _jsonDepth(noTrail);
+  let closed = noTrail;
+  if (escape)        closed += 'n"';
+  else if (inString) closed += '"';
+  for (let i = 0; i < openBrackets; i++) closed += ']';
+  for (let i = 0; i < openBraces;   i++) closed += '}';
+  try { JSON.parse(closed); return closed; } catch {}
+
+  return closed; // best effort; still may be invalid
+}
+
 // Lightweight, zero-dependency heuristic JSON repair for LLM tool hallucinations.
 // Handles the common max_tokens truncation case: {"file_path":"x","content":"code...
 function repairJSON(str) {
@@ -541,9 +637,13 @@ function repairJSON(str) {
   str = str.trim();
   if (str === "") return "{}";
   try { return JSON.stringify(JSON.parse(str)); } catch (e) {}
-  // Escape unescaped control characters before structural repair — models sometimes
-  // emit literal \n/\r/\t inside content strings (e.g. multi-line YAML content).
+  // Escape unescaped control characters + invalid backslash escapes first, then
+  // unescaped inner quotes — models emit literal \n/\r/\t, Windows paths, regex,
+  // and raw quotes inside content strings (e.g. multi-line code content).
   let fixed = sanitizeControlChars(str);
+  try { return JSON.stringify(JSON.parse(fixed)); } catch (e) {}
+  fixed = escapeUnescapedQuotes(fixed);
+  try { return JSON.stringify(JSON.parse(fixed)); } catch (e) {}
   // Fix trailing commas before closing braces/brackets.
   fixed = fixed.replace(/,\s*([}\]])/g, '$1');
   const { openBraces, openBrackets, inString, escape } = _jsonDepth(fixed);
@@ -958,20 +1058,11 @@ function createAnthropicSSEEmitter(res, model, toolDefs = []) {
         let valid = false;
         try { JSON.parse(rawArgs); valid = true; } catch { /* fall through */ }
         if (!valid) {
-          // Sanitize unescaped control chars before structural repair — models can
-          // emit literal newlines/tabs inside content strings (e.g. multi-line YAML).
-          const cleanArgs = sanitizeControlChars(rawArgs);
-          let suffix = getJSONRepairSuffix(cleanArgs);
-          if (!suffix && cleanArgs.startsWith('{')) {
-            const { inString, escape, openBraces, openBrackets } = _jsonDepth(cleanArgs);
-            let forced = '';
-            if (escape)        forced += 'n"';
-            else if (inString) forced += '"';
-            for (let i = 0; i < openBrackets; i++) forced += ']';
-            for (let i = 0; i < openBraces;   i++) forced += '}';
-            try { JSON.parse(cleanArgs + forced); suffix = forced; } catch {}
-          }
-          finalArgs = cleanArgs + suffix;
+          // Staged repair: control chars + invalid escapes, unescaped inner quotes,
+          // trailing commas, then structural close for truncation. Because we
+          // buffered instead of streaming, these bytes have not reached Claude Code
+          // yet — we can safely rewrite them into valid JSON before emitting.
+          finalArgs = repairToolArgs(rawArgs);
         }
         // Skip tool calls that would cause InputValidationError in Claude Code.
         // Two cases:

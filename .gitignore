@@ -1,6 +1,7 @@
 node_modules/
 config.json
 .proxy-max/
+.update-backup/
 *.log
 .DS_Store
 panel-events.json

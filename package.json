@@ -35,7 +35,8 @@
   "scripts": {
     "start": "node src/server.js",
     "launch": "node src/launch.js",
-    "doctor": "node src/install.js"
+    "doctor": "node src/install.js",
+    "test": "node test-compat.js && node test-token-counter.js && node test-optimizer-idempotency.js && node test-prose-determinism.js && node test-tool-json-repair.js"
   },
   "comments": {
     "sqlite": "Persistence uses Node's built-in node:sqlite (Node >=22.5) with an automatic JSON fallback on older runtimes — no native module to compile.",

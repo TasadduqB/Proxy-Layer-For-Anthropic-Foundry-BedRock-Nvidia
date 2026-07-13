@@ -2167,6 +2167,7 @@ function shouldPreserveLocalEntry(name) {
   const n = String(name || '');
   if (!n) return false;
   if (n === 'config.json' || n === 'logs' || n === 'node_modules' || n === '.git') return true;
+  if (n === '.update-backup') return true;
   if (n === '.env' || n === '.env.local') return true;
   return n.startsWith('.env.');
 }
@@ -2492,6 +2493,181 @@ async function installDependencies(stream) {
   return npmStep;
 }
 
+// --- Update safety: backup, rollback, validation ---------------------------
+
+const UPDATE_BACKUP_DIR = '.update-backup';
+
+// Entries never copied into a backup: huge, VCS-managed, regenerated, or the
+// backup store itself. Everything else (src, package.json, ui, tests, config)
+// is snapshotted so a failed update can be fully reverted.
+function isBackupExcluded(name) {
+  const n = String(name || '');
+  return n === 'node_modules' || n === '.git' || n === 'logs' || n === UPDATE_BACKUP_DIR;
+}
+
+// Snapshot the current application tree into ROOT/.update-backup/<ts> before any
+// files are mutated. Keeps only the two most recent backups. Best-effort: on any
+// failure it logs and returns null (update proceeds without a restore point).
+function createUpdateBackup(stream) {
+  try {
+    const backupsRoot = path.join(ROOT, UPDATE_BACKUP_DIR);
+    fs.mkdirSync(backupsRoot, { recursive: true });
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    const dir = path.join(backupsRoot, ts);
+    fs.mkdirSync(dir, { recursive: true });
+    for (const ent of fs.readdirSync(ROOT, { withFileTypes: true })) {
+      if (isBackupExcluded(ent.name)) continue;
+      copyTreeSync(path.join(ROOT, ent.name), path.join(dir, ent.name));
+    }
+    // Prune to the last 2 backups (sorted lexicographically == chronologically).
+    const all = fs.readdirSync(backupsRoot, { withFileTypes: true })
+      .filter(d => d.isDirectory()).map(d => d.name).sort();
+    while (all.length > 2) {
+      const old = all.shift();
+      try { fs.rmSync(path.join(backupsRoot, old), { recursive: true, force: true }); } catch {}
+    }
+    stream && stream({ type: 'log', msg: `[update] Backup created: ${UPDATE_BACKUP_DIR}/${ts}` });
+    return dir;
+  } catch (err) {
+    stream && stream({ type: 'log', msg: `[update] Backup failed (continuing without restore point): ${err.message}`, level: 'warn' });
+    return null;
+  }
+}
+
+// Restore a backup tree over ROOT, respecting preserved local entries. Used when
+// post-update validation fails so the running install is left exactly as it was.
+function restoreUpdateBackup(backupDir, stream) {
+  if (!backupDir || !fs.existsSync(backupDir)) return false;
+  try {
+    for (const ent of fs.readdirSync(ROOT, { withFileTypes: true })) {
+      if (shouldPreserveLocalEntry(ent.name)) continue;
+      fs.rmSync(path.join(ROOT, ent.name), { recursive: true, force: true });
+    }
+    for (const ent of fs.readdirSync(backupDir, { withFileTypes: true })) {
+      if (shouldPreserveLocalEntry(ent.name)) continue;
+      copyTreeSync(path.join(backupDir, ent.name), path.join(ROOT, ent.name));
+    }
+    stream && stream({ type: 'log', msg: '[update] Rolled back to pre-update backup.' });
+    return true;
+  } catch (err) {
+    stream && stream({ type: 'log', msg: `[update] Rollback failed: ${err.message}`, level: 'error' });
+    return false;
+  }
+}
+
+// Post-update, pre-restart gate. Syntax-checks every src/**/*.js (plus the entry
+// point) with `node --check`, then runs a lightweight smoke test that does not
+// bind a port. Returns { ok, error }. Any failure aborts the restart.
+async function validateUpdate(stream) {
+  const files = [];
+  const srcDir = path.join(ROOT, 'src');
+  (function walk(dir) {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const ent of entries) {
+      if (ent.isDirectory()) {
+        if (ent.name === 'node_modules' || ent.name === '.git') continue;
+        walk(path.join(dir, ent.name));
+      } else if (ent.name.endsWith('.js')) {
+        files.push(path.join(dir, ent.name));
+      }
+    }
+  })(srcDir);
+
+  if (!files.length) return { ok: false, error: 'no source files found after update (aborting)' };
+
+  stream({ type: 'log', msg: `[update] Validating ${files.length} source files (node --check)...` });
+  for (const f of files) {
+    const r = await runStepStreaming(stream, process.execPath, ['--check', f]);
+    if (r.code !== 0) return { ok: false, error: `syntax check failed: ${path.relative(ROOT, f)}` };
+  }
+
+  const smokeFile = path.join(ROOT, 'test-compat.js');
+  if (fs.existsSync(smokeFile)) {
+    stream({ type: 'log', msg: '[update] Running smoke test (test-compat.js)...' });
+    const r = await runStepStreaming(stream, process.execPath, [smokeFile]);
+    if (r.code !== 0) return { ok: false, error: 'smoke test failed (test-compat.js)' };
+  }
+
+  stream({ type: 'log', msg: '[update] Validation passed.' });
+  return { ok: true };
+}
+
+// Read the local package version (best-effort).
+function readLocalVersion() {
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+    return pkg.version || null;
+  } catch { return null; }
+}
+
+// GET /api/update/check — report whether a newer version is available, without
+// mutating anything. Git installs compare local HEAD against the fetched remote
+// tip (behind count). Package installs compare the local commit-ish against the
+// GitHub API's latest commit for the configured branch. Network-tolerant: any
+// failure yields { ok:false } rather than throwing.
+async function handleUpdateCheck(req, res) {
+  const result = { ok: false, mode: null, currentVersion: readLocalVersion(), updateAvailable: false };
+  try {
+    const insideGit = runCapture('git', ['rev-parse', '--is-inside-work-tree']);
+    if (insideGit === 'true') {
+      result.mode = 'git';
+      const branch = runCapture('git', ['rev-parse', '--abbrev-ref', 'HEAD']) || 'HEAD';
+      const localHead = runCapture('git', ['rev-parse', '--short', 'HEAD']);
+      result.current = localHead;
+      // ls-remote avoids mutating the local repo (no fetch/reset).
+      const remoteUrl = runCapture('git', ['config', '--get', 'remote.origin.url']) || 'origin';
+      const remoteLine = runCapture('git', ['ls-remote', remoteUrl, `refs/heads/${branch}`], 8000);
+      const remoteSha = remoteLine ? remoteLine.split(/\s+/)[0] : null;
+      if (remoteSha) {
+        result.remote = remoteSha.slice(0, 7);
+        const localFull = runCapture('git', ['rev-parse', 'HEAD']);
+        result.updateAvailable = !!localFull && localFull !== remoteSha;
+        // Best-effort behind count using merge-base (only works if remote sha is
+        // present locally; otherwise a differing sha implies an update exists).
+        result.ok = true;
+      } else {
+        result.ok = false;
+      }
+      return send(res, 200, result);
+    }
+
+    // Archive/package mode: query GitHub for the latest commit on the branch.
+    result.mode = 'archive';
+    let pkgRepo = null;
+    try {
+      const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+      pkgRepo = typeof pkg.repository === 'string' ? pkg.repository : pkg.repository?.url;
+    } catch {}
+    const gh = parseGithubRepo(pkgRepo || runCapture('git', ['config', '--get', 'remote.origin.url']) || '');
+    if (!gh) { result.error = 'no github repository configured'; return send(res, 200, result); }
+    const ref = String(CONFIG?.update?.ref || process.env.PROXY_MAX_UPDATE_REF || 'main').trim() || 'main';
+    const localSha = runCapture('git', ['rev-parse', 'HEAD']) || CONFIG?.update?.installedSha || null;
+    const apiUrl = `https://api.github.com/repos/${gh.owner}/${gh.repo}/commits/${encodeURIComponent(ref)}`;
+    try {
+      const r = await fetch(apiUrl, { headers: { 'user-agent': 'proxy-max-updater', 'accept': 'application/vnd.github+json' } });
+      if (r.ok) {
+        const body = await r.json();
+        const remoteSha = body && body.sha ? String(body.sha) : null;
+        if (remoteSha) {
+          result.remote = remoteSha.slice(0, 7);
+          result.ok = true;
+          // If we know a local sha, compare; otherwise report availability unknown-but-checkable.
+          result.updateAvailable = localSha ? localSha !== remoteSha : true;
+        }
+      } else {
+        result.error = `github api ${r.status}`;
+      }
+    } catch (err) {
+      result.error = `network: ${err.message}`;
+    }
+    return send(res, 200, result);
+  } catch (err) {
+    result.error = String(err.message || err);
+    return send(res, 200, result);
+  }
+}
+
 async function handleSelfUpdate(req, res) {
   if (SELF_UPDATE_IN_PROGRESS) {
     return send(res, 409, { error: 'Update already in progress' });
@@ -2522,6 +2698,20 @@ async function handleSelfUpdate(req, res) {
     let changed = false;
     let mode = 'archive';
     let source = null;
+
+    // Snapshot the current install before mutating anything so a failed update
+    // (bad syntax, broken smoke test, npm failure) can be fully reverted.
+    const backupDir = createUpdateBackup(stream);
+    const rollback = async () => {
+      if (mode === 'git' && before) {
+        stream({ type: 'log', msg: `[update] Rolling back git worktree to ${before}...`, level: 'warn' });
+        const r = await runStepStreaming(stream, 'git', ['reset', '--hard', before], { shellFallback: true });
+        await runStepStreaming(stream, 'git', ['clean', '-fd'], { shellFallback: true });
+        if (r.code === 0) return true;
+        stream({ type: 'log', msg: '[update] git rollback failed, trying file backup...', level: 'warn' });
+      }
+      return restoreUpdateBackup(backupDir, stream);
+    };
 
     if (insideGit === 'true') {
       mode = 'git';
@@ -2575,7 +2765,22 @@ async function handleSelfUpdate(req, res) {
 
     const npmStep = await installDependencies(stream);
     if (npmStep.code !== 0) {
-      return finish({ ok: false, error: `npm ${npmStep.attemptedArgs[0]} failed`, code: npmStep.code, before, after, mode, source });
+      stream({ type: 'log', msg: '[update] Dependency install failed — rolling back...', level: 'error' });
+      const rolledBack = await rollback();
+      return finish({ ok: false, error: `npm ${npmStep.attemptedArgs[0]} failed`, code: npmStep.code, rolledBack, restarted: false, before, after, mode, source });
+    }
+
+    // Post-update, pre-restart gate: syntax-check all sources + run a smoke test.
+    // If anything is broken, revert to the pre-update state and do NOT restart.
+    const validation = await validateUpdate(stream);
+    if (!validation.ok) {
+      stream({ type: 'log', msg: `[update] Validation failed: ${validation.error}. Rolling back...`, level: 'error' });
+      const rolledBack = await rollback();
+      if (rolledBack) {
+        stream({ type: 'log', msg: '[update] Reinstalling dependencies for restored version...' });
+        await installDependencies(stream);
+      }
+      return finish({ ok: false, error: `validation failed: ${validation.error}`, rolledBack, restarted: false, before, after, mode, source });
     }
 
     stream({ type: 'log', msg: '[update] Update completed successfully.' });
@@ -2974,7 +3179,7 @@ const server = http.createServer({ keepAlive: true }, async (req, res) => {
     if (u.pathname === '/api/system' && req.method === 'GET') return await handleSystem(req, res);
     if (u.pathname === '/api/install' && req.method === 'POST') return await handleInstall(req, res);
     if (u.pathname === '/api/update' && req.method === 'POST') return await handleSelfUpdate(req, res);
-    if (u.pathname === '/api/config' && req.method === 'GET') return handleConfigGet(req, res);
+    if (u.pathname === '/api/update/check' && req.method === 'GET') return await handleUpdateCheck(req, res);    if (u.pathname === '/api/config' && req.method === 'GET') return handleConfigGet(req, res);
     if (u.pathname === '/api/config' && req.method === 'POST') return await handleConfigPost(req, res);
     if (u.pathname === '/api/test' && req.method === 'POST') return await handleTest(req, res);
     if (u.pathname === '/api/limits' && req.method === 'GET') return handleLimitsGet(req, res);

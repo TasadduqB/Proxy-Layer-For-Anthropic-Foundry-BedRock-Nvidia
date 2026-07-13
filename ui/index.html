@@ -1250,6 +1250,7 @@
           <button class="btn secondary" id="installClaude">Install Anthropic CLI</button>
           <button class="btn secondary" id="installNode">Install Node + npm</button>
           <button class="btn secondary" id="selfUpdateBtn">Force sync from GitHub + restart</button>
+          <span class="badge" id="versionBadge" title="Installed version">v—</span>
           <span class="small" id="installHint"></span>
         </div>
         <div class="small" style="margin-top:10px;color:var(--dim)">When admin rights aren't available, installs fall back to a per-user prefix and a portable Node tarball.</div>
@@ -2254,6 +2255,36 @@ async function refreshSystem() {
   $('#installAll').disabled = allOk;
   $('#installAll').textContent = allOk ? 'All installed' : 'Install missing';
   $('#installHint').innerHTML = sys.admin ? '<span class="ok">admin detected</span> — global installs available' : '<span class="warn">no admin</span> — installs go to <code>' + escapeHtml(sys.npmPrefix) + '</code>';
+  checkForUpdate();
+}
+
+// Query /api/update/check and reflect the result in the version badge next to
+// the "Force sync" button. Network-tolerant: any failure leaves the badge as-is.
+async function checkForUpdate() {
+  const badge = $('#versionBadge');
+  if (!badge) return;
+  try {
+    const r = await fetch('/api/update/check');
+    const d = await r.json();
+    const ver = d.currentVersion ? `v${d.currentVersion}` : 'v—';
+    if (d.ok && d.updateAvailable) {
+      badge.textContent = `${ver} · update available`;
+      badge.className = 'badge';
+      badge.style.color = 'var(--warn)';
+      badge.title = d.remote ? `New version available (remote ${d.remote})` : 'A newer version is available';
+    } else if (d.ok) {
+      badge.textContent = `${ver} · up to date`;
+      badge.className = 'badge';
+      badge.style.color = 'var(--ok)';
+      badge.title = 'You are on the latest version';
+    } else {
+      badge.textContent = ver;
+      badge.style.color = '';
+      badge.title = d.error ? `Update check unavailable: ${d.error}` : 'Update check unavailable';
+    }
+  } catch {
+    /* offline or endpoint missing — leave badge untouched */
+  }
 }
 
 async function runInstall(what) {
