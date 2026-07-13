@@ -2079,11 +2079,26 @@ let SELF_UPDATE_IN_PROGRESS = false;
 function runStepStreaming(send, command, args, opts = {}) {
   return new Promise(resolve => {
     function attempt(useShell) {
-      const child = spawn(command, args, {
-        cwd: ROOT,
-        env: { ...process.env, ...(opts.env || {}) },
-        shell: useShell
-      });
+      let child;
+      try {
+        child = spawn(command, args, {
+          cwd: ROOT,
+          env: { ...process.env, ...(opts.env || {}) },
+          shell: useShell
+        });
+      } catch (err) {
+        // spawn can throw EINVAL/ENOENT synchronously (before the 'error' event)
+        // depending on how the parent process was launched. Mirror the async
+        // handler: retry once through the shell when allowed, else resolve.
+        if (!useShell && opts.shellFallback && (err.code === 'EINVAL' || err.code === 'ENOENT')) {
+          send({ type: 'log', msg: `[update] ${command} threw ${err.code} on spawn, retrying via shell...`, level: 'warn' });
+          attempt(true);
+          return;
+        }
+        send({ type: 'log', msg: `[update] failed to start ${command}: ${err.message}`, level: 'warn' });
+        resolve({ code: 1, signal: null });
+        return;
+      }
       child.stdout.on('data', d => send({ type: 'log', msg: d.toString() }));
       child.stderr.on('data', d => send({ type: 'log', msg: d.toString(), level: 'warn' }));
       child.on('error', err => {
@@ -2287,7 +2302,7 @@ async function extractUpdateArchive(stream, archiveFile, tmpBase) {
   const tarPath = installer.which('tar');
   if (tarPath && runCapture(tarPath, ['--version'])) {
     stream({ type: 'log', msg: '[update] Extracting via system tar...' });
-    const extractStep = await runStepStreaming(stream, tarPath, ['-xzf', archiveFile, '-C', tmpBase]);
+    const extractStep = await runStepStreaming(stream, tarPath, ['-xzf', archiveFile, '-C', tmpBase], { shellFallback: true });
     if (extractStep.code === 0) return;
     stream({ type: 'log', msg: '[update] system tar failed, falling back to built-in extractor...', level: 'warn' });
   } else {
@@ -2348,12 +2363,19 @@ function scheduleSelfRestart() {
     `const serverScript = ${JSON.stringify(serverScript)};`,
     `const cwd = ${JSON.stringify(ROOT)};`,
     'function startServer(detached) {',
-    '  const child = spawn(nodeBin, [serverScript], {',
-    '    cwd,',
-    '    detached,',
-    '    stdio: "ignore",',
-    '    env: process.env',
-    '  });',
+    '  let child;',
+    '  try {',
+    '    child = spawn(nodeBin, [serverScript], {',
+    '      cwd,',
+    '      detached,',
+    '      stdio: "ignore",',
+    '      env: process.env',
+    '    });',
+    '  } catch (err) {',
+    '    if (detached && err && err.code === "EINVAL") { startServer(false); return; }',
+    '    console.error("[update] failed to restart server (sync):", err && err.message);',
+    '    return;',
+    '  }',
     '  child.on("error", err => {',
     '    if (detached && err && err.code === "EINVAL") { startServer(false); return; }',
     '    console.error("[update] failed to restart server:", err && err.message);',
@@ -2363,24 +2385,37 @@ function scheduleSelfRestart() {
     'setTimeout(() => startServer(true), 1200);',
   ].join(' ');
 
-  const env = {
-    ...process.env,
-    PORT: String(PORT),
-    HOST,
-  };
+  // Build a spawn-safe env. Node's spawn rejects env values that are not strings
+  // (undefined/null members trigger EINVAL on some platforms). HOST in particular
+  // may be undefined here, which was one cause of the "spawn EINVAL" failures.
+  const env = {};
+  for (const [k, v] of Object.entries(process.env)) {
+    if (v != null) env[k] = String(v);
+  }
+  env.PORT = String(PORT);
+  if (HOST != null && HOST !== '') env.HOST = String(HOST);
   function spawnLauncher(detached) {
-    const launcher = spawn(process.execPath, ['-e', launcherScript], {
-      cwd: ROOT,
-      detached,
-      stdio: 'ignore',
-      env,
-    });
+    let launcher;
+    try {
+      launcher = spawn(process.execPath, ['-e', launcherScript], {
+        cwd: ROOT,
+        detached,
+        stdio: 'ignore',
+        env,
+      });
+    } catch (err) {
+      // spawn can throw EINVAL synchronously (before any 'error' event) on some
+      // macOS/libuv combinations when detached. Fall back to a non-detached spawn.
+      if (detached && err && err.code === 'EINVAL') { spawnLauncher(false); return; }
+      console.error('[update] failed to schedule self-restart (sync):', err && err.message, '| code:', err && err.code);
+      return;
+    }
     // Same EINVAL guard as the inner spawn above — without this handler a
     // spawn failure here would throw an unhandled 'error' event and crash
     // the proxy process right as the update finishes.
     launcher.on('error', err => {
       if (detached && err && err.code === 'EINVAL') { spawnLauncher(false); return; }
-      console.error('[update] failed to schedule self-restart:', err && err.message);
+      console.error('[update] failed to schedule self-restart:', err && err.message, '| code:', err && err.code);
     });
     if (detached) launcher.unref();
   }
@@ -2497,7 +2532,7 @@ async function handleSelfUpdate(req, res) {
       stream({ type: 'log', msg: `[update] Branch: ${branch}` });
       stream({ type: 'log', msg: `[update] Remote: ${remote}` });
 
-      const fetchStep = await runStepStreaming(stream, 'git', ['fetch', '--all', '--tags', '--prune']);
+      const fetchStep = await runStepStreaming(stream, 'git', ['fetch', '--all', '--tags', '--prune'], { shellFallback: true });
       if (fetchStep.code !== 0) {
         return finish({ ok: false, error: 'git fetch failed', code: fetchStep.code });
       }
@@ -2507,20 +2542,20 @@ async function handleSelfUpdate(req, res) {
       const targetRef = upstream || originHead || `origin/${branch}`;
 
       stream({ type: 'log', msg: `[update] Hard-syncing worktree to ${targetRef}...` });
-      const resetStep = await runStepStreaming(stream, 'git', ['reset', '--hard', targetRef]);
+      const resetStep = await runStepStreaming(stream, 'git', ['reset', '--hard', targetRef], { shellFallback: true });
       if (resetStep.code !== 0) {
         return finish({ ok: false, error: `git reset --hard ${targetRef} failed`, code: resetStep.code });
       }
 
       stream({ type: 'log', msg: '[update] Removing stale untracked files (git clean -fd)...' });
-      const cleanStep = await runStepStreaming(stream, 'git', ['clean', '-fd']);
+      const cleanStep = await runStepStreaming(stream, 'git', ['clean', '-fd'], { shellFallback: true });
       if (cleanStep.code !== 0) {
         return finish({ ok: false, error: 'git clean -fd failed', code: cleanStep.code });
       }
 
       if (fs.existsSync(path.join(ROOT, '.gitmodules'))) {
         stream({ type: 'log', msg: '[update] Syncing submodules...' });
-        const subStep = await runStepStreaming(stream, 'git', ['submodule', 'update', '--init', '--recursive']);
+        const subStep = await runStepStreaming(stream, 'git', ['submodule', 'update', '--init', '--recursive'], { shellFallback: true });
         if (subStep.code !== 0) {
           return finish({ ok: false, error: 'git submodule update failed', code: subStep.code });
         }

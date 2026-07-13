@@ -422,7 +422,18 @@ function parseSimulatedTools(text) {
     }
   }
 
-  return tools;
+  // Dedup identical calls. The patterns above overlap (e.g. a `<tool_call>` blob
+  // also matches the bare/fenced-JSON patterns via its inner JSON line), which
+  // would otherwise emit the same tool call twice and make the client run it twice.
+  const seen = new Set();
+  const deduped = [];
+  for (const t of tools) {
+    const key = `${t.name}\u0000${t.arguments}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    deduped.push(t);
+  }
+  return deduped;
 }
 
 
@@ -439,6 +450,22 @@ function enhanceToolDescription(tool) {
 function toolNameForOpenAI(tool, idx = 0) {
   const raw = String(tool?.name || tool?.type || `tool_${idx}`);
   return raw.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 64) || `tool_${idx}`;
+}
+
+// Build a map of sanitized OpenAI tool name -> original Anthropic tool name.
+// toolNameForOpenAI() mangles names (non-alnum -> _, truncated to 64 chars), so
+// long/special tool names (e.g. MCP tools `mcp__server__tool`) don't round-trip.
+// When the model calls one, the returned name won't match what Claude Code
+// registered and the tool silently never runs. This map restores the original.
+function buildToolNameMap(toolDefs) {
+  const map = new Map();
+  (Array.isArray(toolDefs) ? toolDefs : []).forEach((t, i) => {
+    const original = t && (t.name || t.type);
+    if (!original) return;
+    const sanitized = toolNameForOpenAI(t, i);
+    if (sanitized !== original) map.set(sanitized, original);
+  });
+  return map;
 }
 
 function anthropicToolsToOpenAI(tools) {
@@ -584,6 +611,13 @@ function createAnthropicSSEEmitter(res, model, toolDefs = []) {
   let textBuffer = '';
   let simMode = false;
   let simFlushed = false;
+  // Full text accumulator (everything streamed as text). Used at end() to recover
+  // simulated tool calls that appeared AFTER a prose preamble, which start-of-stream
+  // detection misses and would otherwise stream as inert plain text.
+  let fullText = '';
+  // Restore original Anthropic tool names from the sanitized names the model returns.
+  const toolNameRestore = buildToolNameMap(toolDefs);
+  const restoreName = (name) => (name && toolNameRestore.get(name)) || name;
 
   function send(event, data) {
     res.write(`event: ${event}\n`);
@@ -694,6 +728,8 @@ function createAnthropicSSEEmitter(res, model, toolDefs = []) {
       if (!text) return;
     }
 
+    fullText += text;
+
     if (simMode) {
       textBuffer += text;
       return;
@@ -755,12 +791,12 @@ function createAnthropicSSEEmitter(res, model, toolDefs = []) {
       block = {
         index: blockIndex,
         id: tc.id || newId('toolu'),
-        name: tc.function?.name || '',
+        name: restoreName(tc.function?.name || ''),
         argsBuf: '',
       };
       toolBlocks.set(idx, block);
     }
-    if (tc.function?.name && !block.name) block.name = tc.function.name;
+    if (tc.function?.name && !block.name) block.name = restoreName(tc.function.name);
     if (tc.function?.arguments) {
       const incoming = tc.function.arguments;
       if (incoming.startsWith(block.argsBuf) && incoming.length > block.argsBuf.length) {
@@ -830,35 +866,39 @@ function createAnthropicSSEEmitter(res, model, toolDefs = []) {
       textBlockOpen = false;
     }
 
-    // Process intercepted simulation if any
+    // Helper: convert one parsed simulated tool call into a real tool_use block.
+    // Fully emitted here and flagged _simEmitted so the main toolBlocks loop counts
+    // it (for stop_reason) but does NOT re-emit it later.
+
+    const emitSimulatedToolBlock = (st) => {
+      const repArgs = repairJSON(st.arguments);
+      const rawStArgs = (st.arguments || '').trim();
+      // Skip simulated tool calls whose args are irrecoverably empty.
+      if (rawStArgs && rawStArgs !== '{}') {
+        try { if (Object.keys(JSON.parse(repArgs)).length === 0) return; } catch {}
+      }
+      const bIndex = nextBlockIndex++;
+      const simToolId = newId('toolu');
+      const name = restoreName(st.name);
+      send('content_block_start', {
+        type: 'content_block_start',
+        index: bIndex,
+        content_block: { type: 'tool_use', id: simToolId, name, input: {} }
+      });
+      send('content_block_delta', {
+        type: 'content_block_delta',
+        index: bIndex,
+        delta: { type: 'input_json_delta', partial_json: repArgs }
+      });
+      send('content_block_stop', { type: 'content_block_stop', index: bIndex });
+      toolBlocks.set(bIndex, { index: bIndex, id: simToolId, name, argsBuf: rawStArgs, _simEmitted: true });
+    };
+
+    // Process intercepted simulation if any (markup detected at start of stream).
     if (simMode && textBuffer) {
       const simTools = parseSimulatedTools(textBuffer);
       if (simTools.length > 0) {
-        for (const st of simTools) {
-          const repArgs = repairJSON(st.arguments);
-          const rawStArgs = (st.arguments || '').trim();
-          // Skip simulated tool calls whose args are irrecoverably empty.
-          if (rawStArgs && rawStArgs !== '{}') {
-            try { if (Object.keys(JSON.parse(repArgs)).length === 0) continue; } catch {}
-          }
-          const bIndex = nextBlockIndex++;
-          const simToolId = newId('toolu');
-          send('content_block_start', {
-            type: 'content_block_start',
-            index: bIndex,
-            content_block: { type: 'tool_use', id: simToolId, name: st.name, input: {} }
-          });
-          send('content_block_delta', {
-            type: 'content_block_delta',
-            index: bIndex,
-            delta: { type: 'input_json_delta', partial_json: repArgs }
-          });
-          send('content_block_stop', { type: 'content_block_stop', index: bIndex });
-          // Mark as already emitted so the main toolBlocks loop skips re-emission.
-          // Without this flag the loop re-emits with id:undefined, producing a
-          // duplicate block that Claude Code may execute twice or reject.
-          toolBlocks.set(bIndex, { index: bIndex, id: simToolId, name: st.name, argsBuf: rawStArgs, _simEmitted: true });
-        }
+        for (const st of simTools) emitSimulatedToolBlock(st);
       } else {
         // False alarm, flush it as text
         ensureTextBlock();
@@ -870,6 +910,15 @@ function createAnthropicSSEEmitter(res, model, toolDefs = []) {
         send('content_block_stop', { type: 'content_block_stop', index: textIndex });
         textBlockOpen = false;
       }
+    }
+
+    // Recover mid-stream simulated tool calls: the model emitted a prose preamble
+    // (already streamed as text) THEN tool-call markup. Start-of-stream detection
+    // missed it, so those calls streamed as inert text and never ran. If no tool
+    // blocks were produced at all, scan the full emitted text and convert any
+    // embedded tool-call markup into real tool_use blocks so Claude Code runs them.
+    if (!simMode && toolBlocks.size === 0 && fullText) {
+      for (const st of parseSimulatedTools(fullText)) emitSimulatedToolBlock(st);
     }
 
     const activeToolBlocks = new Map();
@@ -1034,12 +1083,16 @@ function buildAnthropicResponse({ model, text, thinking, toolCalls, stopReason, 
       toolRequiredParams.set(name, new Set(t.input_schema.required));
     }
   }
+  // Restore original Anthropic tool names from the sanitized names the model returns.
+  const toolNameRestore = buildToolNameMap(toolDefs);
+  const restoreName = (n) => (n && toolNameRestore.get(n)) || n;
 
   const content = [];
   if (thinking) content.push({ type: 'thinking', thinking, signature: Buffer.from('proxy-max').toString('base64') });
   if (text) content.push({ type: 'text', text });
   for (const tc of toolCalls || []) {
     const rawArgs = (tc.arguments || '').trim();
+    const name = restoreName(tc.name);
     const repairedStr = repairJSON(tc.arguments);
     let input = {};
     try { input = JSON.parse(repairedStr); } catch { input = {}; }
@@ -1048,18 +1101,31 @@ function buildAnthropicResponse({ model, text, thinking, toolCalls, stopReason, 
     // (b) stub/empty: model generated exactly {} for a tool with required params
     if (Object.keys(input).length === 0) {
       const isTruncated = rawArgs && rawArgs !== '{}';
-      const hasRequired = (toolRequiredParams.get(tc.name || '') || toolRequiredParams.get(tc.name || '?'))?.size > 0;
+      const hasRequired = (toolRequiredParams.get(name || '') || toolRequiredParams.get(name || '?'))?.size > 0;
       if (isTruncated || hasRequired) {
         const reason = isTruncated ? 'truncated' : 'missing-required';
-        if (repairs) repairs.push({ tool: tc.name || '?', status: 'skipped', rawLen: rawArgs.length, reason });
+        if (repairs) repairs.push({ tool: name || '?', status: 'skipped', rawLen: rawArgs.length, reason });
         continue;
       }
     }
     // Track JSON repairs (args were invalid but recoverable).
     if (repairs && rawArgs && repairedStr !== rawArgs && Object.keys(input).length > 0) {
-      repairs.push({ tool: tc.name || '?', status: 'repaired', rawLen: rawArgs.length, repairedLen: repairedStr.length });
+      repairs.push({ tool: name || '?', status: 'repaired', rawLen: rawArgs.length, repairedLen: repairedStr.length });
     }
-    content.push({ type: 'tool_use', id: tc.id || newId('toolu'), name: tc.name, input });
+    content.push({ type: 'tool_use', id: tc.id || newId('toolu'), name, input });
+  }
+  // Recover simulated tool calls embedded in text when the model returned no native
+  // tool_calls (prose + tool-call markup as plain text). Without this the tools
+  // never execute — Claude Code just sees narration.
+  if (!content.some(c => c.type === 'tool_use') && text) {
+    for (const st of parseSimulatedTools(text)) {
+      const repArgs = repairJSON(st.arguments);
+      const rawStArgs = (st.arguments || '').trim();
+      let input = {};
+      try { input = JSON.parse(repArgs); } catch { input = {}; }
+      if (Object.keys(input).length === 0 && rawStArgs && rawStArgs !== '{}') continue;
+      content.push({ type: 'tool_use', id: newId('toolu'), name: restoreName(st.name), input });
+    }
   }
   if (content.length === 0) content.push({ type: 'text', text: '' });
   const map = {
@@ -1078,7 +1144,7 @@ function buildAnthropicResponse({ model, text, thinking, toolCalls, stopReason, 
     role: 'assistant',
     model,
     content,
-    stop_reason: map[stopReason] || (toolCalls && toolCalls.length ? 'tool_use' : 'end_turn'),
+    stop_reason: content.some(c => c.type === 'tool_use') ? 'tool_use' : (map[stopReason] || 'end_turn'),
     stop_sequence: null,
     usage: {
       input_tokens: usage?.input_tokens ?? usage?.prompt_tokens ?? 0,
