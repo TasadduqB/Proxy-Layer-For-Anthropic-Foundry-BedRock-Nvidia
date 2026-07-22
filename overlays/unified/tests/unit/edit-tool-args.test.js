@@ -8,7 +8,12 @@ import {
   findUniqueWhitespaceMatch,
   repairEditToolInput,
 } from "../../open-sse/utils/editToolArgs.js";
-import { isNvidiaChatModelId, isNvidiaClaudeToolModelId } from "../../src/lib/nvidiaCatalog.js";
+import {
+  isNvidiaChatModelId,
+  isNvidiaClaudeAutoModelId,
+  isNvidiaClaudeToolModelId,
+  selectNvidiaClaudeRouteModels,
+} from "../../src/lib/nvidiaCatalog.js";
 
 const tempDirs = [];
 
@@ -142,5 +147,38 @@ describe("NVIDIA Claude tool routing", () => {
     const model = "nvidia/nemotron-3-super-120b-a12b";
     expect(isNvidiaChatModelId(model)).toBe(true);
     expect(isNvidiaClaudeToolModelId(model)).toBe(false);
+  });
+
+  it.each([
+    "deepseek-ai/deepseek-v4-flash",
+    "deepseek-ai/deepseek-v4-pro",
+    "qwen/qwen3.5-397b-a17b",
+    "minimaxai/minimax-m3",
+  ])("allows verified agent model %s in Claude auto-routing", (model) => {
+    expect(isNvidiaClaudeAutoModelId(model)).toBe(true);
+  });
+
+  it.each([
+    "ai21labs/jamba-1.5-large-instruct",
+    "ibm/granite-3.0-8b-instruct",
+    "meta/llama-3.1-70b-instruct",
+    "aisingapore/sea-lion-7b-instruct",
+  ])("keeps catalog model %s out of Claude auto-routing", (model) => {
+    expect(isNvidiaChatModelId(model)).toBe(true);
+    expect(isNvidiaClaudeAutoModelId(model)).toBe(false);
+  });
+
+  it("keeps Claude auto-routing ordered, bounded, and free of catalog noise", () => {
+    expect(selectNvidiaClaudeRouteModels([
+      "ai21labs/jamba-1.5-large-instruct",
+      "openai/gpt-oss-120b",
+      "minimaxai/minimax-m3",
+      "qwen/qwen3.5-397b-a17b",
+      "deepseek-ai/deepseek-v4-pro",
+      "deepseek-ai/deepseek-v4-flash",
+      "ibm/granite-3.0-8b-instruct",
+    ])).toEqual([
+      "deepseek-ai/deepseek-v4-flash",
+    ]);
   });
 });

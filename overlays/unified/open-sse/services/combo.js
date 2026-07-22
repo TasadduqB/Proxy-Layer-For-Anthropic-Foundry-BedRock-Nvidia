@@ -104,6 +104,11 @@ const DEFAULT_STREAM_TTFT_TIMEOUT_MS = positiveMs(
   process.env.COMBO_STREAM_TTFT_TIMEOUT_MS,
   15_000,
 );
+const LARGE_CLAUDE_STREAM_TTFT_TIMEOUT_MS = positiveMs(
+  process.env.LARGE_CLAUDE_STREAM_TTFT_TIMEOUT_MS,
+  45_000,
+);
+const LARGE_CLAUDE_REQUEST_BYTES = 256 * 1024;
 const DEFAULT_MODEL_COOLDOWN_MS = positiveMs(
   process.env.COMBO_MODEL_COOLDOWN_MS,
   120_000,
@@ -537,6 +542,13 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
   const routedBody = claudeToolRequest && Number(body?.max_tokens) > CLAUDE_TOOL_MAX_OUTPUT_TOKENS
     ? { ...body, max_tokens: CLAUDE_TOOL_MAX_OUTPUT_TOKENS }
     : body;
+  const requestBytes = claudeToolRequest ? JSON.stringify(routedBody).length : 0;
+  const effectiveStreamTtftTimeoutMs = requestBytes >= LARGE_CLAUDE_REQUEST_BYTES
+    ? Math.max(
+        positiveMs(streamTtftTimeoutMs, DEFAULT_STREAM_TTFT_TIMEOUT_MS),
+        LARGE_CLAUDE_STREAM_TTFT_TIMEOUT_MS,
+      )
+    : positiveMs(streamTtftTimeoutMs, DEFAULT_STREAM_TTFT_TIMEOUT_MS);
   let rotatedModels = getRotatedModels(models, comboName, effectiveStrategy, comboStickyLimit);
 
   // Auto-switch: float models that satisfy the request's required capabilities to the front.
@@ -572,7 +584,7 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       if (result.ok) {
         const ready = await waitForStreamingResponse(
           result,
-          positiveMs(streamTtftTimeoutMs, DEFAULT_STREAM_TTFT_TIMEOUT_MS),
+          effectiveStreamTtftTimeoutMs,
         );
         if (!ready.response) {
           lastError = ready.error;

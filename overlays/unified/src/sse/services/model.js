@@ -2,7 +2,7 @@
 import { getModelAliases, getComboByName, getProviderNodes } from "@/lib/localDb";
 import { parseModel as parseModelCore, resolveModelAliasFromMap, getModelInfoCore } from "open-sse/services/model.js";
 import REGISTRY from "open-sse/providers/registry/index.js";
-import { getNvidiaClaudeRouteModels } from "@/lib/nvidiaCatalog";
+import { getNvidiaClaudeRouteModels, selectNvidiaClaudeRouteModels } from "@/lib/nvidiaCatalog";
 
 // Local provider alias overrides (HMR-friendly, applied on top of open-sse map)
 const LOCAL_PROVIDER_ALIASES = {
@@ -138,18 +138,42 @@ export async function getComboModels(modelStr) {
     normalized = aliasTarget;
   }
 
+  const combo = await getComboByName(normalized);
+  const persistedModels = Array.isArray(combo?.models) ? combo.models : [];
+
   if (normalized === "claude-auto") {
     try {
       const liveNvidiaModels = await getNvidiaClaudeRouteModels();
-      if (liveNvidiaModels.length > 0) return liveNvidiaModels;
+      const mergedModels = mergeClaudeAutoRouteModels(liveNvidiaModels, persistedModels);
+      if (mergedModels.length > 0) return mergedModels;
     } catch {
-      // Keep the persisted combo as an offline/catalog-timeout fallback.
+      // Sanitize the persisted NVIDIA entries even when catalog refresh is
+      // offline, while preserving every cross-provider fallback.
+      const mergedModels = mergeClaudeAutoRouteModels([], persistedModels);
+      if (mergedModels.length > 0) return mergedModels;
     }
   }
 
-  const combo = await getComboByName(normalized);
-  if (combo && Array.isArray(combo.models) && combo.models.length > 0) {
-    return combo.models;
-  }
+  if (persistedModels.length > 0) return persistedModels;
   return null;
+}
+
+/**
+ * Refresh NVIDIA's primary model without discarding the user's persisted
+ * cross-provider fallbacks. Before this merge, merely adding an NVIDIA key
+ * replaced the whole claude-auto combo with an NVIDIA-only route.
+ */
+export function mergeClaudeAutoRouteModels(liveNvidiaModels, persistedModels) {
+  const live = Array.isArray(liveNvidiaModels) ? liveNvidiaModels : [];
+  const persisted = Array.isArray(persistedModels) ? persistedModels : [];
+  const nonNvidiaFallbacks = persisted.filter((model) => (
+    typeof model === "string" && !model.trim().toLowerCase().startsWith("nvidia/")
+  ));
+  const persistedNvidiaModels = persisted
+    .filter((model) => typeof model === "string" && model.trim().toLowerCase().startsWith("nvidia/"))
+    .map((model) => model.trim().slice("nvidia/".length));
+  const nvidiaPrimary = live.length > 0
+    ? live
+    : selectNvidiaClaudeRouteModels(persistedNvidiaModels).map((model) => `nvidia/${model}`);
+  return [...new Set([...nvidiaPrimary, ...nonNvidiaFallbacks])];
 }

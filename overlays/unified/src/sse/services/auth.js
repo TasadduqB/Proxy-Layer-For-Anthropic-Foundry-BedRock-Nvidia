@@ -209,6 +209,21 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
   }
 }
 
+// A backup NVIDIA key can fix authentication, quota, account entitlement, or
+// transient gateway failures. It cannot fix a malformed tool history, context
+// overflow, or a model prompt-template limitation. Retrying those errors with
+// every key only doubles Claude CLI latency and locks otherwise healthy keys.
+export function shouldFallbackToNextNvidiaAccount(status, errorText) {
+  const code = Number(status) || 0;
+  const text = typeof errorText === "string" ? errorText.toLowerCase() : "";
+  // This is a shared NVIDIA inference worker-pool failure, not an account/key
+  // failure. Retrying the same request with every backup key increases the
+  // exhausted pool's load and delays the cross-provider combo fallback.
+  if (/worker local total request limit reached/.test(text)) return false;
+  if ([401, 402, 403, 404, 429, 502, 503, 504].includes(code)) return true;
+  return /rate limit|too many requests|quota|capacity|overload|temporar|timed? ?out|fetch failed/.test(text);
+}
+
 /**
  * Mark account+model as unavailable — locks modelLock_${model} in DB.
  * All errors (429, 401, 5xx, etc.) lock per model, not per account.
@@ -221,6 +236,9 @@ export async function getProviderCredentials(provider, excludeConnectionIds = nu
  */
 export async function markAccountUnavailable(connectionId, status, errorText, provider = null, model = null, resetsAtMs = null) {
   if (!connectionId || connectionId === "noauth") return { shouldFallback: false, cooldownMs: 0 };
+  if (resolveProviderId(provider) === "nvidia" && !shouldFallbackToNextNvidiaAccount(status, errorText)) {
+    return { shouldFallback: false, cooldownMs: 0 };
+  }
   const connections = await getProviderConnections({ provider });
   const conn = connections.find(c => c.id === connectionId);
   const backoffLevel = conn?.backoffLevel || 0;

@@ -30,6 +30,8 @@ vi.mock("@/sse/utils/logger.js", () => ({
 import {
   clearAccountError,
   getProviderCredentials,
+  markAccountUnavailable,
+  shouldFallbackToNextNvidiaAccount,
 } from "@/sse/services/auth.js";
 import {
   getRelevantModelLockUntil,
@@ -76,6 +78,32 @@ afterEach(() => {
 });
 
 describe("model/account lock routing", () => {
+  it("uses NVIDIA backup keys only for account or transient failures", () => {
+    expect(shouldFallbackToNextNvidiaAccount(401, "invalid key")).toBe(true);
+    expect(shouldFallbackToNextNvidiaAccount(429, "quota exceeded")).toBe(true);
+    expect(shouldFallbackToNextNvidiaAccount(502, "fetch failed")).toBe(true);
+    expect(shouldFallbackToNextNvidiaAccount(
+      503,
+      "ResourceExhausted: Worker local total request limit reached (633/48)",
+    )).toBe(false);
+    expect(shouldFallbackToNextNvidiaAccount(400, "maximum context length exceeded")).toBe(false);
+    expect(shouldFallbackToNextNvidiaAccount(500, "model only supports single tool-calls")).toBe(false);
+  });
+
+  it("does not lock or retry a healthy NVIDIA key for model-format errors", async () => {
+    const result = await markAccountUnavailable(
+      "nvidia-a",
+      400,
+      "This model only supports single tool-calls at once",
+      "nvidia",
+      "meta/llama-3.1-70b-instruct",
+    );
+
+    expect(result).toEqual({ shouldFallback: false, cooldownMs: 0 });
+    expect(db.getProviderConnections).not.toHaveBeenCalled();
+    expect(db.updateProviderConnection).not.toHaveBeenCalled();
+  });
+
   it("treats model-specific and account-wide locks cumulatively", () => {
     const conn = connection("a", {
       modelLock_target: isoAfter(-1_000),

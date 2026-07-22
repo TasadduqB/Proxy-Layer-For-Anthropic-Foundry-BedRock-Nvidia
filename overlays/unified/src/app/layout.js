@@ -15,15 +15,26 @@ export const metadata = {
   },
   description: "Local-first multi-provider AI gateway and operations dashboard.",
   applicationName: "Proxy Max",
+  manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/favicon.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Proxy Max",
   },
 };
 
 export const viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f5f2" },
-    { media: "(prefers-color-scheme: dark)", color: "#11100f" },
+    { media: "(prefers-color-scheme: light)", color: "#f4f7ff" },
+    { media: "(prefers-color-scheme: dark)", color: "#111a3a" },
   ],
 };
 

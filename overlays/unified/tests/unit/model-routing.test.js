@@ -11,7 +11,7 @@ async function setupDb() {
   vi.resetModules();
 
   const { createCombo, createProviderNode, setModelAlias } = await import("@/models/index.js");
-  const { getModelInfo, getComboModels } = await import("@/sse/services/model.js");
+  const { getModelInfo, getComboModels, mergeClaudeAutoRouteModels } = await import("@/sse/services/model.js");
 
   return {
     createCombo,
@@ -19,6 +19,7 @@ async function setupDb() {
     setModelAlias,
     getModelInfo,
     getComboModels,
+    mergeClaudeAutoRouteModels,
     cleanup() {
       fs.rmSync(tempDir, { recursive: true, force: true });
     },
@@ -108,7 +109,43 @@ describe("model routing", () => {
     await ctx.createCombo({ name: "claude-auto", models });
     await ctx.setModelAlias("claude-opus-4-8", "claude-auto");
 
-    await expect(ctx.getComboModels("claude-opus-4-8[1m]")).resolves.toEqual(models);
+    await expect(ctx.getComboModels("claude-opus-4-8[1m]")).resolves.toEqual([
+      "nvidia/deepseek-ai/deepseek-v4-pro",
+    ]);
+  });
+
+  it("keeps persisted cross-provider fallbacks when NVIDIA refreshes claude-auto", async () => {
+    const ctx = await setupDb();
+    cleanup = ctx.cleanup;
+
+    expect(ctx.mergeClaudeAutoRouteModels(
+      ["nvidia/deepseek-ai/deepseek-v4-flash"],
+      [
+        "nvidia/retired-model",
+        "oc/big-pickle",
+        "mmf/mimo-auto",
+        "oc/big-pickle",
+      ],
+    )).toEqual([
+      "nvidia/deepseek-ai/deepseek-v4-flash",
+      "oc/big-pickle",
+      "mmf/mimo-auto",
+    ]);
+  });
+
+  it("sanitizes persisted NVIDIA fallbacks when the live catalog is unavailable", async () => {
+    const ctx = await setupDb();
+    cleanup = ctx.cleanup;
+
+    expect(ctx.mergeClaudeAutoRouteModels([], [
+      "nvidia/minimaxai/minimax-m3",
+      "nvidia/deepseek-ai/deepseek-v4-flash",
+      "nvidia/moonshotai/kimi-k2.6",
+      "oc/mimo-v2.5-free",
+    ])).toEqual([
+      "nvidia/deepseek-ai/deepseek-v4-flash",
+      "oc/mimo-v2.5-free",
+    ]);
   });
 
   it("normalizes Claude context-window suffixes before resolving direct aliases", async () => {

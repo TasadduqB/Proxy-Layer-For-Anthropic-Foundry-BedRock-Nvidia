@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Proxy Max</title>
+  <defs>
+    <linearGradient id="bg" x1="7" y1="5" x2="58" y2="61" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#111A3A"/>
+      <stop offset=".48" stop-color="#312E81"/>
+      <stop offset="1" stop-color="#0F766E"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="21" y1="14" x2="50" y2="51" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset=".55" stop-color="#E0E7FF"/>
+      <stop offset="1" stop-color="#A5F3FC"/>
+    </linearGradient>
+    <clipPath id="tile"><rect x="2" y="2" width="60" height="60" rx="15"/></clipPath>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#bg)"/>
+  <rect x="2.75" y="2.75" width="58.5" height="58.5" rx="14.25" fill="none" stroke="#FFFFFF" stroke-opacity=".16" stroke-width="1.5"/>
+  <g clip-path="url(#tile)">
+    <circle cx="52" cy="12" r="13" fill="#67E8F9" fill-opacity=".12"/>
+    <circle cx="13" cy="55" r="15" fill="#C084FC" fill-opacity=".1"/>
+  </g>
+  <path d="M8 16h14M8 32h14M8 48h14" fill="none" stroke="#67E8F9" stroke-opacity=".9" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="8" cy="16" r="2.5" fill="#5EEAD4"/>
+  <circle cx="8" cy="32" r="2.5" fill="#A78BFA"/>
+  <circle cx="8" cy="48" r="2.5" fill="#F472B6"/>
+  <path d="M22 48V16h13.5C43.5 16 49 21.2 49 28.5S43.5 41 35.5 41H22" fill="none" stroke="url(#mark)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M31 48h19m-5-5 5 5-5 5" fill="none" stroke="#5EEAD4" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

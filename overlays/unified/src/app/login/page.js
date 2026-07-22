@@ -122,7 +122,7 @@ export default function LoginPage() {
         <section className="hidden flex-col justify-between border-r border-border-subtle bg-gradient-to-br from-brand-500/[0.16] via-surface to-surface p-9 md:flex">
           <div>
             <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined flex size-11 items-center justify-center rounded-[13px] bg-gradient-to-br from-brand-400 to-brand-700 text-white shadow-[var(--shadow-warm)]" aria-hidden="true">route</span>
+              <img src="/favicon.svg" alt="" className="size-11 drop-shadow-[0_12px_20px_rgba(79,70,229,0.3)]" aria-hidden="true" />
               <div>
                 <h1 className="text-xl font-semibold tracking-tight text-text-main">Proxy Max</h1>
                 <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-text-subtle">Local AI control plane</p>
@@ -153,7 +153,7 @@ export default function LoginPage() {
         <section className="p-6 sm:p-9">
           <div className="mb-7 md:hidden">
             <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined flex size-10 items-center justify-center rounded-[12px] bg-gradient-to-br from-brand-400 to-brand-700 text-white" aria-hidden="true">route</span>
+              <img src="/favicon.svg" alt="" className="size-10 drop-shadow-[0_10px_16px_rgba(79,70,229,0.25)]" aria-hidden="true" />
               <div>
                 <h1 className="text-lg font-semibold text-text-main">Proxy Max</h1>
                 <p className="text-[10px] uppercase tracking-[0.14em] text-text-subtle">Local AI control plane</p>

@@ -2,7 +2,28 @@ import { getProviderConnections } from "@/lib/localDb";
 
 const NVIDIA_MODELS_URL = "https://integrate.api.nvidia.com/v1/models";
 const CATALOG_TTL_MS = 5 * 60 * 1000;
+// Keep NVIDIA to one primary inside claude-auto. The persisted combo supplies
+// cross-provider fallbacks; fanning a single Claude turn across several NIM
+// models (and every API key) amplifies NVIDIA worker-pool exhaustion.
+const CLAUDE_AUTO_MODEL_LIMIT = 1;
 const catalogCache = new Map();
+
+// NVIDIA's catalog contains many retired, single-tool-only, short-context,
+// and narrowly specialized chat models. They may appear in /v1/models while
+// still failing a Claude Code tool loop. Keep automatic routing deliberately
+// small and promote only models that are intended for large agentic contexts.
+const CLAUDE_AUTO_MODEL_PATTERNS = [
+  /^deepseek-ai\/deepseek-v4-flash$/,
+  /^deepseek-ai\/deepseek-v4-pro$/,
+  /^qwen\/qwen3-coder-480b-a35b-instruct$/,
+  /^qwen\/qwen3\.5-397b-a17b$/,
+  /^minimaxai\/minimax-m3$/,
+  /^openai\/gpt-oss-120b$/,
+  /^nvidia\/nemotron-3-ultra-550b-a55b$/,
+  /^mistralai\/mistral-large-3-675b-instruct-2512$/,
+  /^mistralai\/mistral-small-4-119b-2603$/,
+  /^meta\/llama-4-maverick-17b-128e-instruct$/,
+];
 
 function connectionCacheKey(connection) {
   return `${connection?.id || "nvidia"}:${connection?.updatedAt || ""}`;
@@ -39,6 +60,12 @@ export function isNvidiaClaudeToolModelId(modelId) {
     return false;
   }
   return /(?:instruct|chat|coder|codestral|starcoder|codegemma|reason|nemotron|gpt-oss|deepseek|qwen|llama|mistral|mixtral|glm|mini?max|kimi|step[-_.]|command-r|granite|phi[-_.]|gemma)/.test(id);
+}
+
+export function isNvidiaClaudeAutoModelId(modelId) {
+  const id = String(modelId || "").trim().toLowerCase();
+  return isNvidiaClaudeToolModelId(id)
+    && CLAUDE_AUTO_MODEL_PATTERNS.some((pattern) => pattern.test(id));
 }
 
 export async function getNvidiaCatalogModels(connectionOverride = null) {
@@ -84,36 +111,24 @@ export async function getNvidiaCatalogModels(connectionOverride = null) {
   }
 }
 
-export async function getNvidiaClaudeRouteModels() {
-  const models = await getNvidiaCatalogModels();
-  const priorityPatterns = [
-    /qwen\/qwen3-coder-480b-a35b-instruct/,
-    /nemotron-3-super-120b-a12b/,
-    /deepseek-v4-flash/,
-    /gpt-oss-120b/,
-    /qwen3\.5/,
-    /nemotron-3-ultra/,
-    /mistral-(?:large-3|small-4)/,
-    /llama-4-maverick/,
-    /step-3\.7-flash/,
-    /minimax-m3/,
-    /deepseek-v4-pro/,
-    /kimi-k2\.6/,
-    /glm-5\.2/,
-    /(?:coder|codestral|starcoder|codegemma)/,
-    /(?:reason|instruct|chat)/,
-  ];
+export function selectNvidiaClaudeRouteModels(models) {
+  if (!Array.isArray(models)) return [];
   const rank = (model) => {
     const id = model.toLowerCase();
-    const index = priorityPatterns.findIndex((pattern) => pattern.test(id));
-    return index === -1 ? priorityPatterns.length : index;
+    return CLAUDE_AUTO_MODEL_PATTERNS.findIndex((pattern) => pattern.test(id));
   };
 
   return models
-    .filter(isNvidiaClaudeToolModelId)
+    .filter(isNvidiaClaudeAutoModelId)
     .map((model, index) => ({ model, index, rank: rank(model) }))
     .sort((a, b) => a.rank - b.rank || a.index - b.index)
-    .map(({ model }) => `nvidia/${model}`);
+    .slice(0, CLAUDE_AUTO_MODEL_LIMIT)
+    .map(({ model }) => model);
+}
+
+export async function getNvidiaClaudeRouteModels() {
+  const models = await getNvidiaCatalogModels();
+  return selectNvidiaClaudeRouteModels(models).map((model) => `nvidia/${model}`);
 }
 
 export function clearNvidiaCatalogCache() {

@@ -150,8 +150,8 @@ export default function Sidebar({ onClose }) {
         <div className="flex flex-col gap-2 px-4 pb-3 pt-4">
           <div className="flex items-center gap-2">
           <Link href="/dashboard" onClick={onClose} className="group flex min-w-0 flex-1 items-center gap-3 rounded-[12px] p-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
-            <div className="relative flex size-10 shrink-0 items-center justify-center rounded-[13px] bg-gradient-to-br from-brand-500 via-indigo-500 to-cyan-500 shadow-[0_12px_28px_-12px_rgba(79,70,229,0.8)] transition-transform group-hover:scale-[1.04]">
-              <span aria-hidden="true" className="material-symbols-outlined text-[21px] text-white">route</span>
+            <div className="relative size-10 shrink-0 transition-transform group-hover:scale-[1.04]">
+              <img src="/favicon.svg" alt="" className="size-full drop-shadow-[0_10px_16px_rgba(79,70,229,0.28)]" aria-hidden="true" />
               <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-surface bg-emerald-500" aria-label="Gateway online" />
             </div>
             <div className="flex min-w-0 flex-col">
