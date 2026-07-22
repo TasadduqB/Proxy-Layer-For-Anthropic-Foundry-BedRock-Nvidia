@@ -339,7 +339,7 @@ async function pipeline() {
     persist();
 
     phase("fetching");
-    await run(git, ["fetch", "--no-tags", "--prune", remoteName, `+refs/heads/${branch}:${UPDATE_REF}`], root, "fetching trusted Git revision", 60000);
+    await run(git, ["fetch", "--no-tags", remoteName, `+refs/heads/${branch}:${UPDATE_REF}`], root, "fetching trusted Git revision", 60000);
     const fetched = (await capture(git, ["rev-parse", UPDATE_REF], root)).toLowerCase();
     if (fetched !== expectedRevision) throw new Error("Remote revision changed; check for updates again");
     await run(git, ["merge-base", "--is-ancestor", before, UPDATE_REF], root, "verifying fast-forward");

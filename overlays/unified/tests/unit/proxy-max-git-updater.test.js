@@ -44,8 +44,11 @@ describe("Proxy Max Git update policy", () => {
 
   it("keeps the detached updater shell-free, fast-forward-only, and rollback-capable", () => {
     const source = fs.readFileSync(path.join(root, "src/lib/updater/git-updater.js"), "utf8");
+    const statusSource = fs.readFileSync(path.join(root, "src/lib/gitUpdate.js"), "utf8");
     expect(source).not.toMatch(/\bexec(?:File|Sync)?\s*\(/);
     expect(source).not.toMatch(/shell\s*:\s*true/);
+    expect(source).not.toContain('"fetch", "--no-tags", "--prune"');
+    expect(statusSource).not.toContain('"fetch", "--no-tags", "--prune"');
     expect(source).toContain('"merge", "--ff-only"');
     expect(source).toContain('"status", "--porcelain=v1"');
     expect(source).toContain('"reset", "--hard", before');

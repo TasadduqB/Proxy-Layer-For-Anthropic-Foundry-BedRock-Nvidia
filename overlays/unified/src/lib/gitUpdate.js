@@ -81,7 +81,7 @@ export async function getGitUpdateStatus(options = {}) {
   const branch = assertSafeBranch(GIT_UPDATE_CONFIG.branch);
   if (options.fetch !== false) {
     await git(root, [
-      "fetch", "--no-tags", "--prune", GIT_UPDATE_CONFIG.remote,
+      "fetch", "--no-tags", GIT_UPDATE_CONFIG.remote,
       `+refs/heads/${branch}:${UPDATE_REF}`,
     ], { timeoutMs: GIT_UPDATE_CONFIG.fetchTimeoutMs });
   }
