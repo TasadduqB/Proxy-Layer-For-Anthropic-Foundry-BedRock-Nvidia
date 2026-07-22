@@ -263,4 +263,110 @@ describe("combo streaming readiness", () => {
     expect(text).toContain('"partial_json":"{\\"command\\":\\"npm test\\"}"');
     expect(text).not.toContain('"partial_json":"{\\"command\\":\\"npm test\\""');
   });
+
+  it("removes prose around schema-valid Claude hook JSON", async () => {
+    const attempts = [];
+    const output = [
+      `event: content_block_start\ndata: ${JSON.stringify({
+        type: "content_block_start",
+        index: 0,
+        content_block: { type: "text", text: "" },
+      })}\n\n`,
+      `event: content_block_delta\ndata: ${JSON.stringify({
+        type: "content_block_delta",
+        index: 0,
+        delta: {
+          type: "text_delta",
+          text: 'The condition is satisfied.\\n\\n{"ok":true,"reason":"PR is mergeable"}',
+        },
+      })}\n\n`,
+      `event: content_block_stop\ndata: ${JSON.stringify({ type: "content_block_stop", index: 0 })}\n\n`,
+      `event: message_stop\ndata: ${JSON.stringify({ type: "message_stop" })}\n\n`,
+    ].join("");
+
+    const response = await handleComboChat({
+      body: {
+        max_tokens: 1_024,
+        output_config: {
+          format: {
+            type: "json_schema",
+            schema: {
+              type: "object",
+              properties: { ok: { type: "boolean" }, reason: { type: "string" } },
+              required: ["ok", "reason"],
+              additionalProperties: false,
+            },
+          },
+        },
+        messages: [{ role: "user", content: "evaluate the stop condition" }],
+      },
+      models: ["oc/deepseek-v4-flash-free"],
+      comboName: "claude-auto",
+      comboStrategy: "fallback",
+      log: { info() {}, warn() {} },
+      handleSingleModel: async (_body, model) => {
+        attempts.push(model);
+        return new Response(output, {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" },
+        });
+      },
+    });
+
+    expect(attempts).toEqual(["oc/deepseek-v4-flash-free"]);
+    const text = await response.text();
+    expect(text).toContain('"text":"{\\"ok\\":true,\\"reason\\":\\"PR is mergeable\\"}"');
+    expect(text).not.toContain("The condition is satisfied");
+  });
+
+  it("falls back when Claude structured output has no schema-valid JSON", async () => {
+    const attempts = [];
+    const makeTextStream = (text) => [
+      `event: content_block_start\ndata: ${JSON.stringify({
+        type: "content_block_start",
+        index: 0,
+        content_block: { type: "text", text: "" },
+      })}\n\n`,
+      `event: content_block_delta\ndata: ${JSON.stringify({
+        type: "content_block_delta",
+        index: 0,
+        delta: { type: "text_delta", text },
+      })}\n\n`,
+      `event: message_stop\ndata: ${JSON.stringify({ type: "message_stop" })}\n\n`,
+    ].join("");
+
+    const response = await handleComboChat({
+      body: {
+        output_config: {
+          format: {
+            type: "json_schema",
+            schema: {
+              type: "object",
+              properties: { ok: { type: "boolean" }, reason: { type: "string" } },
+              required: ["ok", "reason"],
+              additionalProperties: false,
+            },
+          },
+        },
+        messages: [{ role: "user", content: "evaluate" }],
+      },
+      models: ["oc/prose-only", "oc/valid-json"],
+      comboName: "claude-auto",
+      comboStrategy: "fallback",
+      log: { info() {}, warn() {} },
+      handleSingleModel: async (_body, model) => {
+        attempts.push(model);
+        const text = model === "oc/prose-only"
+          ? "The condition looks complete."
+          : '{"ok":true,"reason":"verified"}';
+        return new Response(makeTextStream(text), {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" },
+        });
+      },
+    });
+
+    expect(attempts).toEqual(["oc/prose-only", "oc/valid-json"]);
+    await expect(response.text()).resolves.toContain('\\"ok\\":true');
+  });
 });

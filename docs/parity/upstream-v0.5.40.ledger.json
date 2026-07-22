@@ -9487,13 +9487,13 @@
       },
       "implementation": {
         "path": "overlays/unified/open-sse/services/combo.js",
-        "sha256": "7f6407be1049f750a208e5ffc22323f4162c18c5c8ac2b2b0ca70ddf766c78f5",
-        "size": 47676,
+        "sha256": "409781a2f2f43651c35ffcee007943312fe3c987d638fb1ab9e2913f49887a44",
+        "size": 56781,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/services/combo.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/services/combo.js#sha256=c6a687ccccc955316d066f78513cb15b45c810cadc6d4889d9692b764fd05d18",
-        "implementationBlob": "overlays/unified/open-sse/services/combo.js#sha256=7f6407be1049f750a208e5ffc22323f4162c18c5c8ac2b2b0ca70ddf766c78f5",
+        "implementationBlob": "overlays/unified/open-sse/services/combo.js#sha256=409781a2f2f43651c35ffcee007943312fe3c987d638fb1ab9e2913f49887a44",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -28531,13 +28531,13 @@
       },
       "implementation": {
         "path": "overlays/unified/tests/unit/combo-routing.test.js",
-        "sha256": "8fa1b17d62aa0a2b2f390b9d5eea2848a8dc2911c58b854f928d720c64724af3",
-        "size": 9470,
+        "sha256": "e49ce7d320e9248079e1c15235346d77bec31276bcb0d2886cab734b97746fd2",
+        "size": 13163,
         "runtimePath": ".proxy-max/runtime/unified/tests/unit/combo-routing.test.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/tests/unit/combo-routing.test.js#sha256=a156754ada67e6a36a11c9bdb1881bfe221412d35b8f9c132f3bde0be1ab7b10",
-        "implementationBlob": "overlays/unified/tests/unit/combo-routing.test.js#sha256=8fa1b17d62aa0a2b2f390b9d5eea2848a8dc2911c58b854f928d720c64724af3",
+        "implementationBlob": "overlays/unified/tests/unit/combo-routing.test.js#sha256=e49ce7d320e9248079e1c15235346d77bec31276bcb0d2886cab734b97746fd2",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }

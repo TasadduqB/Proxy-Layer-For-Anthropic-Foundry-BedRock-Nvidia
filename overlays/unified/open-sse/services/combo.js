@@ -369,6 +369,217 @@ function joinByteChunks(chunks, totalBytes) {
   return joined;
 }
 
+function claudeStructuredOutputSchema(body) {
+  const format = body?.output_config?.format || body?.output_format;
+  if (format?.type !== "json_schema") return null;
+  return format.schema && typeof format.schema === "object" && !Array.isArray(format.schema)
+    ? format.schema
+    : null;
+}
+
+function valueMatchesJsonSchema(value, schema) {
+  if (!schema || typeof schema !== "object") return true;
+  if (Object.hasOwn(schema, "const") && value !== schema.const) return false;
+  if (Array.isArray(schema.enum) && !schema.enum.some((item) => Object.is(item, value))) return false;
+  if (Array.isArray(schema.anyOf) && !schema.anyOf.some((item) => valueMatchesJsonSchema(value, item))) return false;
+  if (Array.isArray(schema.oneOf) && schema.oneOf.filter((item) => valueMatchesJsonSchema(value, item)).length !== 1) return false;
+
+  const allowedTypes = Array.isArray(schema.type) ? schema.type : (schema.type ? [schema.type] : []);
+  if (allowedTypes.length > 0) {
+    const actualType = value === null
+      ? "null"
+      : (Array.isArray(value) ? "array" : (Number.isInteger(value) ? "integer" : typeof value));
+    const compatible = allowedTypes.some((type) => (
+      type === actualType || (type === "number" && typeof value === "number")
+    ));
+    if (!compatible) return false;
+  }
+
+  if (Array.isArray(value)) {
+    if (Number.isInteger(schema.minItems) && value.length < schema.minItems) return false;
+    if (Number.isInteger(schema.maxItems) && value.length > schema.maxItems) return false;
+    if (schema.items && !value.every((item) => valueMatchesJsonSchema(item, schema.items))) return false;
+  }
+
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const properties = schema.properties && typeof schema.properties === "object"
+      ? schema.properties
+      : {};
+    if (Array.isArray(schema.required) && schema.required.some((key) => !Object.hasOwn(value, key))) return false;
+    for (const [key, item] of Object.entries(value)) {
+      if (properties[key] && !valueMatchesJsonSchema(item, properties[key])) return false;
+      if (!properties[key] && schema.additionalProperties === false) return false;
+    }
+  }
+
+  return true;
+}
+
+function findSchemaJson(text, schema) {
+  const trimmed = String(text || "").trim();
+  try {
+    const exact = JSON.parse(trimmed);
+    if (valueMatchesJsonSchema(exact, schema)) return { value: exact, exact: true };
+  } catch {
+    // Search for a balanced JSON value below. This covers prose or code fences
+    // around an otherwise valid structured response without inventing data.
+  }
+
+  const matches = [];
+  for (let start = 0; start < trimmed.length; start++) {
+    if (trimmed[start] !== "{" && trimmed[start] !== "[") continue;
+    const stack = [];
+    let inString = false;
+    let escaped = false;
+    for (let index = start; index < trimmed.length; index++) {
+      const char = trimmed[index];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (char === "\\") escaped = true;
+        else if (char === '"') inString = false;
+        continue;
+      }
+      if (char === '"') {
+        inString = true;
+        continue;
+      }
+      if (char === "{" || char === "[") stack.push(char);
+      else if (char === "}" || char === "]") {
+        const opening = stack.pop();
+        if ((opening === "{" && char !== "}") || (opening === "[" && char !== "]")) break;
+        if (stack.length === 0) {
+          try {
+            const value = JSON.parse(trimmed.slice(start, index + 1));
+            if (valueMatchesJsonSchema(value, schema)) matches.push(value);
+          } catch {
+            // Not a complete JSON value; keep scanning later candidates.
+          }
+          break;
+        }
+      }
+    }
+  }
+  return matches.length > 0 ? { value: matches.at(-1), exact: false } : null;
+}
+
+function rewriteClaudeStructuredText(sseText, jsonText) {
+  let inserted = false;
+  const records = sseText.split(/\r?\n\r?\n/);
+  const rewritten = [];
+  for (const record of records) {
+    if (!record) continue;
+    const lines = record.split(/\r?\n/);
+    const dataIndex = lines.findIndex((line) => line.trimStart().startsWith("data:"));
+    if (dataIndex < 0) {
+      rewritten.push(record);
+      continue;
+    }
+    const raw = lines[dataIndex].trimStart().slice(5).trim();
+    if (!raw || raw === "[DONE]") {
+      rewritten.push(record);
+      continue;
+    }
+    let event;
+    try { event = JSON.parse(raw); } catch {
+      rewritten.push(record);
+      continue;
+    }
+    if (event?.type === "content_block_start" && event.content_block?.type === "text") {
+      event.content_block.text = "";
+      lines[dataIndex] = `data: ${JSON.stringify(event)}`;
+      rewritten.push(lines.join("\n"));
+      continue;
+    }
+    if (event?.type === "content_block_delta" && event.delta?.type === "text_delta") {
+      if (inserted) continue;
+      event.delta.text = jsonText;
+      lines[dataIndex] = `data: ${JSON.stringify(event)}`;
+      inserted = true;
+    }
+    rewritten.push(lines.join("\n"));
+  }
+  return inserted ? `${rewritten.join("\n\n")}\n\n` : null;
+}
+
+/** Ensure Claude's output_config.format survives providers without native
+ * structured-output support. Exact JSON passes through untouched; explanatory
+ * prose is removed only when it contains a complete schema-valid JSON value.
+ */
+export async function validateClaudeStructuredOutputStream(response, schema, options = {}) {
+  const contentType = response?.headers?.get?.("content-type") || "";
+  if (!response?.body || !contentType.toLowerCase().includes("text/event-stream")) {
+    return { response };
+  }
+
+  const maxBytes = positiveMs(options.maxBytes, CLAUDE_TOOL_MAX_STREAM_BYTES);
+  const maxTextChars = positiveMs(options.maxTextChars, CLAUDE_TOOL_MAX_TEXT_CHARS);
+  const reader = response.body.getReader();
+  const chunks = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes) {
+        await reader.cancel("Claude structured output validation limit exceeded").catch(() => {});
+        return { error: `Claude structured output exceeded ${maxBytes} bytes`, status: 502 };
+      }
+      chunks.push(value);
+    }
+
+    const bytes = joinByteChunks(chunks, totalBytes);
+    const sseText = new TextDecoder().decode(bytes);
+    let assistantText = "";
+    for (const line of sseText.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data:")) continue;
+      const raw = trimmed.slice(5).trim();
+      if (!raw || raw === "[DONE]") continue;
+      try {
+        const event = JSON.parse(raw);
+        if (event?.type === "content_block_start" && event.content_block?.type === "text") {
+          assistantText += event.content_block.text || "";
+        }
+        if (event?.type === "content_block_delta" && event.delta?.type === "text_delta") {
+          assistantText += event.delta.text || "";
+        }
+        if (assistantText.length > maxTextChars) {
+          return { error: `Claude structured output exceeded ${maxTextChars} text characters`, status: 502 };
+        }
+      } catch {
+        return { error: "Malformed Claude SSE event JSON", status: 502 };
+      }
+    }
+
+    const match = findSchemaJson(assistantText, schema);
+    if (!match) return { error: "Claude response did not contain schema-valid JSON", status: 502 };
+    if (match.exact) {
+      return {
+        response: new Response(bytes, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+        }),
+      };
+    }
+
+    const repaired = rewriteClaudeStructuredText(sseText, JSON.stringify(match.value));
+    if (!repaired) return { error: "Claude structured output could not be rewritten safely", status: 502 };
+    options.onRepair?.();
+    return {
+      response: new Response(repaired, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      }),
+    };
+  } catch (error) {
+    await reader.cancel(error).catch(() => {});
+    return { error: error?.message || String(error), status: 502 };
+  }
+}
+
 /**
  * Buffer and validate Claude tool-use SSE before exposing it to Claude Code.
  *
@@ -662,10 +873,14 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
   // Edit, and Update turn. Other dashboard combos retain their chosen strategy.
   const effectiveStrategy = isClaudeManagedCombo(comboName) ? "fallback" : comboStrategy;
   const claudeToolRequest = isClaudeManagedCombo(comboName) && Array.isArray(body?.tools) && body.tools.length > 0;
-  const routedBody = claudeToolRequest && Number(body?.max_tokens) > CLAUDE_TOOL_MAX_OUTPUT_TOKENS
+  const structuredOutputSchema = isClaudeManagedCombo(comboName)
+    ? claudeStructuredOutputSchema(body)
+    : null;
+  const claudeManagedRequest = claudeToolRequest || !!structuredOutputSchema;
+  const routedBody = claudeManagedRequest && Number(body?.max_tokens) > CLAUDE_TOOL_MAX_OUTPUT_TOKENS
     ? { ...body, max_tokens: CLAUDE_TOOL_MAX_OUTPUT_TOKENS }
     : body;
-  const requestBytes = claudeToolRequest ? JSON.stringify(routedBody).length : 0;
+  const requestBytes = claudeManagedRequest ? JSON.stringify(routedBody).length : 0;
   const effectiveStreamTtftTimeoutMs = requestBytes >= LARGE_CLAUDE_REQUEST_BYTES
     ? Math.max(
         positiveMs(streamTtftTimeoutMs, DEFAULT_STREAM_TTFT_TIMEOUT_MS),
@@ -719,7 +934,7 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
           });
           continue;
         }
-        const guardedResponse = claudeToolRequest
+        const guardedResponse = claudeManagedRequest
           ? guardClaudeToolStream(ready.response, {
               onRunaway: (reason) => {
                 coolComboModel(comboName, modelStr, modelCooldownMs);
@@ -740,9 +955,24 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
           });
           continue;
         }
+        const structured = structuredOutputSchema
+          ? await validateClaudeStructuredOutputStream(validated.response, structuredOutputSchema, {
+              onRepair: () => log.info("COMBO", `Removed non-JSON wrapper from ${modelStr} structured output`),
+            })
+          : validated;
+        if (!structured.response) {
+          lastError = structured.error;
+          if (!lastStatus) lastStatus = structured.status;
+          coolComboModel(comboName, modelStr, modelCooldownMs);
+          log.warn("COMBO", `Model ${modelStr} emitted invalid structured output, trying next`, {
+            status: structured.status,
+            error: structured.error,
+          });
+          continue;
+        }
         markComboModelSuccess(comboName, modelStr);
         log.info("COMBO", `Model ${modelStr} succeeded`);
-        return validated.response;
+        return structured.response;
       }
 
       // Extract error info from response
