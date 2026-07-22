@@ -1,7 +1,7 @@
 {
   "name": "proxy-max",
   "version": "2.0.0",
-  "description": "Route Claude Code to any model — AWS Bedrock, Azure AI, NVIDIA NIM. Full tool calling, streaming, 100+ models. Zero-config AI gateway.",
+  "description": "Local-first multi-provider AI gateway with protocol translation, account routing, media APIs, proxy pools, and a secure operations dashboard.",
   "main": "src/server.js",
   "keywords": [
     "claude-code",
@@ -33,10 +33,29 @@
     "proxy-max": "src/launch.js"
   },
   "scripts": {
-    "start": "node src/server.js",
+    "start": "node src/runtime/supervisor.js",
+    "start:legacy": "node src/server.js",
+    "start:unified": "node scripts/unified-runtime.js start",
+    "start:parallel": "node src/runtime/supervisor.js parallel",
     "launch": "node src/launch.js",
     "doctor": "node src/install.js",
-    "test": "node test-compat.js && node test-token-counter.js && node test-optimizer-idempotency.js && node test-prose-determinism.js && node test-tool-json-repair.js"
+    "unified:doctor": "node scripts/unified-runtime.js doctor",
+    "unified:materialize": "node scripts/materialize-unified.js",
+    "unified:install": "node scripts/unified-runtime.js install",
+    "unified:build": "node scripts/unified-runtime.js build",
+    "unified:prepare": "node scripts/unified-runtime.js prepare",
+    "unified:smoke": "node scripts/unified-runtime.js smoke",
+    "unified:migrate:plan": "node scripts/migrate-to-unified.js plan",
+    "unified:migrate:apply": "node scripts/migrate-to-unified.js apply",
+    "unified:reset-password": "node scripts/reset-unified-password.js",
+    "unified:parity:generate": "node scripts/unified-parity-ledger.js generate",
+    "unified:parity:gate": "npm run verify:upstream && node test-unified-source.js && npm run test:parity && npm run verify:parity",
+    "verify:parity": "node scripts/unified-parity-ledger.js verify",
+    "test:parity": "node scripts/test-unified-parity-ledger.js",
+    "verify:upstream": "node scripts/verify-upstream-snapshot.js",
+    "test:unified": "node scripts/test-unified.js",
+    "verify:full": "npm run unified:parity:gate && npm run test:unified && npm run unified:build && npm run unified:doctor && npm run unified:smoke && npm test",
+    "test": "node test-security.js && node test-security-integration.js && node test-pool-routing.js && node test-pool-api.js && node test-unified-source.js && node test-unified-runtime.js && node test-unified-recovery.js && node test-unified-migration.js && node test-unified-migration-integration.js && node test-unified-api-security.js && node test-compat.js && node test-token-counter.js && node test-optimizer-idempotency.js && node test-prose-determinism.js && node test-tool-json-repair.js"
   },
   "comments": {
     "sqlite": "Persistence uses Node's built-in node:sqlite (Node >=22.5) with an automatic JSON fallback on older runtimes — no native module to compile.",
@@ -49,7 +68,7 @@
     "nodemon": "^3.1.14"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0"
   },
   "license": "MIT"
 }

@@ -4,6 +4,7 @@
 const assert = require('assert');
 const LazinessOptimizer = require('./src/optimizers/laziness');
 const ResponseStyleOptimizer = require('./src/optimizers/response-style');
+const { injectIntoSystem } = require('./src/optimizers/_inject-system');
 
 let failures = 0;
 function run(name, fn) {
@@ -29,6 +30,22 @@ for (const [name, Opt] of [['laziness', LazinessOptimizer], ['response-style', R
     const r2 = opt.inject(body, { mode: 'full' });
     assert.strictEqual(r2.injected, false, 'second inject should be a no-op');
     assert.strictEqual(body.system.length, before, 'should not append a second block');
+  });
+}
+
+for (const [name, initial] of [
+  ['credential guardrail string system', { system: 'You are helpful.' }],
+  ['credential guardrail array system', { system: [{ type: 'text', text: 'You are helpful.' }] }],
+  ['credential guardrail missing system', {}],
+]) {
+  run(name + ' idempotent', () => {
+    const body = JSON.parse(JSON.stringify(initial));
+    const marker = '[AUTHORIZED-DEV-ENVIRONMENT]';
+    const rules = `${marker}\nAuthorized local environment.\n[/AUTHORIZED-DEV-ENVIRONMENT]`;
+    assert.strictEqual(injectIntoSystem(body, rules, marker), true);
+    const once = JSON.stringify(body.system);
+    assert.strictEqual(injectIntoSystem(body, rules, marker), false);
+    assert.strictEqual(JSON.stringify(body.system), once, 'second injection must not change the system prompt');
   });
 }
 

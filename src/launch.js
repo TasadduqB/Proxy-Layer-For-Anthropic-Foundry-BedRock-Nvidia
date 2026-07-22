@@ -5,6 +5,8 @@
 const path = require('path');
 const { spawn } = require('child_process');
 const { ensureNode, ensureClaude, detectNode, detectClaude } = require('./install');
+const { assertSupportedNode } = require('./runtime/unified-runtime');
+const { normalizeMode } = require('./runtime/supervisor');
 
 const PORT = parseInt(process.env.PORT || '8787', 10);
 const HOST = process.env.HOST || '127.0.0.1';
@@ -13,10 +15,15 @@ const HOST = process.env.HOST || '127.0.0.1';
   // 1. Make sure node + npm are usable.
   let nodeInfo = detectNode();
   if (!nodeInfo.node || !nodeInfo.npm) nodeInfo = await ensureNode();
+  if (normalizeMode(process.env.PROXY_MAX_RUNTIME) !== 'legacy') {
+    assertSupportedNode(process.versions.node);
+  }
 
   // 2. Boot the proxy as a child process.
-  const serverPath = path.resolve(__dirname, 'server.js');
-  const server = spawn(nodeInfo.node, [serverPath], {
+  // Launch through the runtime supervisor so the CLI follows the same default
+  // as `npm start` while retaining PROXY_MAX_RUNTIME=legacy as a rollback.
+  const supervisorPath = path.resolve(__dirname, 'runtime', 'supervisor.js');
+  const server = spawn(nodeInfo.node, [supervisorPath], {
     stdio: ['ignore', 'inherit', 'inherit'],
     env: { ...process.env, PORT: String(PORT), HOST }
   });

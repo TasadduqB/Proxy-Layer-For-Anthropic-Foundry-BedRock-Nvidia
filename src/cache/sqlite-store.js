@@ -12,7 +12,7 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
-const DATA_DIR      = path.join(os.homedir(), '.proxy-max');
+const DATA_DIR      = process.env.PROXY_MAX_DATA_DIR || path.join(os.homedir(), '.proxy-max');
 const DB_FILE       = path.join(DATA_DIR, 'proxy-max.db');
 const JSON_FALLBACK = path.join(DATA_DIR, 'store-fallback.json');
 const FALLBACK_MAX_CACHE = 1000; // cap JSON-fallback cache entries
@@ -41,7 +41,10 @@ class SqliteStore {
     this.db = null;
     this._mem = { kv: {}, cache: {} };
 
-    try { fs.mkdirSync(path.dirname(this.dbFile), { recursive: true }); } catch {}
+    try {
+      fs.mkdirSync(path.dirname(this.dbFile), { recursive: true, mode: 0o700 });
+      fs.chmodSync(path.dirname(this.dbFile), 0o700);
+    } catch {}
 
     const DatabaseSync = loadNodeSqlite();
     if (DatabaseSync) {
@@ -73,6 +76,7 @@ class SqliteStore {
           'ALTER TABLE response_cache ADD COLUMN bytes INTEGER DEFAULT 0',
           'ALTER TABLE response_cache ADD COLUMN last_hit_at INTEGER DEFAULT 0',
         ]) { try { this.db.exec(ddl); } catch {} }
+        try { fs.chmodSync(this.dbFile, 0o600); } catch {}
         this._cacheGetStmt = this.db.prepare('SELECT body, content_type, input_tokens, output_tokens, provider, model, expires_at FROM response_cache WHERE key = ?');
         this._cacheHitStmt = this.db.prepare('UPDATE response_cache SET hits = hits + 1, last_hit_at = ? WHERE key = ?');
         this._cacheDeleteStmt = this.db.prepare('DELETE FROM response_cache WHERE key = ?');
@@ -101,7 +105,11 @@ class SqliteStore {
     if (this._jsonSaveTimer) return;
     this._jsonSaveTimer = setTimeout(() => {
       this._jsonSaveTimer = null;
-      try { fs.writeFile(JSON_FALLBACK, JSON.stringify(this._mem), () => {}); } catch {}
+      try {
+        fs.writeFile(JSON_FALLBACK, JSON.stringify(this._mem), { encoding: 'utf8', mode: 0o600 }, err => {
+          if (!err) { try { fs.chmodSync(JSON_FALLBACK, 0o600); } catch {} }
+        });
+      } catch {}
     }, 100);
   }
 

@@ -33,5 +33,21 @@ for (const mode of ['lite', 'full', 'ultra']) {
   });
 }
 
+for (const [name, claritySample] of [
+  ['security', 'Rotate the API key before continuing.'],
+  ['irreversible', 'Delete the obsolete production release permanently.'],
+  ['multi-step', 'First inspect the file. Then update the implementation.'],
+]) {
+  run(`clarity gate is deterministic (${name})`, () => {
+    for (let i = 0; i < 8; i++) {
+      assert.strictEqual(
+        c.compress(claritySample, 'full'),
+        claritySample,
+        'clarity-triggering prose must never be compressed on alternating calls'
+      );
+    }
+  });
+}
+
 console.log(failures === 0 ? '\nALL PASS' : `\n${failures} FAILURES`);
 process.exit(failures === 0 ? 0 : 1);

@@ -8,6 +8,7 @@
  */
 
 const { BUILTIN_FILTERS } = require('../output-filters/filter');
+const { readJsonBody } = require('../security');
 
 // ---- helpers ----
 
@@ -24,19 +25,11 @@ function jsonErr(res, status, message) {
 }
 
 function readBody(req) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    req.on('data', c => chunks.push(c));
-    req.on('end', () => {
-      try {
-        const raw = Buffer.concat(chunks).toString('utf8');
-        resolve(raw ? JSON.parse(raw) : {});
-      } catch (e) {
-        reject(e);
-      }
-    });
-    req.on('error', reject);
-  });
+  const parsedLimit = Number(process.env.PROXY_MAX_MAX_BODY_BYTES || 128 * 1024 * 1024);
+  const maxBytes = Number.isSafeInteger(parsedLimit) && parsedLimit > 0
+    ? parsedLimit
+    : 128 * 1024 * 1024;
+  return readJsonBody(req, { maxBytes });
 }
 
 // ---- route handlers ----

@@ -94,9 +94,12 @@ class ProseCompressor {
 
     // Auto-clarity gates (detect and revert to normal English)
     this.clarityTriggers = {
-      security: /\b(security|encryption|password|credential|secret|token|api.?key|leak|breach|vulnerability|exploit|malicious)\b/gi,
-      irreversible: /\b(delete|drop|remove permanently|destroy|erase|unrecoverable|migration|deploy to prod|production release)\b/gi,
-      multiStep: /(?:^|\.)\s*(?:first|second|third|step|then|after that|finally)/gi,
+      // These expressions are used with RegExp.test(), so they must not carry
+      // the global flag. A global RegExp mutates lastIndex on every test and
+      // made identical requests alternate between compressed and untouched.
+      security: /\b(security|encryption|password|credential|secret|token|api.?key|leak|breach|vulnerability|exploit|malicious)\b/i,
+      irreversible: /\b(delete|drop|remove permanently|destroy|erase|unrecoverable|migration|deploy to prod|production release)\b/i,
+      multiStep: /(?:^|\.)\s*(?:first|second|third|step|then|after that|finally)/i,
       userConfusion: /\?.*\?.*\?/, // Multiple question marks = user confused
     };
   }

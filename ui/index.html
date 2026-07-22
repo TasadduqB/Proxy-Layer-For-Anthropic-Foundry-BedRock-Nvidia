@@ -913,7 +913,7 @@
       <div class="topbar">
         <div>
           <h1>Model Pool</h1>
-          <div class="sub">Wire up multiple models across any provider. Requests round-robin across all members with automatic fallback on failure.</div>
+          <div class="sub">Lower priority numbers run first; equal-priority members round-robin with automatic fallback on failure.</div>
         </div>
         <div class="pills" id="poolPills">
           <span class="pill" id="poolSizePill"><span class="dot"></span>0 models</span>
@@ -952,8 +952,16 @@
             <datalist id="poolModelList"></datalist>
           </div>
         </div>
-        <label style="margin-top:10px">Label <span class="small">(optional — shown in logs)</span></label>
-        <input id="poolLabel" placeholder="e.g. Nemotron Ultra" />
+        <div class="grid2" style="margin-top:10px">
+          <div>
+            <label>Label <span class="small">(optional — shown in logs)</span></label>
+            <input id="poolLabel" placeholder="e.g. Nemotron Ultra" />
+          </div>
+          <div>
+            <label>Priority <span class="small">(lower runs first)</span></label>
+            <input id="poolPriority" type="number" step="1" value="50" />
+          </div>
+        </div>
         <details style="margin-top:12px">
           <summary style="cursor:pointer;font-size:12.5px;color:var(--dim)">Override credentials for this entry</summary>
           <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
@@ -1433,6 +1441,48 @@
 <script>
 const $ = sel => document.querySelector(sel);
 const state = { provider:null, models:{}, config:{providers:{}}, system:null, launchInfo:null };
+
+// Existing UI calls all flow through this wrapper. When remote administration
+// is protected with PROXY_MAX_ADMIN_TOKEN, keep the token in sessionStorage
+// (never localStorage or config) and retry one rejected same-origin API call.
+const nativeFetch = window.fetch.bind(window);
+const ADMIN_TOKEN_SESSION_KEY = 'proxy-max-admin-token';
+let adminTokenPrompt = null;
+function storedAdminToken() {
+  try { return sessionStorage.getItem(ADMIN_TOKEN_SESSION_KEY) || ''; }
+  catch { return ''; }
+}
+function askForAdminToken() {
+  if (!adminTokenPrompt) {
+    adminTokenPrompt = Promise.resolve().then(() => window.prompt('Proxy-Max admin token') || '').finally(() => {
+      adminTokenPrompt = null;
+    });
+  }
+  return adminTokenPrompt;
+}
+window.fetch = async function proxyMaxFetch(input, init = {}) {
+  const requestUrl = new URL(typeof input === 'string' || input instanceof URL ? input : input.url, location.href);
+  if (requestUrl.origin !== location.origin || !requestUrl.pathname.startsWith('/api/')) {
+    return nativeFetch(input, init);
+  }
+  const send = token => {
+    const headers = new Headers(init.headers || (input instanceof Request ? input.headers : undefined));
+    if (token) headers.set('x-proxy-max-admin-token', token);
+    return nativeFetch(input, { ...init, headers });
+  };
+  let token = storedAdminToken();
+  let response = await send(token);
+  if (response.status !== 401) return response;
+  try { sessionStorage.removeItem(ADMIN_TOKEN_SESSION_KEY); } catch {}
+  token = await askForAdminToken();
+  if (!token) return response;
+  try { sessionStorage.setItem(ADMIN_TOKEN_SESSION_KEY, token); } catch {}
+  response = await send(token);
+  if (response.status === 401) {
+    try { sessionStorage.removeItem(ADMIN_TOKEN_SESSION_KEY); } catch {}
+  }
+  return response;
+};
 
 async function refreshModels(force = false) {
   const suffix = force ? '?refresh=1' : '';
@@ -2368,8 +2418,14 @@ async function runSelfUpdate() {
 }
 
 // ── Model Pool ──
-let _poolData = { pool: [], rrIndex: 0 };
+let _poolData = { pool: [], poolKeys: [], stats: [], rrIndex: 0 };
 async function loadPool() { try { _poolData = await fetch('/api/pool').then(r => r.json()); renderPool(_poolData); } catch {} }
+function poolSaveState() {
+  const pool = (_poolData.pool || []).map(entry => JSON.parse(JSON.stringify(entry)));
+  const returnedKeys = Array.isArray(_poolData.poolKeys) ? _poolData.poolKeys : [];
+  const poolKeys = pool.map((entry, index) => returnedKeys[index] || entry.statsKey || entry.key || null);
+  return { pool, poolKeys };
+}
 function renderPool(data) {
   const pool = data.pool || [];
   const sizeEl = $('#poolSizePill'); if (sizeEl) sizeEl.innerHTML = `<span class="dot" style="background:${pool.length>0?'var(--ok)':'var(--mute)'}"></span>${pool.length} model${pool.length!==1?'s':''}`;
@@ -2378,12 +2434,16 @@ function renderPool(data) {
   if (pool.length === 0) { list.innerHTML = '<div class="small" style="color:var(--dim);padding:10px 0">No models in pool yet — add one below.</div>'; return; }
   const provAbbr = { nvidia:'N', azure:'A', bedrock:'B', cloudflare:'CF' };
   list.innerHTML = pool.map((e, i) => {
-    const s = e.stats || { req:0, err:0, lastMs:0, cooldownSecsLeft:0 };
+    const provider = String(e.provider || '').toLowerCase();
+    const providerClass = /^[a-z0-9_-]+$/.test(provider) ? provider : '';
+    const s = (data.stats || [])[i] || e.stats || { req:0, err:0, lastMs:0, cooldownSecsLeft:0 };
     const cooled = (s.cooldownSecsLeft || 0) > 0;
     const errPct = s.req > 0 ? Math.round(s.err / s.req * 100) : 0;
-    const statStr = `${s.req} req · ${s.err} err${s.req>0?' · '+s.lastMs+'ms':''}`;
+    const priority = Number.isFinite(Number(s.priority ?? e.priority)) ? Number(s.priority ?? e.priority) : 100;
+    const live = Number.isFinite(Number(s.capacity)) ? ` · ${Number(s.inFlight)||0}/${Number(s.capacity)||0} live` : '';
+    const statStr = `${s.req} req · ${s.err} err${s.req>0?' · '+s.lastMs+'ms':''}${live}`;
     const coolBadge = cooled ? `<span class="cooldown-badge">${SVG.pause} ${s.cooldownSecsLeft >= 3600 ? Math.ceil(s.cooldownSecsLeft/60)+'m' : s.cooldownSecsLeft+'s'}</span>` : '';
-    return `<div class="pool-row${cooled?' cooled':''}"><div class="pool-prov ${e.provider}">${provAbbr[e.provider]||'?'}</div><div class="pool-info"><div class="pool-label">${escapeHtml(e.label || e.model)}</div><div class="pool-model">${escapeHtml(e.model)}</div></div>${coolBadge}<span class="pool-stat ${s.err>0&&errPct>50?'warn':''}">${escapeHtml(statStr)}</span><button class="btn-remove" data-pool-idx="${i}" title="Remove">${SVG.trash}</button></div>`;
+    return `<div class="pool-row${cooled?' cooled':''}"><div class="pool-prov ${providerClass}">${provAbbr[provider]||'?'}</div><div class="pool-info"><div class="pool-label">${escapeHtml(e.label || e.model)}</div><div class="pool-model">${escapeHtml(e.model)} · priority ${priority}</div></div>${coolBadge}<span class="pool-stat ${s.err>0&&errPct>50?'warn':''}">${escapeHtml(statStr)}</span><button class="btn-remove" data-pool-idx="${i}" title="Remove">${SVG.trash}</button></div>`;
   }).join('');
   for (const btn of list.querySelectorAll('.btn-remove')) btn.addEventListener('click', () => removeFromPool(Number(btn.dataset.poolIdx)));
 }
@@ -2423,22 +2483,25 @@ async function addToPool() {
   const provider = $('#poolProvider').value;
   const model = ($('#poolModel').value || '').trim();
   const label = ($('#poolLabel').value || '').trim() || null;
+  const priorityRaw = ($('#poolPriority')?.value || '').trim();
+  const priority = Number(priorityRaw);
   const overrideEndpoint = ($('#poolEntryEndpoint')?.value || '').trim() || null;
   const overrideApiKey = ($('#poolEntryApiKey')?.value || '').trim() || null;
   const result = $('#poolAddResult');
   if (!model) { if (result) result.innerHTML = '<span class="err">Enter a model ID</span>'; return; }
-  const current = (_poolData.pool || []).map(e => { const o = { provider: e.provider, model: e.model, label: e.label || null }; for (const f of ['endpoint','apiKey','apiVersion','deployment','region']) if (e[f]) o[f] = e[f]; return o; });
-  if (current.some(e => e.provider === provider && e.model === model)) { if (result) result.innerHTML = '<span class="warn">Already in pool</span>'; return; }
-  const newEntry = { provider, model, label };
+  if (!priorityRaw || !Number.isFinite(priority)) { if (result) result.innerHTML = '<span class="err">Priority must be a number</span>'; return; }
+  const { pool: current, poolKeys } = poolSaveState();
+  const newEntry = { provider, model, label, priority };
   if (overrideEndpoint) newEntry.endpoint = overrideEndpoint;
   if (overrideApiKey) newEntry.apiKey = overrideApiKey;
   if (result) result.innerHTML = '<span class="small">saving…</span>';
   try {
-    const r = await fetch('/api/pool', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ pool: [...current, newEntry] }) });
+    const r = await fetch('/api/pool', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ pool: [...current, newEntry], poolKeys: [...poolKeys, null] }) });
     const j = await r.json();
     if (r.ok) {
       if (result) result.innerHTML = `<span class="ok">${SVG.check} added</span>`;
       $('#poolModel').value = ''; $('#poolLabel').value = '';
+      if ($('#poolPriority')) $('#poolPriority').value = '50';
       if ($('#poolEntryEndpoint')) $('#poolEntryEndpoint').value = '';
       if ($('#poolEntryApiKey')) $('#poolEntryApiKey').value = '';
       await loadPool(); setHealth(await fetch('/api/health').then(r=>r.json()));
@@ -2446,9 +2509,10 @@ async function addToPool() {
   } catch (e) { if (result) result.innerHTML = `<span class="err">${SVG.x} ${escapeHtml(e.message)}</span>`; }
 }
 async function removeFromPool(idx) {
-  const current = (_poolData.pool || []).map(e => { const o = { provider: e.provider, model: e.model, label: e.label || null }; for (const f of ['endpoint','apiKey','apiVersion','deployment','region']) if (e[f]) o[f] = e[f]; return o; });
+  const { pool: current, poolKeys } = poolSaveState();
   current.splice(idx, 1);
-  try { await fetch('/api/pool', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ pool: current }) }); await loadPool(); setHealth(await fetch('/api/health').then(r=>r.json())); } catch {}
+  poolKeys.splice(idx, 1);
+  try { await fetch('/api/pool', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ pool: current, poolKeys }) }); await loadPool(); setHealth(await fetch('/api/health').then(r=>r.json())); } catch {}
 }
 async function resetCircuits() { try { await fetch('/api/pool/reset-circuits', { method: 'POST' }); toast('Circuit breakers reset — all models active'); await loadPool(); } catch (e) { toast(e.message, false); } }
 

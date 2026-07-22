@@ -1,5 +1,8 @@
 const assert = require('assert');
+const fs = require('fs');
 const http = require('http');
+const os = require('os');
+const path = require('path');
 
 const { _test: openaiCompat } = require('./src/providers/openai_compat');
 const HistoryTrimmer = require('./src/optimizers/history-trimmer');
@@ -101,6 +104,15 @@ function testCacheKeepsToolIdsDistinct() {
   assert.notStrictEqual(a, b);
 }
 
+function testCacheTreatsPrototypeKeysAsData() {
+  const cache = new ResponseCache({ cacheGet(){}, cacheSet(){} });
+  const content = JSON.parse('{"role":"user","content":{"__proto__":{"polluted":true},"constructor":"data"}}');
+  const withPrototypeKeys = cache.makeKey('model', { messages: [content] });
+  const withoutPrototypeKeys = cache.makeKey('model', { messages: [{ role: 'user', content: {} }] });
+  assert.notStrictEqual(withPrototypeKeys, withoutPrototypeKeys);
+  assert.strictEqual({}.polluted, undefined);
+}
+
 async function postJSON(port, body) {
   return new Promise((resolve, reject) => {
     const req = http.request({
@@ -130,7 +142,20 @@ async function testFanoutHandlesParallelRequests() {
   await new Promise(resolve => upstream.listen(0, '127.0.0.1', resolve));
   const upstreamPort = upstream.address().port;
   const oldEnv = { ...process.env };
+  const isolatedRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'proxy-max-compat-'));
+  const isolatedHome = path.join(isolatedRoot, 'home');
+  fs.mkdirSync(isolatedHome, { recursive: true });
   process.env.PORT = '0';
+  process.env.HOST = '127.0.0.1';
+  delete process.env.PROXY_MAX_API_KEY;
+  delete process.env.PROXY_MAX_ADMIN_TOKEN;
+  delete process.env.PROXY_MAX_CORS_ORIGINS;
+  process.env.HOME = isolatedHome;
+  process.env.USERPROFILE = isolatedHome;
+  process.env.PROXY_MAX_DATA_DIR = path.join(isolatedRoot, 'data');
+  process.env.PROXY_MAX_CONFIG = path.join(isolatedRoot, 'config.json');
+  process.env.PROXY_MAX_LOG_DIR = path.join(isolatedRoot, 'logs');
+  process.env.PROXY_MAX_LOG_WRITE_MODE = 'sync';
   process.env.PROXY_MAX_CONFIG_JSON = JSON.stringify({
     provider: 'azure',
     providers: { azure: { model: 'gpt-test', endpoint: `http://127.0.0.1:${upstreamPort}`, apiKey: 'test', apiVersion: '2025-04-01-preview' } },
@@ -151,6 +176,7 @@ async function testFanoutHandlesParallelRequests() {
   await new Promise(resolve => proxy.server.close(resolve));
   await new Promise(resolve => upstream.close(resolve));
   process.env = oldEnv;
+  try { fs.rmSync(isolatedRoot, { recursive: true, force: true }); } catch {}
 }
 
 async function main() {
@@ -160,6 +186,7 @@ testResponsesParallelCallIdsRemainDistinct();
   testStreamingRequestsIncludeUsage();
   testHistoryTrimmerKeepsToolPairs();
   testCacheKeepsToolIdsDistinct();
+  testCacheTreatsPrototypeKeysAsData();
   await testFanoutHandlesParallelRequests();
   console.log('compat tests passed');
 }

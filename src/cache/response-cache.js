@@ -16,7 +16,14 @@ function normalizeForCache(value) {
   if (!value || typeof value !== 'object') return value;
   if (Array.isArray(value)) return value.map(normalizeForCache);
   const out = {};
-  for (const [k, v] of Object.entries(value)) out[k] = normalizeForCache(v);
+  for (const [k, v] of Object.entries(value)) {
+    Object.defineProperty(out, k, {
+      configurable: true,
+      enumerable: true,
+      writable: true,
+      value: normalizeForCache(v),
+    });
+  }
   return out;
 }
 
@@ -33,7 +40,14 @@ function stableStringify(value) {
     }
     const out = {};
     for (const k of Object.keys(v).sort()) {
-      if (typeof v[k] !== 'undefined' && typeof v[k] !== 'function') out[k] = normalize(v[k]);
+      if (typeof v[k] !== 'undefined' && typeof v[k] !== 'function') {
+        Object.defineProperty(out, k, {
+          configurable: true,
+          enumerable: true,
+          writable: true,
+          value: normalize(v[k]),
+        });
+      }
     }
     seen.delete(v);
     return out;
