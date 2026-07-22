@@ -213,4 +213,54 @@ describe("combo streaming readiness", () => {
     expect(text).toContain("event: message_stop");
     expect(text).toContain('"stop_reason":"end_turn"');
   });
+
+  it("falls back before malformed Claude tool JSON reaches the CLI", async () => {
+    const attempts = [];
+    const logs = [];
+    const toolStream = (partialJson) => [
+      `event: content_block_start\ndata: ${JSON.stringify({
+        type: "content_block_start",
+        index: 0,
+        content_block: { type: "tool_use", id: "tool_1", name: "Bash", input: {} },
+      })}\n\n`,
+      `event: content_block_delta\ndata: ${JSON.stringify({
+        type: "content_block_delta",
+        index: 0,
+        delta: { type: "input_json_delta", partial_json: partialJson },
+      })}\n\n`,
+      `event: content_block_stop\ndata: ${JSON.stringify({ type: "content_block_stop", index: 0 })}\n\n`,
+      `event: message_stop\ndata: ${JSON.stringify({ type: "message_stop" })}\n\n`,
+    ].join("");
+
+    const response = await handleComboChat({
+      body: {
+        tools: [{ name: "Bash", input_schema: { type: "object" } }],
+        messages: [{ role: "user", content: "run the tests" }],
+      },
+      models: ["oc/big-pickle", "oc/valid-tools"],
+      comboName: "claude-auto",
+      comboStrategy: "fallback",
+      modelCooldownMs: 60_000,
+      log: {
+        info() {},
+        warn(_scope, message) { logs.push(message); },
+      },
+      handleSingleModel: async (_body, model) => {
+        attempts.push(model);
+        const args = model === "oc/big-pickle"
+          ? '{"command":"npm test"'
+          : '{"command":"npm test"}';
+        return new Response(toolStream(args), {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" },
+        });
+      },
+    });
+
+    expect(attempts).toEqual(["oc/big-pickle", "oc/valid-tools"]);
+    expect(logs.some((message) => message.includes("invalid Claude tool stream"))).toBe(true);
+    const text = await response.text();
+    expect(text).toContain('"partial_json":"{\\"command\\":\\"npm test\\"}"');
+    expect(text).not.toContain('"partial_json":"{\\"command\\":\\"npm test\\""');
+  });
 });

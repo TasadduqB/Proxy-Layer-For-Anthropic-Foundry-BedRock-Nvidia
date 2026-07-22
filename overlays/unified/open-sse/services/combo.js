@@ -121,6 +121,10 @@ const CLAUDE_TOOL_MAX_TEXT_CHARS = positiveMs(
   process.env.CLAUDE_TOOL_MAX_TEXT_CHARS,
   64 * 1024,
 );
+const CLAUDE_TOOL_MAX_STREAM_BYTES = positiveMs(
+  process.env.CLAUDE_TOOL_MAX_STREAM_BYTES,
+  8 * 1024 * 1024,
+);
 
 function comboModelHealthKey(comboName, model) {
   return `${comboName || "__default__"}\u0000${model}`;
@@ -353,6 +357,125 @@ export function guardClaudeToolStream(response, options = {}) {
     statusText: response.statusText,
     headers: response.headers,
   });
+}
+
+function joinByteChunks(chunks, totalBytes) {
+  const joined = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    joined.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return joined;
+}
+
+/**
+ * Buffer and validate Claude tool-use SSE before exposing it to Claude Code.
+ *
+ * A provider can return HTTP 200 and only reveal broken function arguments in
+ * its final stream chunk. Once any part of that stream reaches Claude Code the
+ * combo can no longer fall back, and the CLI reports an opaque "input JSON
+ * failed to parse" error. Buffering is deliberately limited to managed Claude
+ * tool requests, where correctness is more important than token-by-token UI.
+ */
+export async function validateClaudeToolStream(response, options = {}) {
+  const contentType = response?.headers?.get?.("content-type") || "";
+  if (!response?.body || !contentType.toLowerCase().includes("text/event-stream")) {
+    return { response };
+  }
+
+  const maxBytes = positiveMs(options.maxBytes, CLAUDE_TOOL_MAX_STREAM_BYTES);
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const chunks = [];
+  const tools = new Map();
+  let totalBytes = 0;
+  let lineBuffer = "";
+
+  const inspectLine = (line) => {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith("data:")) return;
+    const raw = trimmed.slice(5).trim();
+    if (!raw || raw === "[DONE]") return;
+
+    let event;
+    try {
+      event = JSON.parse(raw);
+    } catch {
+      throw new Error("Malformed Claude SSE event JSON");
+    }
+
+    if (event?.type === "content_block_start" && event.content_block?.type === "tool_use") {
+      tools.set(event.index, {
+        name: event.content_block.name || "unknown tool",
+        initialInput: event.content_block.input,
+        partialJson: "",
+      });
+      return;
+    }
+
+    if (event?.type === "content_block_delta" && event.delta?.type === "input_json_delta") {
+      const tool = tools.get(event.index);
+      if (tool && typeof event.delta.partial_json === "string") {
+        tool.partialJson += event.delta.partial_json;
+      }
+    }
+  };
+
+  const inspectBytes = (bytes, flush = false) => {
+    lineBuffer += decoder.decode(bytes, { stream: !flush });
+    const lines = lineBuffer.split(/\r?\n/);
+    lineBuffer = lines.pop() || "";
+    for (const line of lines) inspectLine(line);
+    if (flush && lineBuffer) {
+      inspectLine(lineBuffer);
+      lineBuffer = "";
+    }
+  };
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBytes) {
+        await reader.cancel("Claude tool stream validation limit exceeded").catch(() => {});
+        return {
+          error: `Claude tool stream exceeded ${maxBytes} bytes before validation`,
+          status: 502,
+        };
+      }
+      chunks.push(value);
+      inspectBytes(value);
+    }
+    inspectBytes(new Uint8Array(), true);
+
+    for (const tool of tools.values()) {
+      if (!tool.partialJson) {
+        if (tool.initialInput && typeof tool.initialInput === "object") continue;
+        throw new Error(`Missing input JSON for ${tool.name}`);
+      }
+      try {
+        const parsed = JSON.parse(tool.partialJson);
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          throw new Error("tool input must be an object");
+        }
+      } catch {
+        throw new Error(`Malformed input JSON for ${tool.name}`);
+      }
+    }
+
+    return {
+      response: new Response(joinByteChunks(chunks, totalBytes), {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      }),
+    };
+  } catch (error) {
+    await reader.cancel(error).catch(() => {});
+    return { error: error?.message || String(error), status: 502 };
+  }
 }
 
 // Trailing run of items after the last assistant/model turn = the current user
@@ -604,9 +727,22 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
               },
             })
           : ready.response;
+        const validated = claudeToolRequest
+          ? await validateClaudeToolStream(guardedResponse)
+          : { response: guardedResponse };
+        if (!validated.response) {
+          lastError = validated.error;
+          if (!lastStatus) lastStatus = validated.status;
+          coolComboModel(comboName, modelStr, modelCooldownMs);
+          log.warn("COMBO", `Model ${modelStr} emitted an invalid Claude tool stream, trying next`, {
+            status: validated.status,
+            error: validated.error,
+          });
+          continue;
+        }
         markComboModelSuccess(comboName, modelStr);
         log.info("COMBO", `Model ${modelStr} succeeded`);
-        return guardedResponse;
+        return validated.response;
       }
 
       // Extract error info from response
