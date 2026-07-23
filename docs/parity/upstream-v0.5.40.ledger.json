@@ -11856,13 +11856,13 @@
       },
       "implementation": {
         "path": "overlays/unified/package.json",
-        "sha256": "dc60768876fe2580dea08fde759139f7fc9019ec2a6b3e5d09ed8cca402e5589",
-        "size": 2007,
+        "sha256": "6020106f2f4268fe208b87f5d785a10cbb69fc4c393078d73617e748bfb83c3e",
+        "size": 2006,
         "runtimePath": ".proxy-max/runtime/unified/package.json"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/package.json#sha256=abc366fdcb8b1bb8ee1aa03740102fcf4fea81efb6034d545b09777c01dfd719",
-        "implementationBlob": "overlays/unified/package.json#sha256=dc60768876fe2580dea08fde759139f7fc9019ec2a6b3e5d09ed8cca402e5589",
+        "implementationBlob": "overlays/unified/package.json#sha256=6020106f2f4268fe208b87f5d785a10cbb69fc4c393078d73617e748bfb83c3e",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -32064,8 +32064,8 @@
       "path": "upstream/router-core/package-lock.json",
       "category": "infra",
       "disposition": "generated-dependency-lock",
-      "sha256": "61e133f1df6633ffe9d824ad6920c4b753d640ce9f2cd3b33dde0a2fbc9da788",
-      "size": 358910,
+      "sha256": "9fc81062ac5d5cce98e9b1c8a29f441caa72749656b7195b3ed60d1a133c45ee",
+      "size": 358908,
       "runtimePath": ".proxy-max/runtime/unified/package-lock.json",
       "evidence": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-generated-lock"
     },

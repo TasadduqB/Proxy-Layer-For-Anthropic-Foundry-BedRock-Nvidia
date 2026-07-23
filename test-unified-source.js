@@ -25,6 +25,10 @@ const dependencyLock = JSON.parse(fs.readFileSync(
   path.join(__dirname, 'upstream', 'router-core', 'package-lock.json'),
   'utf8',
 ));
+const rootPackage = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+assert.strictEqual(overlayPackage.version, rootPackage.version);
+assert.strictEqual(dependencyLock.version, overlayPackage.version);
+assert.strictEqual(dependencyLock.packages[''].version, overlayPackage.version);
 assert.strictEqual(overlayPackage.engines.node, '>=20.19.0');
 assert.strictEqual(overlayPackage.devDependencies.vitest, '^4.0.0');
 assert.strictEqual(overlayPackage.overrides.dompurify, '3.4.12');

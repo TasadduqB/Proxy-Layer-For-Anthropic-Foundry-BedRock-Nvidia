@@ -1,6 +1,6 @@
 {
   "name": "proxy-max-app",
-  "version": "0.5.40",
+  "version": "2.0.0",
   "description": "Proxy Max web dashboard",
   "private": true,
   "scripts": {
