@@ -21,12 +21,16 @@ describe("Proxy Max integration branding", () => {
     expect(sidebar).toContain("Update Proxy Max");
   });
 
-  it("checks a trusted Git source without registry traffic", () => {
+  it("selects a trusted updater for Git and npm distributions", () => {
     const route = fs.readFileSync(path.join(root, "src/app/api/version/route.js"), "utf8");
+    const npmUpdate = fs.readFileSync(path.join(root, "src/lib/npmUpdate.js"), "utf8");
     expect(route).toContain("getGitUpdateStatus");
-    expect(route).toContain('updatePolicy: "trusted-git-fast-forward"');
+    expect(route).toContain('"trusted-git-fast-forward"');
+    expect(route).toContain("getNpmUpdateStatus");
+    expect(route).toContain('"trusted-npm-package"');
     expect(route).not.toContain("registry.npmjs.org");
     expect(route).not.toContain('from "https"');
+    expect(npmUpdate).toContain('const REGISTRY_ORIGIN = "https://registry.npmjs.org"');
   });
 
   it("brands page metadata and keeps the local dashboard free of analytics beacons", () => {

@@ -73,6 +73,17 @@ export async function killAppProcesses() {
 }
 
 function resolveRelaunchCommand() {
+  const installedCli = process.env.PROXY_MAX_NPM_CLI_PATH;
+  if (installedCli && path.isAbsolute(installedCli)) {
+    try {
+      const realCli = fs.realpathSync(installedCli);
+      const packageRoot = path.resolve(path.dirname(realCli), "..");
+      const pkg = JSON.parse(fs.readFileSync(path.join(packageRoot, "package.json"), "utf8"));
+      if (pkg?.name === TRUSTED_PACKAGE && path.basename(realCli) === "npm-cli.js") {
+        return { cmd: process.execPath, args: [realCli] };
+      }
+    } catch {}
+  }
   const names = process.platform === "win32" ? ["npx.cmd", "npx.exe"] : ["npx"];
   const candidates = [];
   for (const dir of (process.env.PATH || "").split(path.delimiter).filter(Boolean)) {
@@ -127,7 +138,7 @@ export function spawnUpdaterAndExit(packageName = TRUSTED_PACKAGE) {
   });
   child.unref();
   setTimeout(() => process.exit(0), UPDATER_CONFIG.exitDelayMs).unref?.();
-  return { pid: child.pid };
+  return { pid: child.pid, statusPort: UPDATER_CONFIG.statusPort };
 }
 
 export function spawnGitUpdaterAndExit(update) {

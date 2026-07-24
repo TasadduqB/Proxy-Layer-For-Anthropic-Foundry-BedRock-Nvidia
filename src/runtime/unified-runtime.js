@@ -228,7 +228,7 @@ function verifySnapshot(options = {}) {
 
 function installDependencies(options = {}) {
   assertSupportedNode(options.nodeVersion);
-  verifySnapshot(options);
+  if (options.verifySnapshot !== false) verifySnapshot(options);
   const projectDir = options.upstreamDir || options.projectDir
     ? path.resolve(options.upstreamDir || options.projectDir)
     : materializeRuntimeSource().runtimeDir;
@@ -246,7 +246,7 @@ function installDependencies(options = {}) {
 
 function buildStandalone(options = {}) {
   assertSupportedNode(options.nodeVersion);
-  verifySnapshot(options);
+  if (options.verifySnapshot !== false) verifySnapshot(options);
   const projectDir = options.upstreamDir || options.projectDir
     ? path.resolve(options.upstreamDir || options.projectDir)
     : materializeRuntimeSource().runtimeDir;

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-const { deriveCliToken } = require('../src/migration/unified-migration');
+const { deriveCliToken } = require('../src/runtime/cli-auth');
 const { parsePort, resolveDataDir } = require('../src/runtime/unified-runtime');
 
 async function main(options = {}) {

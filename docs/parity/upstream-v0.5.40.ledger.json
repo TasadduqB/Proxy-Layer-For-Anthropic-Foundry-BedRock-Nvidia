@@ -29,10 +29,10 @@
     "staleEntries": 0,
     "zeroUnmapped": true,
     "zeroStale": true,
-    "overlayPaths": 391,
+    "overlayPaths": 393,
     "overlayReplacements": 325,
-    "overlayAdditions": 66,
-    "materializedSourceFiles": 1409,
+    "overlayAdditions": 68,
+    "materializedSourceFiles": 1411,
     "byCategory": {
       "api-route": 150,
       "asset": 131,
@@ -55,9 +55,9 @@
       "api-route": 2,
       "asset": 6,
       "executor": 1,
-      "other": 17,
+      "other": 18,
       "provider": 1,
-      "test": 34,
+      "test": 35,
       "translator": 3,
       "ui-page/component": 2
     }
@@ -21401,13 +21401,13 @@
       },
       "implementation": {
         "path": "overlays/unified/src/app/api/version/route.js",
-        "sha256": "8088cd1cc87fb33e56d1b5147b020a41b8de0abd626c82a7a854a93464407d38",
-        "size": 560,
+        "sha256": "af1b4a3dc84104027318a1eb25a42171fb7c1c02445d7ed6a339fcbf8f4e0eaa",
+        "size": 855,
         "runtimePath": ".proxy-max/runtime/unified/src/app/api/version/route.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/src/app/api/version/route.js#sha256=fe53620ebcee2864e346d5427f7ff4d3be79f722703dff988e0a32afdb914559",
-        "implementationBlob": "overlays/unified/src/app/api/version/route.js#sha256=8088cd1cc87fb33e56d1b5147b020a41b8de0abd626c82a7a854a93464407d38",
+        "implementationBlob": "overlays/unified/src/app/api/version/route.js#sha256=af1b4a3dc84104027318a1eb25a42171fb7c1c02445d7ed6a339fcbf8f4e0eaa",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -21447,13 +21447,13 @@
       },
       "implementation": {
         "path": "overlays/unified/src/app/api/version/update/route.js",
-        "sha256": "e0627a9f9bf115342c80f29724707182c6a4e93c1f0a3248ba0ae3ae0a15f2c0",
-        "size": 1021,
+        "sha256": "eea15e8012ad734604f93da29612f63521eaa6d20b56ba29210ab54219945a8e",
+        "size": 1539,
         "runtimePath": ".proxy-max/runtime/unified/src/app/api/version/update/route.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/src/app/api/version/update/route.js#sha256=480e184178bc9c4419d4b36992bb586d2612b455d33d945329d49f291ba12975",
-        "implementationBlob": "overlays/unified/src/app/api/version/update/route.js#sha256=e0627a9f9bf115342c80f29724707182c6a4e93c1f0a3248ba0ae3ae0a15f2c0",
+        "implementationBlob": "overlays/unified/src/app/api/version/update/route.js#sha256=eea15e8012ad734604f93da29612f63521eaa6d20b56ba29210ab54219945a8e",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -21953,13 +21953,13 @@
       },
       "implementation": {
         "path": "overlays/unified/src/lib/appUpdater.js",
-        "sha256": "b08fea5027d3175d67691ae37cb877cda73ef59d574af7a5b6b0c4c49e2b4ab0",
-        "size": 6757,
+        "sha256": "85c535384161c5bd47fea43b9e561a5fbc6f2bcbd83775163690c5b2fafdea50",
+        "size": 7309,
         "runtimePath": ".proxy-max/runtime/unified/src/lib/appUpdater.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/src/lib/appUpdater.js#sha256=afe4c9f9b94f267555452df71f796edf3578c821d2c0e97a4275a4e173723cd7",
-        "implementationBlob": "overlays/unified/src/lib/appUpdater.js#sha256=b08fea5027d3175d67691ae37cb877cda73ef59d574af7a5b6b0c4c49e2b4ab0",
+        "implementationBlob": "overlays/unified/src/lib/appUpdater.js#sha256=85c535384161c5bd47fea43b9e561a5fbc6f2bcbd83775163690c5b2fafdea50",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -31277,6 +31277,23 @@
       }
     },
     {
+      "path": "src/lib/npmUpdate.js",
+      "category": "other",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/src/lib/npmUpdate.js",
+        "sha256": "82c1c3fa645e6cb3d37499f16a3af19893e5ff7e190c43d9dde8662bae9236e4",
+        "size": 2465,
+        "runtimePath": ".proxy-max/runtime/unified/src/lib/npmUpdate.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/src/lib/npmUpdate.js#sha256=82c1c3fa645e6cb3d37499f16a3af19893e5ff7e190c43d9dde8662bae9236e4",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
       "path": "src/lib/nvidiaCatalog.js",
       "category": "other",
       "disposition": "proxy-max-addition",
@@ -31634,6 +31651,23 @@
       }
     },
     {
+      "path": "tests/unit/npm-update.test.js",
+      "category": "test",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "verification-source",
+      "implementation": {
+        "path": "overlays/unified/tests/unit/npm-update.test.js",
+        "sha256": "e2308fc51bfb7ff7d5afca54762c12f4ef2eec50bf9a2dd6b8fae4a9a342728c",
+        "size": 1601,
+        "runtimePath": ".proxy-max/runtime/unified/tests/unit/npm-update.test.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/tests/unit/npm-update.test.js#sha256=e2308fc51bfb7ff7d5afca54762c12f4ef2eec50bf9a2dd6b8fae4a9a342728c",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
       "path": "tests/unit/pdf-document-input.test.js",
       "category": "test",
       "disposition": "proxy-max-addition",
@@ -31776,12 +31810,12 @@
       "runtimeTreatment": "verification-source",
       "implementation": {
         "path": "overlays/unified/tests/unit/proxy-max-branding.test.js",
-        "sha256": "b8b7e376f85e46c693fe0d365786761082e44ab2aa5039cc3a032fd06abe0953",
-        "size": 3774,
+        "sha256": "4ffad5f64202c3e5ca21cd3e0d0a9002a0aa469ee357edb9e466d94639615532",
+        "size": 4045,
         "runtimePath": ".proxy-max/runtime/unified/tests/unit/proxy-max-branding.test.js"
       },
       "evidence": {
-        "implementationBlob": "overlays/unified/tests/unit/proxy-max-branding.test.js#sha256=b8b7e376f85e46c693fe0d365786761082e44ab2aa5039cc3a032fd06abe0953",
+        "implementationBlob": "overlays/unified/tests/unit/proxy-max-branding.test.js#sha256=4ffad5f64202c3e5ca21cd3e0d0a9002a0aa469ee357edb9e466d94639615532",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }

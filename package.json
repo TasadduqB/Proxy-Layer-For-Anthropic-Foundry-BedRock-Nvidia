@@ -2,7 +2,6 @@
   "name": "proxy-max",
   "version": "2.0.0",
   "description": "Local-first multi-provider AI gateway with protocol translation, account routing, media APIs, proxy pools, and a secure operations dashboard.",
-  "main": "src/server.js",
   "keywords": [
     "claude-code",
     "proxy",
@@ -22,7 +21,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/TasadduqB/Proxy-Layer-For-Anthropic-Foundry-BedRock-Nvidia.git"
+    "url": "git+https://github.com/TasadduqB/Proxy-Layer-For-Anthropic-Foundry-BedRock-Nvidia.git"
   },
   "author": "Tasadduq Burney",
   "homepage": "https://github.com/TasadduqB/Proxy-Layer-For-Anthropic-Foundry-BedRock-Nvidia#readme",
@@ -30,8 +29,18 @@
     "url": "https://github.com/TasadduqB/Proxy-Layer-For-Anthropic-Foundry-BedRock-Nvidia/issues"
   },
   "bin": {
-    "proxy-max": "src/launch.js"
+    "proxy-max": "src/npm-cli.js"
   },
+  "files": [
+    "assets",
+    "npm-runtime",
+    "scripts/reset-unified-password.js",
+    "src/npm-cli.js",
+    "src/runtime",
+    "LICENSE",
+    "README.md",
+    "THIRD_PARTY_NOTICES.md"
+  ],
   "scripts": {
     "start": "node src/runtime/supervisor.js",
     "start:legacy": "node src/server.js",
@@ -55,6 +64,11 @@
     "verify:upstream": "node scripts/verify-upstream-snapshot.js",
     "test:unified": "node scripts/test-unified.js",
     "verify:full": "npm run unified:parity:gate && npm run test:unified && npm run unified:build && npm run unified:doctor && npm run unified:smoke && npm test",
+    "package:test": "node test-npm-package.js",
+    "package:smoke": "node test-npm-package.js --full",
+    "package:verify": "npm test && npm run verify:parity && npm run package:test",
+    "prepack": "node scripts/prepare-npm-package.js",
+    "prepublishOnly": "npm run package:verify",
     "test": "node test-security.js && node test-security-integration.js && node test-pool-routing.js && node test-pool-api.js && node test-unified-source.js && node test-unified-runtime.js && node test-unified-recovery.js && node test-unified-migration.js && node test-unified-migration-integration.js && node test-unified-api-security.js && node test-compat.js && node test-token-counter.js && node test-optimizer-idempotency.js && node test-prose-determinism.js && node test-tool-json-repair.js"
   },
   "comments": {
@@ -69,6 +83,9 @@
   },
   "engines": {
     "node": ">=20.19.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "license": "MIT"
 }

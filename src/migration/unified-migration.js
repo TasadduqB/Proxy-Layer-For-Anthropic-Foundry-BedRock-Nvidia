@@ -10,6 +10,7 @@ const {
   spawnUnified,
   waitForHealth,
 } = require('../runtime/unified-runtime');
+const { deriveCliToken } = require('../runtime/cli-auth');
 const { resolvePoolMember } = require('../routing/pool-routing');
 
 const ROOT = path.resolve(__dirname, '../..');
@@ -546,12 +547,6 @@ function mergeImportPayload(existing, plan) {
     if (!hasOwn(base, key)) base[key] = fallback;
   }
   return base;
-}
-
-function deriveCliToken(dataDir) {
-  const raw = fs.readFileSync(path.join(dataDir, 'machine-id'), 'utf8').trim();
-  const secret = fs.readFileSync(path.join(dataDir, 'auth', 'cli-secret'), 'utf8').trim();
-  return crypto.createHash('sha256').update(`${raw}9r-cli-auth${secret}`).digest('hex').slice(0, 16);
 }
 
 function ensureCliAuthFiles(dataDir) {
