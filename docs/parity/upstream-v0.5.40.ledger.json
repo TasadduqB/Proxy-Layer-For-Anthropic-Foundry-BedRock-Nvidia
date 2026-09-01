@@ -771,13 +771,13 @@
       },
       "implementation": {
         "path": "overlays/unified/cli/src/cli/menus/cliTools.js",
-        "sha256": "a40ddf17c205714d1ec07f4851068558a953dcc86f1362d8b16618e327880a55",
-        "size": 22243,
+        "sha256": "e96fc960df49613000499ba3101e180169956852409999edbed686179497086c",
+        "size": 22794,
         "runtimePath": ".proxy-max/runtime/unified/cli/src/cli/menus/cliTools.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/cli/src/cli/menus/cliTools.js#sha256=b3ea025cc3a6747deb61308129fe76ba1178424f2a67063c294bf50f9253d74b",
-        "implementationBlob": "overlays/unified/cli/src/cli/menus/cliTools.js#sha256=a40ddf17c205714d1ec07f4851068558a953dcc86f1362d8b16618e327880a55",
+        "implementationBlob": "overlays/unified/cli/src/cli/menus/cliTools.js#sha256=e96fc960df49613000499ba3101e180169956852409999edbed686179497086c",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -11857,13 +11857,13 @@
       },
       "implementation": {
         "path": "overlays/unified/package.json",
-        "sha256": "35a9d4ddfc23eea21bfcf6a0295408277cbd9b17d58dad2097cc4fd9bae863d5",
+        "sha256": "7bcdd9900856174e2287598a78dc8c79241c707cc12b69f4beebb70d1364586b",
         "size": 2007,
         "runtimePath": ".proxy-max/runtime/unified/package.json"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/package.json#sha256=abc366fdcb8b1bb8ee1aa03740102fcf4fea81efb6034d545b09777c01dfd719",
-        "implementationBlob": "overlays/unified/package.json#sha256=35a9d4ddfc23eea21bfcf6a0295408277cbd9b17d58dad2097cc4fd9bae863d5",
+        "implementationBlob": "overlays/unified/package.json#sha256=7bcdd9900856174e2287598a78dc8c79241c707cc12b69f4beebb70d1364586b",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -33612,7 +33612,7 @@
       "path": "upstream/router-core/package-lock.json",
       "category": "infra",
       "disposition": "generated-dependency-lock",
-      "sha256": "5f6ea8d2f14b33c09aade57acc29c9211866e7d75444f5514b328865b62c9b26",
+      "sha256": "a2207cfcb17f34ce993b2c56e410ff4ce1670fd07d90e2f641866387bc61ad69",
       "size": 358910,
       "runtimePath": ".proxy-max/runtime/unified/package-lock.json",
       "evidence": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-generated-lock"

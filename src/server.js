@@ -3243,14 +3243,18 @@ function handleLaunchCommand(req, res) {
   const pathPs   = `$env:PATH = "${pathDirs.join(';')};$env:PATH"`;
   const pathCmds = pathDirs.map(d => `set PATH=${d};%PATH%`);
 
+  // No ANTHROPIC_DEFAULT_*_MODEL exports here. body.model is always overwritten
+  // with the configured pool member's model before forwarding upstream (see
+  // the pool-routing loop above) — the CLI's requested model name only gets
+  // echoed back for display. A "cc/..." value would be actively wrong: "cc" is
+  // the provider alias for the REAL Anthropic API (open-sse registry alias
+  // "cc"), which needs a real Anthropic credential nobody configures here —
+  // exporting it caused "model not found" / 401 / 404 for anyone whose Claude
+  // CLI (or another Proxy-Max runtime sharing this shell) actually honors it.
   const unix = [
     `export ANTHROPIC_BASE_URL="${base}"`,
     `export ANTHROPIC_AUTH_TOKEN="${authToken}"`,
     `export ANTHROPIC_API_KEY="${authToken}"`,
-    `export ANTHROPIC_DEFAULT_FABLE_MODEL="cc/claude-fable-5"`,
-    `export ANTHROPIC_DEFAULT_OPUS_MODEL="cc/claude-opus-4-8"`,
-    `export ANTHROPIC_DEFAULT_SONNET_MODEL="cc/claude-sonnet-5"`,
-    `export ANTHROPIC_DEFAULT_HAIKU_MODEL="cc/claude-haiku-4-5-20251001"`,
     pathUnix,
     `${claudeCmd} --dangerously-skip-permissions`,
   ].join('\n');
@@ -3271,10 +3275,6 @@ function handleLaunchCommand(req, res) {
     `$env:ANTHROPIC_BASE_URL = "${base}"`,
     `$env:ANTHROPIC_AUTH_TOKEN = "${authToken}"`,
     `$env:ANTHROPIC_API_KEY = "${authToken}"`,
-    `$env:ANTHROPIC_DEFAULT_FABLE_MODEL = "cc/claude-fable-5"`,
-    `$env:ANTHROPIC_DEFAULT_OPUS_MODEL = "cc/claude-opus-4-8"`,
-    `$env:ANTHROPIC_DEFAULT_SONNET_MODEL = "cc/claude-sonnet-5"`,
-    `$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "cc/claude-haiku-4-5-20251001"`,
     pathPs,
     psClaudeInvoke,
   ].join('\n');
@@ -3293,10 +3293,6 @@ function handleLaunchCommand(req, res) {
     `set ANTHROPIC_BASE_URL=${base}`,
     `set ANTHROPIC_AUTH_TOKEN=${authToken}`,
     `set ANTHROPIC_API_KEY=${authToken}`,
-    `set ANTHROPIC_DEFAULT_FABLE_MODEL=cc/claude-fable-5`,
-    `set ANTHROPIC_DEFAULT_OPUS_MODEL=cc/claude-opus-4-8`,
-    `set ANTHROPIC_DEFAULT_SONNET_MODEL=cc/claude-sonnet-5`,
-    `set ANTHROPIC_DEFAULT_HAIKU_MODEL=cc/claude-haiku-4-5-20251001`,
     ...pathCmds,
     cmdClaudeInvoke,
   ].join(' && ');

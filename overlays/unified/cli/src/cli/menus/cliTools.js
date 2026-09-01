@@ -85,10 +85,17 @@ async function claudeQuickSetup(port) {
     return;
   }
 
+  // Model routing belongs to Proxy Max, not Claude Code. The "cc/" prefix on
+  // CLAUDE_MODEL_TYPES' defaultValue is the registry alias for the REAL
+  // Anthropic API (open-sse/providers/registry/claude.js, alias "cc") — it
+  // requires a real Anthropic OAuth/API-key credential that Proxy Max users
+  // never configure (that's the whole point of routing elsewhere). Setting
+  // these here previously sent every "sonnet"/"opus"/"haiku" request straight
+  // at api.anthropic.com with no credentials, surfacing as 401/404/"model not
+  // found" — clear any stale ones instead of setting them.
   const env = { ANTHROPIC_BASE_URL: endpoint, ANTHROPIC_AUTH_TOKEN: apiKey, API_TIMEOUT_MS: "600000" };
-  CLAUDE_MODEL_TYPES.forEach(t => { env[t.envKey] = t.defaultValue; });
 
-  const result = await api.applyCliToolSettings("claude", { env });
+  const result = await api.applyCliToolSettings("claude", { env, clearModelEnv: true });
   showStatus(result.success ? "Quick Setup completed!" : `Failed: ${result.error}`, result.success ? "success" : "error");
   await pause();
 }
