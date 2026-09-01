@@ -1,7 +1,12 @@
 // Curated model catalog. UI lets users type custom ids too.
 // Categorized so the UI can render groups; non-text models are excluded.
 
-module.exports = {
+const registry = require('./providers/registry');
+
+// `CURATED` is the original, hand-maintained catalog — unchanged, still the
+// primary shape everything in server.js/dashboard indexes into directly
+// (MODELS.bedrock, MODELS.azure, MODELS.nvidia, MODELS.cloudflare, ...).
+const CURATED = {
   bedrock: [
     { group: 'Anthropic — Claude 4',
       models: [
@@ -223,6 +228,14 @@ module.exports = {
     }
   ],
 
+  tokenrouter: [
+    { group: 'MoonshotAI — Free',
+      models: [
+        { id: 'moonshotai/kimi-k3-free', label: 'Kimi K3 Free' }
+      ]
+    }
+  ],
+
   cloudflare: [
     { group: 'Kimi — Moonshot AI',
       models: [
@@ -292,3 +305,18 @@ module.exports = {
     }
   ]
 };
+
+// Additional generic OpenAI-compatible providers (OpenRouter, Groq, Together,
+// Mistral, DeepSeek, xAI, Cohere, Perplexity, and ~120 more) adapted from
+// OmniRoute's provider registry — see src/providers/registry.js and
+// THIRD_PARTY_NOTICES.md. Only added under ids CURATED doesn't already use,
+// so the original bedrock/azure/nvidia/tokenrouter/cloudflare catalogs and
+// their existing "kind" dispatch in server.js are completely unaffected.
+const REGISTRY_CATALOG = registry.toFullCatalog();
+for (const id of Object.keys(REGISTRY_CATALOG)) {
+  if (!Object.prototype.hasOwnProperty.call(CURATED, id)) {
+    CURATED[id] = REGISTRY_CATALOG[id];
+  }
+}
+
+module.exports = CURATED;

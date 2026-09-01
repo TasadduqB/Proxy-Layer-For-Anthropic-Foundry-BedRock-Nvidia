@@ -9,7 +9,7 @@ import { createRequestLogger } from "../utils/requestLogger.js";
 import { getModelTargetFormat, getModelStrip, getModelUpstreamId, getModelType, PROVIDER_ID_TO_ALIAS } from "../config/providerModels.js";
 import { PROVIDERS } from "../config/providers.js";
 import { createErrorResult, parseUpstreamError, formatProviderError } from "../utils/error.js";
-import { HTTP_STATUS, TOKEN_SAVER_HEADER } from "../config/runtimeConfig.js";
+import { HTTP_STATUS, TOKEN_SAVER_HEADER, DEFAULT_MAX_TOKENS } from "../config/runtimeConfig.js";
 import { handleBypassRequest } from "../utils/bypassHandler.js";
 import { trackPendingRequest, appendRequestLog, saveRequestDetail } from "@/lib/usageDb.js";
 import { getExecutor } from "../executors/index.js";
@@ -184,6 +184,21 @@ async function handleChatCoreImpl({ body, modelInfo, credentials, log, onCredent
     toolNameMap = translatedBody._toolNameMap;
     delete translatedBody._toolNameMap;
     translatedBody.model = stripThinkingSuffix(upstreamModel);
+  }
+
+  // Universal safety net: on very long conversations, a client's own
+  // "remaining thinking budget" math can go negative, and either the
+  // passthrough path (untouched client body) or a translator that doesn't
+  // clamp it can carry that straight through. A negative/zero token limit is
+  // rejected by every upstream, so catch it here regardless of which path
+  // produced translatedBody rather than patching each translator individually.
+  for (const key of ["max_tokens", "max_output_tokens", "max_completion_tokens"]) {
+    if (translatedBody[key] === undefined) continue;
+    const n = Number(translatedBody[key]);
+    if (!Number.isFinite(n) || n < 1) {
+      log?.warn?.("CHAT", `Clamping invalid ${key} (${translatedBody[key]}) to default`, { provider, model });
+      translatedBody[key] = DEFAULT_MAX_TOKENS;
+    }
   }
 
   // Dedupe duplicate built-in tools when equivalent MCP tools are present (Claude clients only).

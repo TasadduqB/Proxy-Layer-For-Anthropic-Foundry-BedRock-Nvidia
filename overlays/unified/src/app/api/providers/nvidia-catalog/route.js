@@ -1,15 +1,19 @@
 import { NextResponse } from "next/server";
-import { getNvidiaCatalogModels } from "@/lib/nvidiaCatalog";
+import { getNvidiaCatalogModels, isNvidiaChatModelId } from "@/lib/nvidiaCatalog";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     const models = await getNvidiaCatalogModels();
+    // Exclude embedding/rerank/guard/TTS/etc. entries — this endpoint feeds
+    // chat-model pickers (Combo editor, provider "Available Models"), and
+    // those kinds are surfaced through their own dedicated config, not here.
+    const chatModels = models.filter(isNvidiaChatModelId);
     return NextResponse.json({
       provider: "nvidia",
-      models: models.map((id) => ({ id, name: id })),
-      count: models.length,
+      models: chatModels.map((id) => ({ id, name: id })),
+      count: chatModels.length,
       source: "live",
     });
   } catch (error) {

@@ -1,4 +1,4 @@
-// OpenAI-compatible providers (Azure AI Foundry + NVIDIA NIM).
+// OpenAI-compatible providers (Azure AI Foundry, NVIDIA NIM, TokenRouter, and Cloudflare Workers AI).
 // Both expose /v1/chat/completions; only auth + URL shape differ.
 // Azure also supports the newer Responses API at /openai/responses.
 
@@ -62,6 +62,13 @@ function enableInsecureTlsFallback(reason) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 }
 
+// OmniRoute-derived generic provider registry (~120 openai-compatible providers).
+// See src/providers/registry.js and THIRD_PARTY_NOTICES.md.
+const providerRegistry = require('./registry');
+function getRegistryProvider(kind) {
+  return providerRegistry.getProvider(kind);
+}
+
 const ALLOW_INSECURE = process.env.PROXY_INSECURE === '1' || process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0';
 // If PROXY_INSECURE=1 is set but undici isn't available, activate the env-var fallback immediately.
 if (ALLOW_INSECURE && !getInsecureDispatcher()) {
@@ -118,12 +125,13 @@ async function fetchWithCertFallback(url, opts) {
   }
 }
 
-async function fetchWithRetries(url, opts, contextLabel = 'upstream') {
+async function fetchWithRetries(url, opts, contextLabel = 'upstream', retryOptions = {}) {
+  const noRetryStatuses = new Set(retryOptions.noRetryStatuses || []);
   let lastErr = null;
   for (let attempt = 1; attempt <= DEFAULT_RETRY_ATTEMPTS; attempt++) {
     try {
       const resp = await fetchWithCertFallback(url, opts);
-      if (!shouldRetryUpstreamStatus(resp.status) || attempt === DEFAULT_RETRY_ATTEMPTS) {
+      if (noRetryStatuses.has(resp.status) || !shouldRetryUpstreamStatus(resp.status) || attempt === DEFAULT_RETRY_ATTEMPTS) {
         return resp;
       }
       const delay = retryDelayMs(attempt);
@@ -673,7 +681,7 @@ async function callWithWebSearchLoop(providerCfg, sanitizedBody, originalBody, r
         headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify(payloadNonStream),
         signal: controller.signal,
-      }, 'web-search-loop');
+      }, 'web-search-loop', cfg.kind === 'tokenrouter' ? { noRetryStatuses: [429] } : {});
     } catch (err) {
       clearTimeout(timer);
       if (err.name === 'AbortError') throw new Error(`Upstream timed out after ${webSearchTimeoutMs}ms in web-search loop`);
@@ -764,7 +772,7 @@ async function callWithWebSearchLoop(providerCfg, sanitizedBody, originalBody, r
   }
 }
 
-// providerCfg = { kind: 'azure'|'nvidia', endpoint, apiKey, model, apiVersion?, deployment? }
+// providerCfg = { kind: 'azure'|'nvidia'|'tokenrouter'|'cloudflare', endpoint, apiKey, model, apiVersion?, deployment? }
 async function callOpenAICompatible(providerCfg, body, res) {
   // Strip Anthropic-only fields (betas, cache_control, redacted_thinking, etc.)
   const sanitizedBody = sanitizeForUpstream(body, { preserveCacheControl: false });
@@ -793,7 +801,7 @@ async function callOpenAICompatible(providerCfg, body, res) {
       headers: { 'Content-Type': 'application/json', ...headers },
       body: JSON.stringify(payload),
       signal: controller.signal,
-    }, 'chat-completions');
+    }, 'chat-completions', cfg.kind === 'tokenrouter' ? { noRetryStatuses: [429] } : {});
   } catch (err) {
     clearTimeout(timer);
     if (err.name === 'AbortError') throw new Error(`Upstream connection timed out after ${connectTimeoutMs}ms (URL: ${url})`);
@@ -830,6 +838,15 @@ async function callOpenAICompatible(providerCfg, body, res) {
       const errText = await upstream.text();
       const err = new Error(`Upstream ${upstream.status} from ${url}: ${errText.slice(0, 600)}`);
       err.status = upstream.status;
+      const retryAfter = upstream.headers.get('retry-after');
+      if (retryAfter) {
+        const seconds = Number(retryAfter);
+        const dateMs = Date.parse(retryAfter);
+        const retryAfterMs = Number.isFinite(seconds)
+          ? seconds * 1000
+          : (Number.isFinite(dateMs) ? dateMs - Date.now() : 0);
+        if (retryAfterMs > 0) err.retryAfterMs = Math.min(retryAfterMs, 8 * 24 * 60 * 60 * 1000);
+      }
       err.contentType = upstream.headers.get('content-type') || null;
       err.stage = 'upstream-response';
       err.debug = {
@@ -1255,6 +1272,49 @@ function buildRequest(cfg) {
     };
   }
 
+  // TokenRouter accepts a root URL, a /v1 base URL, or the full
+  // /v1/chat/completions path depending on the client. Normalize all three.
+  if (cfg.kind === 'tokenrouter') {
+    const raw = (cfg.endpoint || 'https://api.tokenrouter.com/v1').trim().replace(/\/+$/, '');
+    let url;
+    try {
+      const parsed = new URL(raw);
+      if (/\/chat\/completions\/?$/i.test(parsed.pathname)) {
+        url = raw;
+      } else if (!parsed.pathname || parsed.pathname === '/') {
+        url = `${raw}/v1/chat/completions`;
+      } else {
+        url = `${raw}/chat/completions`;
+      }
+    } catch {
+      url = `${raw}/chat/completions`;
+    }
+    return {
+      url,
+      headers: { Authorization: `Bearer ${cfg.apiKey}` },
+      isResponsesApi: false
+    };
+  }
+
+  // Generic OpenAI-compatible provider from the registry (OmniRoute-derived
+  // catalog — see src/providers/registry.js). Covers ~120 providers
+  // (OpenRouter, Groq, Together, Mistral, DeepSeek, xAI, Cohere,
+  // Perplexity, etc.) that all speak plain bearer-token /chat/completions.
+  // cfg.endpoint always wins when set; otherwise fall back to the
+  // registry's baseUrl so users only need to set kind + apiKey.
+  if (cfg.kind !== 'nvidia') {
+    const registryEntry = getRegistryProvider(cfg.kind);
+    if (registryEntry) {
+      const base = (cfg.endpoint || registryEntry.baseUrl).replace(/\/+$/, '');
+      const url = /\/(chat\/completions|responses)(?:\?.*)?$/.test(base) ? base : `${base}/chat/completions`;
+      return {
+        url,
+        headers: { Authorization: `Bearer ${cfg.apiKey}` },
+        isResponsesApi: false
+      };
+    }
+  }
+
   // NVIDIA NIM (build.nvidia.com): https://integrate.api.nvidia.com/v1
   const base = (cfg.endpoint || 'https://integrate.api.nvidia.com/v1').replace(/\/+$/, '');
   return {
@@ -1270,6 +1330,7 @@ module.exports = {
     buildPayload,
     buildResponsesPayload,
     buildResponsesInput,
+    buildRequest,
     parseResponse,
     responsesToolUseId,
   }

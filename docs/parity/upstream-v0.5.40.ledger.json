@@ -29,10 +29,10 @@
     "staleEntries": 0,
     "zeroUnmapped": true,
     "zeroStale": true,
-    "overlayPaths": 393,
-    "overlayReplacements": 325,
-    "overlayAdditions": 68,
-    "materializedSourceFiles": 1411,
+    "overlayPaths": 515,
+    "overlayReplacements": 358,
+    "overlayAdditions": 157,
+    "materializedSourceFiles": 1500,
     "byCategory": {
       "api-route": 150,
       "asset": 131,
@@ -48,16 +48,17 @@
       "ui-page/component": 165
     },
     "byDisposition": {
-      "overlaid": 325,
-      "vendored-unchanged": 1017
+      "overlaid": 358,
+      "vendored-unchanged": 984
     },
     "byAdditionCategory": {
-      "api-route": 2,
+      "api-route": 3,
       "asset": 6,
       "executor": 1,
-      "other": 18,
-      "provider": 1,
-      "test": 35,
+      "infra": 9,
+      "other": 25,
+      "provider": 61,
+      "test": 47,
       "translator": 3,
       "ui-page/component": 2
     }
@@ -4395,7 +4396,7 @@
     {
       "path": "open-sse/config/errorConfig.js",
       "category": "other",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/config/errorConfig.js",
@@ -4403,15 +4404,15 @@
         "size": 3226
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/config/errorConfig.js",
-        "sha256": "d467c4ffceb6c2a9214ba0fe8dc19250af83cbf785868c5459c328b63469c4c4",
-        "size": 3226,
+        "path": "overlays/unified/open-sse/config/errorConfig.js",
+        "sha256": "7e966212bdcaf329b81c8b612d14ec69f80081b4edd9fc295b7ab278389cc8b7",
+        "size": 6008,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/config/errorConfig.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/config/errorConfig.js#sha256=d467c4ffceb6c2a9214ba0fe8dc19250af83cbf785868c5459c328b63469c4c4",
-        "implementationBlob": "upstream/router-core/open-sse/config/errorConfig.js#sha256=d467c4ffceb6c2a9214ba0fe8dc19250af83cbf785868c5459c328b63469c4c4",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/config/errorConfig.js#sha256=7e966212bdcaf329b81c8b612d14ec69f80081b4edd9fc295b7ab278389cc8b7",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -4680,13 +4681,13 @@
       },
       "implementation": {
         "path": "overlays/unified/open-sse/executors/azure.js",
-        "sha256": "ca6635372e82c86353f83d809287e7f1a498a217b6d072aa7b77eae5287d7a72",
-        "size": 10898,
+        "sha256": "7bdd656bb4846082e3f51a7b98ea5a33331b34c68f6da1aea70d77627c34bc31",
+        "size": 12046,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/executors/azure.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/executors/azure.js#sha256=e3a2134946e8b6395ef9fd1f929784f7c43e0c3a05140e32956d2ec3929fcc5a",
-        "implementationBlob": "overlays/unified/open-sse/executors/azure.js#sha256=ca6635372e82c86353f83d809287e7f1a498a217b6d072aa7b77eae5287d7a72",
+        "implementationBlob": "overlays/unified/open-sse/executors/azure.js#sha256=7bdd656bb4846082e3f51a7b98ea5a33331b34c68f6da1aea70d77627c34bc31",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -5232,13 +5233,13 @@
       },
       "implementation": {
         "path": "overlays/unified/open-sse/handlers/chatCore.js",
-        "sha256": "7fc5335fc4cb5042c0bc396af44e8139f3dfb26dfdc728408242b04c2d645ed6",
-        "size": 25740,
+        "sha256": "cdbd61bcd911dc1a1e47820801566ced23bc7dae02691825354b868723055273",
+        "size": 26598,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/handlers/chatCore.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/handlers/chatCore.js#sha256=c2a9be89229cea03c620ebaae52b890db9b73dc6228653dc04d2ab6ee531cce6",
-        "implementationBlob": "overlays/unified/open-sse/handlers/chatCore.js#sha256=7fc5335fc4cb5042c0bc396af44e8139f3dfb26dfdc728408242b04c2d645ed6",
+        "implementationBlob": "overlays/unified/open-sse/handlers/chatCore.js#sha256=cdbd61bcd911dc1a1e47820801566ced23bc7dae02691825354b868723055273",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -5269,7 +5270,7 @@
     {
       "path": "open-sse/handlers/chatCore/requestDetail.js",
       "category": "other",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/handlers/chatCore/requestDetail.js",
@@ -5277,15 +5278,15 @@
         "size": 5038
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/handlers/chatCore/requestDetail.js",
-        "sha256": "1b8defead87add7a0e886288185901c4a5611963c906bc199e03a642c6b01f36",
-        "size": 5038,
+        "path": "overlays/unified/open-sse/handlers/chatCore/requestDetail.js",
+        "sha256": "30da1a8c859ef72db41659fd323ef83969b1b0b7ad727588443ce51c7dedef5f",
+        "size": 5388,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/handlers/chatCore/requestDetail.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/handlers/chatCore/requestDetail.js#sha256=1b8defead87add7a0e886288185901c4a5611963c906bc199e03a642c6b01f36",
-        "implementationBlob": "upstream/router-core/open-sse/handlers/chatCore/requestDetail.js#sha256=1b8defead87add7a0e886288185901c4a5611963c906bc199e03a642c6b01f36",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/handlers/chatCore/requestDetail.js#sha256=30da1a8c859ef72db41659fd323ef83969b1b0b7ad727588443ce51c7dedef5f",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -6695,7 +6696,7 @@
     {
       "path": "open-sse/providers/registry/blackbox.js",
       "category": "provider",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/providers/registry/blackbox.js",
@@ -6703,15 +6704,15 @@
         "size": 1752
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/providers/registry/blackbox.js",
-        "sha256": "805587a98da89d4d54bcb3467dea9133d525d6013a3fc41525e912de7efff80e",
-        "size": 1752,
+        "path": "overlays/unified/open-sse/providers/registry/blackbox.js",
+        "sha256": "3d2480c8d10ec273170c43a34430a9a150b0217cd5c1846e141ab542e0d33d03",
+        "size": 1769,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/blackbox.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/providers/registry/blackbox.js#sha256=805587a98da89d4d54bcb3467dea9133d525d6013a3fc41525e912de7efff80e",
-        "implementationBlob": "upstream/router-core/open-sse/providers/registry/blackbox.js#sha256=805587a98da89d4d54bcb3467dea9133d525d6013a3fc41525e912de7efff80e",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/blackbox.js#sha256=3d2480c8d10ec273170c43a34430a9a150b0217cd5c1846e141ab542e0d33d03",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -6787,7 +6788,7 @@
     {
       "path": "open-sse/providers/registry/cerebras.js",
       "category": "provider",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/providers/registry/cerebras.js",
@@ -6795,15 +6796,15 @@
         "size": 854
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/providers/registry/cerebras.js",
-        "sha256": "7aacbe42b168a3c20636524420363604778fc2c7c3ee4100d211e9474d36248a",
-        "size": 854,
+        "path": "overlays/unified/open-sse/providers/registry/cerebras.js",
+        "sha256": "bbce6871aef7aa9078a8f3c1f6c7a7c3d2904fb873c3d81b996b8fb86dab55de",
+        "size": 871,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/cerebras.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/providers/registry/cerebras.js#sha256=7aacbe42b168a3c20636524420363604778fc2c7c3ee4100d211e9474d36248a",
-        "implementationBlob": "upstream/router-core/open-sse/providers/registry/cerebras.js#sha256=7aacbe42b168a3c20636524420363604778fc2c7c3ee4100d211e9474d36248a",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/cerebras.js#sha256=bbce6871aef7aa9078a8f3c1f6c7a7c3d2904fb873c3d81b996b8fb86dab55de",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -6971,7 +6972,7 @@
     {
       "path": "open-sse/providers/registry/cohere.js",
       "category": "provider",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/providers/registry/cohere.js",
@@ -6979,15 +6980,15 @@
         "size": 646
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/providers/registry/cohere.js",
-        "sha256": "2e2e82e37b7e4c4e6ef7b39ceaddfb2edc0a89f8a1e8b89e47ee0817061a77c2",
-        "size": 646,
+        "path": "overlays/unified/open-sse/providers/registry/cohere.js",
+        "sha256": "7a98c1b9309c0dd0fe238385826a4019e75043f77eaa5a069c9a975e85979089",
+        "size": 663,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/cohere.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/providers/registry/cohere.js#sha256=2e2e82e37b7e4c4e6ef7b39ceaddfb2edc0a89f8a1e8b89e47ee0817061a77c2",
-        "implementationBlob": "upstream/router-core/open-sse/providers/registry/cohere.js#sha256=2e2e82e37b7e4c4e6ef7b39ceaddfb2edc0a89f8a1e8b89e47ee0817061a77c2",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/cohere.js#sha256=7a98c1b9309c0dd0fe238385826a4019e75043f77eaa5a069c9a975e85979089",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -7109,7 +7110,7 @@
     {
       "path": "open-sse/providers/registry/deepseek.js",
       "category": "provider",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/providers/registry/deepseek.js",
@@ -7117,15 +7118,15 @@
         "size": 1551
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/providers/registry/deepseek.js",
-        "sha256": "bfc25a43b0ced2eec235f8c69914fd77edfe8b5866531a18092714fcad09d408",
-        "size": 1551,
+        "path": "overlays/unified/open-sse/providers/registry/deepseek.js",
+        "sha256": "6a7722bc73c14dd830fc9e2740748b4954f158f0d266a41e612290f8ac28422e",
+        "size": 1568,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/deepseek.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/providers/registry/deepseek.js#sha256=bfc25a43b0ced2eec235f8c69914fd77edfe8b5866531a18092714fcad09d408",
-        "implementationBlob": "upstream/router-core/open-sse/providers/registry/deepseek.js#sha256=bfc25a43b0ced2eec235f8c69914fd77edfe8b5866531a18092714fcad09d408",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/deepseek.js#sha256=6a7722bc73c14dd830fc9e2740748b4954f158f0d266a41e612290f8ac28422e",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -7270,7 +7271,7 @@
     {
       "path": "open-sse/providers/registry/fireworks.js",
       "category": "provider",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/providers/registry/fireworks.js",
@@ -7278,15 +7279,15 @@
         "size": 992
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/providers/registry/fireworks.js",
-        "sha256": "1dfc1d70b4a0fd3d793b0b60ef47cec95780c7c0cc07322b046037ee880a84a8",
-        "size": 992,
+        "path": "overlays/unified/open-sse/providers/registry/fireworks.js",
+        "sha256": "a3b75e987c4e74ca5f48849da6bdece8851b7d6f28b8456f58c459942eb5dc71",
+        "size": 1009,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/fireworks.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/providers/registry/fireworks.js#sha256=1dfc1d70b4a0fd3d793b0b60ef47cec95780c7c0cc07322b046037ee880a84a8",
-        "implementationBlob": "upstream/router-core/open-sse/providers/registry/fireworks.js#sha256=1dfc1d70b4a0fd3d793b0b60ef47cec95780c7c0cc07322b046037ee880a84a8",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/fireworks.js#sha256=a3b75e987c4e74ca5f48849da6bdece8851b7d6f28b8456f58c459942eb5dc71",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -7385,7 +7386,7 @@
     {
       "path": "open-sse/providers/registry/glm-cn.js",
       "category": "provider",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/providers/registry/glm-cn.js",
@@ -7393,22 +7394,22 @@
         "size": 846
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/providers/registry/glm-cn.js",
-        "sha256": "de769123d0b712d1ae70fdbe3eb63d119fb09f6d56de7f8eda96253ede9cdad3",
-        "size": 846,
+        "path": "overlays/unified/open-sse/providers/registry/glm-cn.js",
+        "sha256": "1d3c7e4161623902484339b7a13a1727f6ab3ae4530ae3803ca3becd2dcc05d5",
+        "size": 863,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/glm-cn.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/providers/registry/glm-cn.js#sha256=de769123d0b712d1ae70fdbe3eb63d119fb09f6d56de7f8eda96253ede9cdad3",
-        "implementationBlob": "upstream/router-core/open-sse/providers/registry/glm-cn.js#sha256=de769123d0b712d1ae70fdbe3eb63d119fb09f6d56de7f8eda96253ede9cdad3",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/glm-cn.js#sha256=1d3c7e4161623902484339b7a13a1727f6ab3ae4530ae3803ca3becd2dcc05d5",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
     {
       "path": "open-sse/providers/registry/glm.js",
       "category": "provider",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/providers/registry/glm.js",
@@ -7416,15 +7417,15 @@
         "size": 1524
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/providers/registry/glm.js",
-        "sha256": "8165fd92364de8d04be29e242d0726a879a241811cff076b223d2d7b3165d90f",
-        "size": 1524,
+        "path": "overlays/unified/open-sse/providers/registry/glm.js",
+        "sha256": "443c28a99d6cfcfb6fa7b473d34f092d234534d9a900dccd320e2d1530871642",
+        "size": 1541,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/glm.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/providers/registry/glm.js#sha256=8165fd92364de8d04be29e242d0726a879a241811cff076b223d2d7b3165d90f",
-        "implementationBlob": "upstream/router-core/open-sse/providers/registry/glm.js#sha256=8165fd92364de8d04be29e242d0726a879a241811cff076b223d2d7b3165d90f",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/glm.js#sha256=443c28a99d6cfcfb6fa7b473d34f092d234534d9a900dccd320e2d1530871642",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -7569,7 +7570,7 @@
     {
       "path": "open-sse/providers/registry/hyperbolic.js",
       "category": "provider",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/providers/registry/hyperbolic.js",
@@ -7577,15 +7578,15 @@
         "size": 1064
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/providers/registry/hyperbolic.js",
-        "sha256": "a99cc7a1a9353524e10cf13856bf9c16fbb8dc3c025258059fcf27d056b316e7",
-        "size": 1064,
+        "path": "overlays/unified/open-sse/providers/registry/hyperbolic.js",
+        "sha256": "04d9fabc48b90bbfed14bdfe9015fe650b4e9063659dfe5223f74ceb304aa619",
+        "size": 1081,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/hyperbolic.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/providers/registry/hyperbolic.js#sha256=a99cc7a1a9353524e10cf13856bf9c16fbb8dc3c025258059fcf27d056b316e7",
-        "implementationBlob": "upstream/router-core/open-sse/providers/registry/hyperbolic.js#sha256=a99cc7a1a9353524e10cf13856bf9c16fbb8dc3c025258059fcf27d056b316e7",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/hyperbolic.js#sha256=04d9fabc48b90bbfed14bdfe9015fe650b4e9063659dfe5223f74ceb304aa619",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -7624,13 +7625,13 @@
       },
       "implementation": {
         "path": "overlays/unified/open-sse/providers/registry/index.js",
-        "sha256": "dda1ceb77a57108de68c901fce9dfe15bfd590fc04023419eebbb188c148e95f",
-        "size": 4154,
+        "sha256": "be413fa514079953bab8a9a9d0491b9892ba33d1e3b7434f2a347b86f3e37477",
+        "size": 6648,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/index.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/providers/registry/index.js#sha256=4731662d228b9ee9739d6ca931af18d18fd099d28d5270820b378e8a46fb90ce",
-        "implementationBlob": "overlays/unified/open-sse/providers/registry/index.js#sha256=dda1ceb77a57108de68c901fce9dfe15bfd590fc04023419eebbb188c148e95f",
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/index.js#sha256=be413fa514079953bab8a9a9d0491b9892ba33d1e3b7434f2a347b86f3e37477",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -7776,7 +7777,7 @@
     {
       "path": "open-sse/providers/registry/kiro.js",
       "category": "provider",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/providers/registry/kiro.js",
@@ -7784,15 +7785,15 @@
         "size": 7617
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/providers/registry/kiro.js",
-        "sha256": "1ba9ee8589ae24dd075c744db54399fb29c1c1b7eab66a169395c324b28e3447",
-        "size": 7617,
+        "path": "overlays/unified/open-sse/providers/registry/kiro.js",
+        "sha256": "0dcb6b682acd7bf2a456a062d454959dec9f4b9ec8edfb34eeff089b0f1f0686",
+        "size": 7634,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/kiro.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/providers/registry/kiro.js#sha256=1ba9ee8589ae24dd075c744db54399fb29c1c1b7eab66a169395c324b28e3447",
-        "implementationBlob": "upstream/router-core/open-sse/providers/registry/kiro.js#sha256=1ba9ee8589ae24dd075c744db54399fb29c1c1b7eab66a169395c324b28e3447",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/kiro.js#sha256=0dcb6b682acd7bf2a456a062d454959dec9f4b9ec8edfb34eeff089b0f1f0686",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -7914,7 +7915,7 @@
     {
       "path": "open-sse/providers/registry/mistral.js",
       "category": "provider",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/providers/registry/mistral.js",
@@ -7922,15 +7923,15 @@
         "size": 918
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/providers/registry/mistral.js",
-        "sha256": "7f14279d5c040ecd2a9c62f378eed129f3f679932ae871edacb86dbb3e0b34f3",
-        "size": 918,
+        "path": "overlays/unified/open-sse/providers/registry/mistral.js",
+        "sha256": "382949a46e3897c28aeae1c615bcfd3d46a3fdc22aa69a0bf27eae0fd9228021",
+        "size": 935,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/mistral.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/providers/registry/mistral.js#sha256=7f14279d5c040ecd2a9c62f378eed129f3f679932ae871edacb86dbb3e0b34f3",
-        "implementationBlob": "upstream/router-core/open-sse/providers/registry/mistral.js#sha256=7f14279d5c040ecd2a9c62f378eed129f3f679932ae871edacb86dbb3e0b34f3",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/mistral.js#sha256=382949a46e3897c28aeae1c615bcfd3d46a3fdc22aa69a0bf27eae0fd9228021",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -7983,7 +7984,7 @@
     {
       "path": "open-sse/providers/registry/nebius.js",
       "category": "provider",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/providers/registry/nebius.js",
@@ -7991,15 +7992,15 @@
         "size": 788
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/providers/registry/nebius.js",
-        "sha256": "78d128190cfb83b5a8cba2068715cb7b305a5610358b77baebbdaca6774804ba",
-        "size": 788,
+        "path": "overlays/unified/open-sse/providers/registry/nebius.js",
+        "sha256": "cbe288d16449b0eb1d5326faa01c46d6518a261be2cae818f13c5d7f165f8720",
+        "size": 805,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/nebius.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/providers/registry/nebius.js#sha256=78d128190cfb83b5a8cba2068715cb7b305a5610358b77baebbdaca6774804ba",
-        "implementationBlob": "upstream/router-core/open-sse/providers/registry/nebius.js#sha256=78d128190cfb83b5a8cba2068715cb7b305a5610358b77baebbdaca6774804ba",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/nebius.js#sha256=cbe288d16449b0eb1d5326faa01c46d6518a261be2cae818f13c5d7f165f8720",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -8121,7 +8122,7 @@
     {
       "path": "open-sse/providers/registry/opencode.js",
       "category": "provider",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/providers/registry/opencode.js",
@@ -8129,15 +8130,15 @@
         "size": 509
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/providers/registry/opencode.js",
-        "sha256": "422c547e6a89229361099b76234e6ad0a16ab3b97edf452c1650c97e9e41ef9d",
-        "size": 509,
+        "path": "overlays/unified/open-sse/providers/registry/opencode.js",
+        "sha256": "b03d08efa2a0f4f99d235ada7efa226e17d7ba1675fbb2b9065206429d719e5d",
+        "size": 1228,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/opencode.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/providers/registry/opencode.js#sha256=422c547e6a89229361099b76234e6ad0a16ab3b97edf452c1650c97e9e41ef9d",
-        "implementationBlob": "upstream/router-core/open-sse/providers/registry/opencode.js#sha256=422c547e6a89229361099b76234e6ad0a16ab3b97edf452c1650c97e9e41ef9d",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/opencode.js#sha256=b03d08efa2a0f4f99d235ada7efa226e17d7ba1675fbb2b9065206429d719e5d",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -8259,7 +8260,7 @@
     {
       "path": "open-sse/providers/registry/qoder.js",
       "category": "provider",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/providers/registry/qoder.js",
@@ -8267,15 +8268,15 @@
         "size": 1767
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/providers/registry/qoder.js",
-        "sha256": "94c6611b79d3678f583419ca063b48b34032816b47199dc60910ecaf81d90b01",
-        "size": 1767,
+        "path": "overlays/unified/open-sse/providers/registry/qoder.js",
+        "sha256": "2aa92d6c0f6dd29a4cd12c62eedcb23faf2cc21381fb6132177dbe5fe8797321",
+        "size": 1784,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/qoder.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/providers/registry/qoder.js#sha256=94c6611b79d3678f583419ca063b48b34032816b47199dc60910ecaf81d90b01",
-        "implementationBlob": "upstream/router-core/open-sse/providers/registry/qoder.js#sha256=94c6611b79d3678f583419ca063b48b34032816b47199dc60910ecaf81d90b01",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/qoder.js#sha256=2aa92d6c0f6dd29a4cd12c62eedcb23faf2cc21381fb6132177dbe5fe8797321",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -8443,7 +8444,7 @@
     {
       "path": "open-sse/providers/registry/siliconflow.js",
       "category": "provider",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/providers/registry/siliconflow.js",
@@ -8451,15 +8452,15 @@
         "size": 1530
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/providers/registry/siliconflow.js",
-        "sha256": "5130c5fcf5eccebd4261077c685227437b02cedd25ad29af735d737e83948c12",
-        "size": 1530,
+        "path": "overlays/unified/open-sse/providers/registry/siliconflow.js",
+        "sha256": "8b5141347e438c496b42987d899afc8ca9aa3b167ffb4c87021f2037dfbbe093",
+        "size": 1547,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/siliconflow.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/providers/registry/siliconflow.js#sha256=5130c5fcf5eccebd4261077c685227437b02cedd25ad29af735d737e83948c12",
-        "implementationBlob": "upstream/router-core/open-sse/providers/registry/siliconflow.js#sha256=5130c5fcf5eccebd4261077c685227437b02cedd25ad29af735d737e83948c12",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/siliconflow.js#sha256=8b5141347e438c496b42987d899afc8ca9aa3b167ffb4c87021f2037dfbbe093",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -8512,7 +8513,7 @@
     {
       "path": "open-sse/providers/registry/together.js",
       "category": "provider",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/providers/registry/together.js",
@@ -8520,15 +8521,15 @@
         "size": 1092
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/providers/registry/together.js",
-        "sha256": "60d7f7ff8acecfc08732385081134fc75ed83b0aae8d6f087e76f42573673920",
-        "size": 1092,
+        "path": "overlays/unified/open-sse/providers/registry/together.js",
+        "sha256": "15b4889cc0c24f319dedb600f71f32fcb422a28f9d1383b265f17437b4e517ae",
+        "size": 1109,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/together.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/providers/registry/together.js#sha256=60d7f7ff8acecfc08732385081134fc75ed83b0aae8d6f087e76f42573673920",
-        "implementationBlob": "upstream/router-core/open-sse/providers/registry/together.js#sha256=60d7f7ff8acecfc08732385081134fc75ed83b0aae8d6f087e76f42573673920",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/together.js#sha256=15b4889cc0c24f319dedb600f71f32fcb422a28f9d1383b265f17437b4e517ae",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -8650,7 +8651,7 @@
     {
       "path": "open-sse/providers/registry/vertex.js",
       "category": "provider",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/providers/registry/vertex.js",
@@ -8658,15 +8659,15 @@
         "size": 954
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/providers/registry/vertex.js",
-        "sha256": "903a393d3f28fd4d3a4e3e789b3ba843e74a994b15e470ebc119aead28cbe94d",
-        "size": 954,
+        "path": "overlays/unified/open-sse/providers/registry/vertex.js",
+        "sha256": "2284765f3aa886a41aa368e10ac88efb1ac9f55619c3d23a2d02cabade04c26f",
+        "size": 971,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/vertex.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/providers/registry/vertex.js#sha256=903a393d3f28fd4d3a4e3e789b3ba843e74a994b15e470ebc119aead28cbe94d",
-        "implementationBlob": "upstream/router-core/open-sse/providers/registry/vertex.js#sha256=903a393d3f28fd4d3a4e3e789b3ba843e74a994b15e470ebc119aead28cbe94d",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/vertex.js#sha256=2284765f3aa886a41aa368e10ac88efb1ac9f55619c3d23a2d02cabade04c26f",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -9294,7 +9295,7 @@
     {
       "path": "open-sse/rtk/index.js",
       "category": "other",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/rtk/index.js",
@@ -9302,15 +9303,15 @@
         "size": 5699
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/rtk/index.js",
-        "sha256": "c690047277d65ed2f23ea946ffee49cfacfb19148e1e5aff14ef7c4bf1bcc44e",
-        "size": 5699,
+        "path": "overlays/unified/open-sse/rtk/index.js",
+        "sha256": "d91d637db396531ca0bb474e62e1a11220640dceef1c2003cbff796ccf9b0f1f",
+        "size": 8207,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/rtk/index.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/rtk/index.js#sha256=c690047277d65ed2f23ea946ffee49cfacfb19148e1e5aff14ef7c4bf1bcc44e",
-        "implementationBlob": "upstream/router-core/open-sse/rtk/index.js#sha256=c690047277d65ed2f23ea946ffee49cfacfb19148e1e5aff14ef7c4bf1bcc44e",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/rtk/index.js#sha256=d91d637db396531ca0bb474e62e1a11220640dceef1c2003cbff796ccf9b0f1f",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -9487,13 +9488,13 @@
       },
       "implementation": {
         "path": "overlays/unified/open-sse/services/combo.js",
-        "sha256": "409781a2f2f43651c35ffcee007943312fe3c987d638fb1ab9e2913f49887a44",
-        "size": 56781,
+        "sha256": "639d6937c15b52a684325a4dcf14fcf5b9a75a0d9dd20ac6a07e4f60ed53e3e3",
+        "size": 62280,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/services/combo.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/services/combo.js#sha256=c6a687ccccc955316d066f78513cb15b45c810cadc6d4889d9692b764fd05d18",
-        "implementationBlob": "overlays/unified/open-sse/services/combo.js#sha256=409781a2f2f43651c35ffcee007943312fe3c987d638fb1ab9e2913f49887a44",
+        "implementationBlob": "overlays/unified/open-sse/services/combo.js#sha256=639d6937c15b52a684325a4dcf14fcf5b9a75a0d9dd20ac6a07e4f60ed53e3e3",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -10467,7 +10468,7 @@
     {
       "path": "open-sse/translator/concerns/thinkingUnified.js",
       "category": "translator",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/translator/concerns/thinkingUnified.js",
@@ -10475,15 +10476,15 @@
         "size": 13348
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/translator/concerns/thinkingUnified.js",
-        "sha256": "6cfcc59d9bc0e31824444c3ad85ab24002612b74e333706cdff244a5778a89c6",
-        "size": 13348,
+        "path": "overlays/unified/open-sse/translator/concerns/thinkingUnified.js",
+        "sha256": "72063b4fda53c51920810569eb5563cd44ae5d59fbf7c3b92e02bda4e9dc876c",
+        "size": 13780,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/translator/concerns/thinkingUnified.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/translator/concerns/thinkingUnified.js#sha256=6cfcc59d9bc0e31824444c3ad85ab24002612b74e333706cdff244a5778a89c6",
-        "implementationBlob": "upstream/router-core/open-sse/translator/concerns/thinkingUnified.js#sha256=6cfcc59d9bc0e31824444c3ad85ab24002612b74e333706cdff244a5778a89c6",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/translator/concerns/thinkingUnified.js#sha256=72063b4fda53c51920810569eb5563cd44ae5d59fbf7c3b92e02bda4e9dc876c",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -10605,7 +10606,7 @@
     {
       "path": "open-sse/translator/formats/maxTokens.js",
       "category": "translator",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/translator/formats/maxTokens.js",
@@ -10613,15 +10614,15 @@
         "size": 1382
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/translator/formats/maxTokens.js",
-        "sha256": "1b4e3d6fe07c7d6ea46ea39d6dc2ed0b9c3863e45423cd78060d73592f20015a",
-        "size": 1382,
+        "path": "overlays/unified/open-sse/translator/formats/maxTokens.js",
+        "sha256": "214e48b13003d652859ed1deeaddcc6cf974b69afc9fa28efee3ef6bba492c5d",
+        "size": 1980,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/translator/formats/maxTokens.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/translator/formats/maxTokens.js#sha256=1b4e3d6fe07c7d6ea46ea39d6dc2ed0b9c3863e45423cd78060d73592f20015a",
-        "implementationBlob": "upstream/router-core/open-sse/translator/formats/maxTokens.js#sha256=1b4e3d6fe07c7d6ea46ea39d6dc2ed0b9c3863e45423cd78060d73592f20015a",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/translator/formats/maxTokens.js#sha256=214e48b13003d652859ed1deeaddcc6cf974b69afc9fa28efee3ef6bba492c5d",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -11134,7 +11135,7 @@
     {
       "path": "open-sse/translator/response/openai-responses.js",
       "category": "translator",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/translator/response/openai-responses.js",
@@ -11142,15 +11143,15 @@
         "size": 16454
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/translator/response/openai-responses.js",
-        "sha256": "72823be3e17dcf264ecd3169fbdca2336be6db9c95011fd2fa45f4fd2829bdbf",
-        "size": 16454,
+        "path": "overlays/unified/open-sse/translator/response/openai-responses.js",
+        "sha256": "837d0bccba9d4014dd5dc27d1dfb8d6bba06c064b10f36bc63de4a2804735119",
+        "size": 16747,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/translator/response/openai-responses.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/translator/response/openai-responses.js#sha256=72823be3e17dcf264ecd3169fbdca2336be6db9c95011fd2fa45f4fd2829bdbf",
-        "implementationBlob": "upstream/router-core/open-sse/translator/response/openai-responses.js#sha256=72823be3e17dcf264ecd3169fbdca2336be6db9c95011fd2fa45f4fd2829bdbf",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/translator/response/openai-responses.js#sha256=837d0bccba9d4014dd5dc27d1dfb8d6bba06c064b10f36bc63de4a2804735119",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -11180,7 +11181,7 @@
     {
       "path": "open-sse/translator/response/openai-to-claude.js",
       "category": "translator",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/translator/response/openai-to-claude.js",
@@ -11188,15 +11189,15 @@
         "size": 9037
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/translator/response/openai-to-claude.js",
-        "sha256": "5a3da4220dd713a4333d544f854708007d33a2e434b0e065e1f055aa069e42fd",
-        "size": 9037,
+        "path": "overlays/unified/open-sse/translator/response/openai-to-claude.js",
+        "sha256": "b8e725fc9a6601e2824810132094bbedc1f1572035e194f963b47603a4f9da94",
+        "size": 11472,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/translator/response/openai-to-claude.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/translator/response/openai-to-claude.js#sha256=5a3da4220dd713a4333d544f854708007d33a2e434b0e065e1f055aa069e42fd",
-        "implementationBlob": "upstream/router-core/open-sse/translator/response/openai-to-claude.js#sha256=5a3da4220dd713a4333d544f854708007d33a2e434b0e065e1f055aa069e42fd",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/translator/response/openai-to-claude.js#sha256=b8e725fc9a6601e2824810132094bbedc1f1572035e194f963b47603a4f9da94",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -11502,7 +11503,7 @@
     {
       "path": "open-sse/utils/error.js",
       "category": "other",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/utils/error.js",
@@ -11510,15 +11511,15 @@
         "size": 5369
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/utils/error.js",
-        "sha256": "093140cbfd5bf1663ef11c77ce10e6547b1e9cf6fefcd8281312edf58e90c91b",
-        "size": 5369,
+        "path": "overlays/unified/open-sse/utils/error.js",
+        "sha256": "6854f44e2ba96fe2de424bdc9d66b318d3f5f24280fa76479ec6620ef05ad162",
+        "size": 4136,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/utils/error.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/utils/error.js#sha256=093140cbfd5bf1663ef11c77ce10e6547b1e9cf6fefcd8281312edf58e90c91b",
-        "implementationBlob": "upstream/router-core/open-sse/utils/error.js#sha256=093140cbfd5bf1663ef11c77ce10e6547b1e9cf6fefcd8281312edf58e90c91b",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/utils/error.js#sha256=6854f44e2ba96fe2de424bdc9d66b318d3f5f24280fa76479ec6620ef05ad162",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -11824,7 +11825,7 @@
     {
       "path": "open-sse/utils/usageTracking.js",
       "category": "other",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/open-sse/utils/usageTracking.js",
@@ -11832,15 +11833,15 @@
         "size": 16626
       },
       "implementation": {
-        "path": "upstream/router-core/open-sse/utils/usageTracking.js",
-        "sha256": "1705cc4e30806986281bea4a82dfd5b08c4d4fe30e61f7dad592ea42ac233943",
-        "size": 16626,
+        "path": "overlays/unified/open-sse/utils/usageTracking.js",
+        "sha256": "fb6202e5d4663678782e2890655af356b95bf4085c1576ebcad709829084c0f0",
+        "size": 17785,
         "runtimePath": ".proxy-max/runtime/unified/open-sse/utils/usageTracking.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/open-sse/utils/usageTracking.js#sha256=1705cc4e30806986281bea4a82dfd5b08c4d4fe30e61f7dad592ea42ac233943",
-        "implementationBlob": "upstream/router-core/open-sse/utils/usageTracking.js#sha256=1705cc4e30806986281bea4a82dfd5b08c4d4fe30e61f7dad592ea42ac233943",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/open-sse/utils/usageTracking.js#sha256=fb6202e5d4663678782e2890655af356b95bf4085c1576ebcad709829084c0f0",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -11856,13 +11857,13 @@
       },
       "implementation": {
         "path": "overlays/unified/package.json",
-        "sha256": "6020106f2f4268fe208b87f5d785a10cbb69fc4c393078d73617e748bfb83c3e",
-        "size": 2006,
+        "sha256": "35a9d4ddfc23eea21bfcf6a0295408277cbd9b17d58dad2097cc4fd9bae863d5",
+        "size": 2007,
         "runtimePath": ".proxy-max/runtime/unified/package.json"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/package.json#sha256=abc366fdcb8b1bb8ee1aa03740102fcf4fea81efb6034d545b09777c01dfd719",
-        "implementationBlob": "overlays/unified/package.json#sha256=6020106f2f4268fe208b87f5d785a10cbb69fc4c393078d73617e748bfb83c3e",
+        "implementationBlob": "overlays/unified/package.json#sha256=35a9d4ddfc23eea21bfcf6a0295408277cbd9b17d58dad2097cc4fd9bae863d5",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -17735,7 +17736,7 @@
     {
       "path": "src/app/(dashboard)/dashboard/usage/components/OverviewCards.js",
       "category": "ui-page/component",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/src/app/(dashboard)/dashboard/usage/components/OverviewCards.js",
@@ -17743,15 +17744,15 @@
         "size": 1923
       },
       "implementation": {
-        "path": "upstream/router-core/src/app/(dashboard)/dashboard/usage/components/OverviewCards.js",
-        "sha256": "92b3adffafdd8f4f77f4819af744a13b613504cbc6bdbf01b42e597ac73275a8",
-        "size": 1923,
+        "path": "overlays/unified/src/app/(dashboard)/dashboard/usage/components/OverviewCards.js",
+        "sha256": "75131b1f9dc536b0574fba5d406f38003c7713eb4bb187f9fac9044c7cf69ef7",
+        "size": 2798,
         "runtimePath": ".proxy-max/runtime/unified/src/app/(dashboard)/dashboard/usage/components/OverviewCards.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/src/app/(dashboard)/dashboard/usage/components/OverviewCards.js#sha256=92b3adffafdd8f4f77f4819af744a13b613504cbc6bdbf01b42e597ac73275a8",
-        "implementationBlob": "upstream/router-core/src/app/(dashboard)/dashboard/usage/components/OverviewCards.js#sha256=92b3adffafdd8f4f77f4819af744a13b613504cbc6bdbf01b42e597ac73275a8",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/src/app/(dashboard)/dashboard/usage/components/OverviewCards.js#sha256=75131b1f9dc536b0574fba5d406f38003c7713eb4bb187f9fac9044c7cf69ef7",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -17896,7 +17897,7 @@
     {
       "path": "src/app/(dashboard)/dashboard/usage/components/RequestDetailsTab.js",
       "category": "ui-page/component",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/src/app/(dashboard)/dashboard/usage/components/RequestDetailsTab.js",
@@ -17904,15 +17905,15 @@
         "size": 22059
       },
       "implementation": {
-        "path": "upstream/router-core/src/app/(dashboard)/dashboard/usage/components/RequestDetailsTab.js",
-        "sha256": "dd3e58503c91d91afa2fc3665718a18cd26378d99a79bda0f660e33f8025b5b9",
-        "size": 22059,
+        "path": "overlays/unified/src/app/(dashboard)/dashboard/usage/components/RequestDetailsTab.js",
+        "sha256": "5a13c1b195009d3c4c4886c6cd683fc28bd04dd012ee7b0ea3f1c0160c563765",
+        "size": 23041,
         "runtimePath": ".proxy-max/runtime/unified/src/app/(dashboard)/dashboard/usage/components/RequestDetailsTab.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/src/app/(dashboard)/dashboard/usage/components/RequestDetailsTab.js#sha256=dd3e58503c91d91afa2fc3665718a18cd26378d99a79bda0f660e33f8025b5b9",
-        "implementationBlob": "upstream/router-core/src/app/(dashboard)/dashboard/usage/components/RequestDetailsTab.js#sha256=dd3e58503c91d91afa2fc3665718a18cd26378d99a79bda0f660e33f8025b5b9",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/src/app/(dashboard)/dashboard/usage/components/RequestDetailsTab.js#sha256=5a13c1b195009d3c4c4886c6cd683fc28bd04dd012ee7b0ea3f1c0160c563765",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -17942,7 +17943,7 @@
     {
       "path": "src/app/(dashboard)/dashboard/usage/components/UsageTable.js",
       "category": "ui-page/component",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/src/app/(dashboard)/dashboard/usage/components/UsageTable.js",
@@ -17950,15 +17951,15 @@
         "size": 9263
       },
       "implementation": {
-        "path": "upstream/router-core/src/app/(dashboard)/dashboard/usage/components/UsageTable.js",
-        "sha256": "863050938f9b47c867e3f9f689cb92f8aee317c2f3ed093a1b0a8a4aaab8571f",
-        "size": 9263,
+        "path": "overlays/unified/src/app/(dashboard)/dashboard/usage/components/UsageTable.js",
+        "sha256": "0044c02b799ea2a64c2af96f65009e5230f22f89840efb0e8fefae8f548f7823",
+        "size": 9621,
         "runtimePath": ".proxy-max/runtime/unified/src/app/(dashboard)/dashboard/usage/components/UsageTable.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/src/app/(dashboard)/dashboard/usage/components/UsageTable.js#sha256=863050938f9b47c867e3f9f689cb92f8aee317c2f3ed093a1b0a8a4aaab8571f",
-        "implementationBlob": "upstream/router-core/src/app/(dashboard)/dashboard/usage/components/UsageTable.js#sha256=863050938f9b47c867e3f9f689cb92f8aee317c2f3ed093a1b0a8a4aaab8571f",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/src/app/(dashboard)/dashboard/usage/components/UsageTable.js#sha256=0044c02b799ea2a64c2af96f65009e5230f22f89840efb0e8fefae8f548f7823",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -19782,7 +19783,7 @@
     {
       "path": "src/app/api/providers/suggested-models/filters.js",
       "category": "api-route",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/src/app/api/providers/suggested-models/filters.js",
@@ -19790,15 +19791,15 @@
         "size": 941
       },
       "implementation": {
-        "path": "upstream/router-core/src/app/api/providers/suggested-models/filters.js",
-        "sha256": "10f4147a27ee42e76bece0b01b3cae228ddaf57acf51f6d0f68812519480860c",
-        "size": 941,
+        "path": "overlays/unified/src/app/api/providers/suggested-models/filters.js",
+        "sha256": "c99511d9c91c448696d96ebcc369e7b0e7f75fcf7d484d74aea1a9b998d5a518",
+        "size": 1492,
         "runtimePath": ".proxy-max/runtime/unified/src/app/api/providers/suggested-models/filters.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/src/app/api/providers/suggested-models/filters.js#sha256=10f4147a27ee42e76bece0b01b3cae228ddaf57acf51f6d0f68812519480860c",
-        "implementationBlob": "upstream/router-core/src/app/api/providers/suggested-models/filters.js#sha256=10f4147a27ee42e76bece0b01b3cae228ddaf57acf51f6d0f68812519480860c",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/src/app/api/providers/suggested-models/filters.js#sha256=c99511d9c91c448696d96ebcc369e7b0e7f75fcf7d484d74aea1a9b998d5a518",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -21070,7 +21071,7 @@
     {
       "path": "src/app/api/v1/models/[kind]/route.js",
       "category": "api-route",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/src/app/api/v1/models/[kind]/route.js",
@@ -21078,15 +21079,15 @@
         "size": 1555
       },
       "implementation": {
-        "path": "upstream/router-core/src/app/api/v1/models/[kind]/route.js",
-        "sha256": "55541b240456cd540c38b3568ff6af69cf9a8935b0f23340b03016a03d48c374",
-        "size": 1555,
+        "path": "overlays/unified/src/app/api/v1/models/[kind]/route.js",
+        "sha256": "f7070964d9c106b175b78abce0c31631b1a8c97372af136a8b9d6bb2ec2fd0f6",
+        "size": 3904,
         "runtimePath": ".proxy-max/runtime/unified/src/app/api/v1/models/[kind]/route.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/src/app/api/v1/models/[kind]/route.js#sha256=55541b240456cd540c38b3568ff6af69cf9a8935b0f23340b03016a03d48c374",
-        "implementationBlob": "upstream/router-core/src/app/api/v1/models/[kind]/route.js#sha256=55541b240456cd540c38b3568ff6af69cf9a8935b0f23340b03016a03d48c374",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/src/app/api/v1/models/[kind]/route.js#sha256=f7070964d9c106b175b78abce0c31631b1a8c97372af136a8b9d6bb2ec2fd0f6",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -22229,13 +22230,13 @@
       },
       "implementation": {
         "path": "overlays/unified/src/lib/db/helpers/jsonCol.js",
-        "sha256": "3433b694cd2b35ace86e0bb508a52f5bd079989121528bc14d576bf70a54e9b5",
-        "size": 404,
+        "sha256": "2431883fe34e10c98cc10f237fd28d4746da158b4be3a8d2dc75da4343bcf104",
+        "size": 557,
         "runtimePath": ".proxy-max/runtime/unified/src/lib/db/helpers/jsonCol.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/src/lib/db/helpers/jsonCol.js#sha256=fd6c51c079f29e9a678b37d206e12ae1de6899746e4c5a0cc1b0efefbdfe8dba",
-        "implementationBlob": "overlays/unified/src/lib/db/helpers/jsonCol.js#sha256=3433b694cd2b35ace86e0bb508a52f5bd079989121528bc14d576bf70a54e9b5",
+        "implementationBlob": "overlays/unified/src/lib/db/helpers/jsonCol.js#sha256=2431883fe34e10c98cc10f237fd28d4746da158b4be3a8d2dc75da4343bcf104",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -25141,7 +25142,7 @@
     {
       "path": "src/shared/components/ModelSelectModal.js",
       "category": "ui-page/component",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/src/shared/components/ModelSelectModal.js",
@@ -25149,15 +25150,15 @@
         "size": 26296
       },
       "implementation": {
-        "path": "upstream/router-core/src/shared/components/ModelSelectModal.js",
-        "sha256": "17012e190f3e79707d38c41cda6853bea27c024d6019081c4a926ffde7ac7560",
-        "size": 26296,
+        "path": "overlays/unified/src/shared/components/ModelSelectModal.js",
+        "sha256": "59ff79c8f4478d39b9d94ebab39ed4311da198fd075b90e256e81a884aa8b760",
+        "size": 28007,
         "runtimePath": ".proxy-max/runtime/unified/src/shared/components/ModelSelectModal.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/src/shared/components/ModelSelectModal.js#sha256=17012e190f3e79707d38c41cda6853bea27c024d6019081c4a926ffde7ac7560",
-        "implementationBlob": "upstream/router-core/src/shared/components/ModelSelectModal.js#sha256=17012e190f3e79707d38c41cda6853bea27c024d6019081c4a926ffde7ac7560",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/src/shared/components/ModelSelectModal.js#sha256=59ff79c8f4478d39b9d94ebab39ed4311da198fd075b90e256e81a884aa8b760",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -25532,7 +25533,7 @@
     {
       "path": "src/shared/components/UsageStats.js",
       "category": "ui-page/component",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/src/shared/components/UsageStats.js",
@@ -25540,15 +25541,15 @@
         "size": 22776
       },
       "implementation": {
-        "path": "upstream/router-core/src/shared/components/UsageStats.js",
-        "sha256": "6c9842b07f11761af6de5b81497b0181a0293ee3ca6010abe071aec484d71ba0",
-        "size": 22776,
+        "path": "overlays/unified/src/shared/components/UsageStats.js",
+        "sha256": "f10515dc714cb7b72f6664c07eb85e352261647ba89a07cd9bf2660ff8b77704",
+        "size": 24089,
         "runtimePath": ".proxy-max/runtime/unified/src/shared/components/UsageStats.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/src/shared/components/UsageStats.js#sha256=6c9842b07f11761af6de5b81497b0181a0293ee3ca6010abe071aec484d71ba0",
-        "implementationBlob": "upstream/router-core/src/shared/components/UsageStats.js#sha256=6c9842b07f11761af6de5b81497b0181a0293ee3ca6010abe071aec484d71ba0",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/src/shared/components/UsageStats.js#sha256=f10515dc714cb7b72f6664c07eb85e352261647ba89a07cd9bf2660ff8b77704",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -26383,7 +26384,7 @@
     {
       "path": "src/sse/handlers/chat.js",
       "category": "other",
-      "disposition": "vendored-unchanged",
+      "disposition": "overlaid",
       "runtimeTreatment": "application-runtime-source",
       "source": {
         "path": "upstream/router-core/src/sse/handlers/chat.js",
@@ -26391,15 +26392,15 @@
         "size": 12071
       },
       "implementation": {
-        "path": "upstream/router-core/src/sse/handlers/chat.js",
-        "sha256": "aabe30e08e3e018f2adca1bd8afca1c72738bded973d5cbb392b591b5ba4abc5",
-        "size": 12071,
+        "path": "overlays/unified/src/sse/handlers/chat.js",
+        "sha256": "fe4888c85c3fd216d09e8d8fd7d628d71553304e6909cda87ffb93d6a8db2d18",
+        "size": 13433,
         "runtimePath": ".proxy-max/runtime/unified/src/sse/handlers/chat.js"
       },
       "evidence": {
         "pinnedBlob": "upstream/router-core/src/sse/handlers/chat.js#sha256=aabe30e08e3e018f2adca1bd8afca1c72738bded973d5cbb392b591b5ba4abc5",
-        "implementationBlob": "upstream/router-core/src/sse/handlers/chat.js#sha256=aabe30e08e3e018f2adca1bd8afca1c72738bded973d5cbb392b591b5ba4abc5",
-        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-pinned-source",
+        "implementationBlob": "overlays/unified/src/sse/handlers/chat.js#sha256=fe4888c85c3fd216d09e8d8fd7d628d71553304e6909cda87ffb93d6a8db2d18",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=overlay-replaces-pinned-source",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
     },
@@ -30988,6 +30989,193 @@
       }
     },
     {
+      "path": "open-sse/handlers/chatCore/forcedSseClientFormat.js",
+      "category": "other",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/handlers/chatCore/forcedSseClientFormat.js",
+        "sha256": "201ae19ff51e2d06da5205a24d6981cc55da3d9963101760a3523aabf9500e52",
+        "size": 2975,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/handlers/chatCore/forcedSseClientFormat.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/handlers/chatCore/forcedSseClientFormat.js#sha256=201ae19ff51e2d06da5205a24d6981cc55da3d9963101760a3523aabf9500e52",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/agentrouter.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/agentrouter.js",
+        "sha256": "68c35fa918dcf20393773c6ca848333f1ca3723c3d17b4583b31de17b9bf7bb8",
+        "size": 808,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/agentrouter.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/agentrouter.js#sha256=68c35fa918dcf20393773c6ca848333f1ca3723c3d17b4583b31de17b9bf7bb8",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/agnes.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/agnes.js",
+        "sha256": "52e91b09ba32699bc87307f55eb0c0ecbea9a0a774faac1d4e60a766c141b965",
+        "size": 927,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/agnes.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/agnes.js#sha256=52e91b09ba32699bc87307f55eb0c0ecbea9a0a774faac1d4e60a766c141b965",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/ai21.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/ai21.js",
+        "sha256": "f25b11f7e1d9cd4a51d13d2ea21be6e6b9cd24bce7fb73d0eee3674e299585c6",
+        "size": 751,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/ai21.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/ai21.js#sha256=f25b11f7e1d9cd4a51d13d2ea21be6e6b9cd24bce7fb73d0eee3674e299585c6",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/aihorde.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/aihorde.js",
+        "sha256": "cc5f1276130c12789c9642464374e407a01c3298f386bd335ea1f844a0ba9f61",
+        "size": 927,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/aihorde.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/aihorde.js#sha256=cc5f1276130c12789c9642464374e407a01c3298f386bd335ea1f844a0ba9f61",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/ainative.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/ainative.js",
+        "sha256": "a692ddbf77ca797a4107d4768c4c88efa29892b027e8c8d441ef2275720d8b07",
+        "size": 1510,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/ainative.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/ainative.js#sha256=a692ddbf77ca797a4107d4768c4c88efa29892b027e8c8d441ef2275720d8b07",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/aion.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/aion.js",
+        "sha256": "f99440b7ffc0d5353d1c38207d3659f10e31d466565edc2f31d41d32c3ff085b",
+        "size": 1040,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/aion.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/aion.js#sha256=f99440b7ffc0d5353d1c38207d3659f10e31d466565edc2f31d41d32c3ff085b",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/api-airforce.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/api-airforce.js",
+        "sha256": "2371469ef5efb1906f63dedc69351216c1a09fdd0b689da3b9db6a79ccb72b4a",
+        "size": 1241,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/api-airforce.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/api-airforce.js#sha256=2371469ef5efb1906f63dedc69351216c1a09fdd0b689da3b9db6a79ccb72b4a",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/baichuan.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/baichuan.js",
+        "sha256": "c53e3246351dd4f59affb5b4c72f3e40d18f29d304a7f18cedcff628a496b1b4",
+        "size": 1005,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/baichuan.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/baichuan.js#sha256=c53e3246351dd4f59affb5b4c72f3e40d18f29d304a7f18cedcff628a496b1b4",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/baidu.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/baidu.js",
+        "sha256": "f5109b80c00fc18211d54c0b8615e685586adb6c10d35ed4ed7b423eb5e81141",
+        "size": 1862,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/baidu.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/baidu.js#sha256=f5109b80c00fc18211d54c0b8615e685586adb6c10d35ed4ed7b423eb5e81141",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/bazaarlink.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/bazaarlink.js",
+        "sha256": "833c69c83f827356f23afcaa41df39ebfb426636909bcf7fa22f8563f740fe24",
+        "size": 2427,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/bazaarlink.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/bazaarlink.js#sha256=833c69c83f827356f23afcaa41df39ebfb426636909bcf7fa22f8563f740fe24",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
       "path": "open-sse/providers/registry/bedrock.js",
       "category": "provider",
       "disposition": "proxy-max-addition",
@@ -31000,6 +31188,856 @@
       },
       "evidence": {
         "implementationBlob": "overlays/unified/open-sse/providers/registry/bedrock.js#sha256=8edc7d933a1b7f59bc2670cbdf25120d9a97535b6682d4d9e5efbbdb711c606e",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/bluesminds.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/bluesminds.js",
+        "sha256": "c529dd75b96b075b3f3866049e67047804ac31ed0936589e02b0db4408227de2",
+        "size": 1865,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/bluesminds.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/bluesminds.js#sha256=c529dd75b96b075b3f3866049e67047804ac31ed0936589e02b0db4408227de2",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/bytez.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/bytez.js",
+        "sha256": "2bd7186d8944d3471948c015bf92094e7be2681583ea8b7c2a608453ede36327",
+        "size": 930,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/bytez.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/bytez.js#sha256=2bd7186d8944d3471948c015bf92094e7be2681583ea8b7c2a608453ede36327",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/coze.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/coze.js",
+        "sha256": "5d43198682186a4cb57a233859a97450af8e7ff839526352099f5c5dc9fcd2e7",
+        "size": 678,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/coze.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/coze.js#sha256=5d43198682186a4cb57a233859a97450af8e7ff839526352099f5c5dc9fcd2e7",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/deepinfra.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/deepinfra.js",
+        "sha256": "8171b98d18a64ec3c011b5ed024dac980c33836ecc60835ef204f730ce2d623c",
+        "size": 2446,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/deepinfra.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/deepinfra.js#sha256=8171b98d18a64ec3c011b5ed024dac980c33836ecc60835ef204f730ce2d623c",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/doubao.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/doubao.js",
+        "sha256": "d61fa0bccca73de7bb4a52e1ab81389b5611fd4c3a4c74e728fc826b1f3cb935",
+        "size": 1475,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/doubao.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/doubao.js#sha256=d61fa0bccca73de7bb4a52e1ab81389b5611fd4c3a4c74e728fc826b1f3cb935",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/duckduckgo-web.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/duckduckgo-web.js",
+        "sha256": "fd0d1d9b95ad49b3ead3f33dcaa9156daec7154a5938d9bef525cece6709aa1e",
+        "size": 969,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/duckduckgo-web.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/duckduckgo-web.js#sha256=fd0d1d9b95ad49b3ead3f33dcaa9156daec7154a5938d9bef525cece6709aa1e",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/felo-web.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/felo-web.js",
+        "sha256": "78b9e8c7e192d227a133c4de17e0141d816937af910b515e339fb0b7a02c7881",
+        "size": 881,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/felo-web.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/felo-web.js#sha256=78b9e8c7e192d227a133c4de17e0141d816937af910b515e339fb0b7a02c7881",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/freemodel-dev.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/freemodel-dev.js",
+        "sha256": "1e2149e51d5877c291d3fe28a3222ff811e4a6be7f1c623d126bce20eaf2d154",
+        "size": 867,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/freemodel-dev.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/freemodel-dev.js#sha256=1e2149e51d5877c291d3fe28a3222ff811e4a6be7f1c623d126bce20eaf2d154",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/friendliai.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/friendliai.js",
+        "sha256": "297488cb0b83726a989278206efa2dc5f38595c9cdb4862907cf97de81e3e1e6",
+        "size": 813,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/friendliai.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/friendliai.js#sha256=297488cb0b83726a989278206efa2dc5f38595c9cdb4862907cf97de81e3e1e6",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/github-models.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/github-models.js",
+        "sha256": "4629604fbc2e2a345c1f9e2512450b6e58f94f94d133fc3d7187c2a7cfbbc31f",
+        "size": 1054,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/github-models.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/github-models.js#sha256=4629604fbc2e2a345c1f9e2512450b6e58f94f94d133fc3d7187c2a7cfbbc31f",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/hackclub.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/hackclub.js",
+        "sha256": "6713947445554f216dd2d321d51b94eadc0f7e1e9e29b2c9792fb8bd7a78f903",
+        "size": 845,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/hackclub.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/hackclub.js#sha256=6713947445554f216dd2d321d51b94eadc0f7e1e9e29b2c9792fb8bd7a78f903",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/huggingchat.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/huggingchat.js",
+        "sha256": "675fd438901ac66b9a8d50cccd35a6688626bbe152a7a0044e1324e8e2f3c1e3",
+        "size": 3242,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/huggingchat.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/huggingchat.js#sha256=675fd438901ac66b9a8d50cccd35a6688626bbe152a7a0044e1324e8e2f3c1e3",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/iflytek.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/iflytek.js",
+        "sha256": "7fb260cb7c8393c099c182f925d08b5cf5ea7b0346409eaff30da9815e162274",
+        "size": 1034,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/iflytek.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/iflytek.js#sha256=7fb260cb7c8393c099c182f925d08b5cf5ea7b0346409eaff30da9815e162274",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/inference-net.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/inference-net.js",
+        "sha256": "a5b864a6db6b997d4868aecba6ec3fbf69b896f1e8775f4140f37a378d5d8b6e",
+        "size": 880,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/inference-net.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/inference-net.js#sha256=a5b864a6db6b997d4868aecba6ec3fbf69b896f1e8775f4140f37a378d5d8b6e",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/kilo-gateway.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/kilo-gateway.js",
+        "sha256": "85cd4a74bc8e48b8e43a3133bf32f9c99d1bd5442dffa19bb57a085d99f6771e",
+        "size": 1086,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/kilo-gateway.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/kilo-gateway.js#sha256=85cd4a74bc8e48b8e43a3133bf32f9c99d1bd5442dffa19bb57a085d99f6771e",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/liquid.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/liquid.js",
+        "sha256": "373b1d92d2ba2811065b1fb9b94f755c94263e421fcf0c0e333c3ee604ba80e2",
+        "size": 684,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/liquid.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/liquid.js#sha256=373b1d92d2ba2811065b1fb9b94f755c94263e421fcf0c0e333c3ee604ba80e2",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/llm7.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/llm7.js",
+        "sha256": "d6448225ba0e3c5e0f00aa06a00c901f4976b02b9a27dec3621311b97b595334",
+        "size": 895,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/llm7.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/llm7.js#sha256=d6448225ba0e3c5e0f00aa06a00c901f4976b02b9a27dec3621311b97b595334",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/longcat.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/longcat.js",
+        "sha256": "2f6a62e19371c0d868f24cdb8cbb147dac2c740541043f233bace161c1864e33",
+        "size": 748,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/longcat.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/longcat.js#sha256=2f6a62e19371c0d868f24cdb8cbb147dac2c740541043f233bace161c1864e33",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/monsterapi.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/monsterapi.js",
+        "sha256": "0d692e26e101c4687aa62683cc0a04888b596d007e2aa26f336f03678136202d",
+        "size": 801,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/monsterapi.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/monsterapi.js#sha256=0d692e26e101c4687aa62683cc0a04888b596d007e2aa26f336f03678136202d",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/morph.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/morph.js",
+        "sha256": "9a485daa6df732afc46427375c9238f50ebb7d5b205dcb8917b0e15a20f500bd",
+        "size": 1178,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/morph.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/morph.js#sha256=9a485daa6df732afc46427375c9238f50ebb7d5b205dcb8917b0e15a20f500bd",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/muse-spark-web.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/muse-spark-web.js",
+        "sha256": "b0f543681c23f95c4bfbe97e8f2d3392b8288c658a551de221880e3733921f1c",
+        "size": 859,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/muse-spark-web.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/muse-spark-web.js#sha256=b0f543681c23f95c4bfbe97e8f2d3392b8288c658a551de221880e3733921f1c",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/nara.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/nara.js",
+        "sha256": "05a8bdc4f758eac107c088869c6798dc943fa0a7012ba04f5d91306460f1b06f",
+        "size": 927,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/nara.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/nara.js#sha256=05a8bdc4f758eac107c088869c6798dc943fa0a7012ba04f5d91306460f1b06f",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/navy.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/navy.js",
+        "sha256": "0527c2916f08b0433213f481116d4fc12b3c3e001f9a80376087c1b4636d775c",
+        "size": 1358,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/navy.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/navy.js#sha256=0527c2916f08b0433213f481116d4fc12b3c3e001f9a80376087c1b4636d775c",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/nlpcloud.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/nlpcloud.js",
+        "sha256": "4e068499293a8e38fd3523b3bc601288f748e8cc2dcf9d873cdd7a341b694157",
+        "size": 936,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/nlpcloud.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/nlpcloud.js#sha256=4e068499293a8e38fd3523b3bc601288f748e8cc2dcf9d873cdd7a341b694157",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/nous-research.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/nous-research.js",
+        "sha256": "a298b9d711c7d3bd14c540e33e0a1cbeb87ddfefa56ddbb8df174a1ea65c0613",
+        "size": 797,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/nous-research.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/nous-research.js#sha256=a298b9d711c7d3bd14c540e33e0a1cbeb87ddfefa56ddbb8df174a1ea65c0613",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/novita.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/novita.js",
+        "sha256": "3c86b264f4a1e0d3e2867b3f7fa5a7a11973cca9289832f53b20b9cf3af02fb0",
+        "size": 2810,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/novita.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/novita.js#sha256=3c86b264f4a1e0d3e2867b3f7fa5a7a11973cca9289832f53b20b9cf3af02fb0",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/nscale.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/nscale.js",
+        "sha256": "1f350690f67e1a41b2d92d6c9ca5f092faa57cae7dccf71cd60ca48cff5b493a",
+        "size": 1146,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/nscale.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/nscale.js#sha256=1f350690f67e1a41b2d92d6c9ca5f092faa57cae7dccf71cd60ca48cff5b493a",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/nvidiaModels.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/nvidiaModels.js",
+        "sha256": "e343795b5a98be91e7373fcecef36302943b6934abeaa37e8dd8b05e58744c68",
+        "size": 5575,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/nvidiaModels.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/nvidiaModels.js#sha256=e343795b5a98be91e7373fcecef36302943b6934abeaa37e8dd8b05e58744c68",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/ollama-cloud.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/ollama-cloud.js",
+        "sha256": "e4111411786052c8298cc34c99ed71a35bee4208613626efa84947fcfab53838",
+        "size": 1439,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/ollama-cloud.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/ollama-cloud.js#sha256=e4111411786052c8298cc34c99ed71a35bee4208613626efa84947fcfab53838",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/opencode-zen.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/opencode-zen.js",
+        "sha256": "18f33d47f8bf300475648c01d52931da085ed45c0d05f88ab735cda4fc160f95",
+        "size": 1757,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/opencode-zen.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/opencode-zen.js#sha256=18f33d47f8bf300475648c01d52931da085ed45c0d05f88ab735cda4fc160f95",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/ovhcloud.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/ovhcloud.js",
+        "sha256": "ea75148d86618aef2d954d095cb45bd25e02fb5372491e2efb2df997516d5b43",
+        "size": 922,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/ovhcloud.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/ovhcloud.js#sha256=ea75148d86618aef2d954d095cb45bd25e02fb5372491e2efb2df997516d5b43",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/pollinations.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/pollinations.js",
+        "sha256": "9ad566f89f1ecec00575c1f073034bd1ea121473cb4bef15f6f5c86d4f08b900",
+        "size": 2544,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/pollinations.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/pollinations.js#sha256=9ad566f89f1ecec00575c1f073034bd1ea121473cb4bef15f6f5c86d4f08b900",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/predibase.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/predibase.js",
+        "sha256": "2c19d6ffa04c65a9ef05cd951176cf63db7a2d94fad62b4360ac294182ecdb2c",
+        "size": 723,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/predibase.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/predibase.js#sha256=2c19d6ffa04c65a9ef05cd951176cf63db7a2d94fad62b4360ac294182ecdb2c",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/publicai.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/publicai.js",
+        "sha256": "18dbb99dd89b196a4fcf2ccd0a7d0e0975eaef953de90c7664184823b5cef6cf",
+        "size": 1256,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/publicai.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/publicai.js#sha256=18dbb99dd89b196a4fcf2ccd0a7d0e0975eaef953de90c7664184823b5cef6cf",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/qwen-web.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/qwen-web.js",
+        "sha256": "2c7a9065027f01309d38210cc673a9dd53d8f1cb2a231b88891683fc3e248b53",
+        "size": 1105,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/qwen-web.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/qwen-web.js#sha256=2c7a9065027f01309d38210cc673a9dd53d8f1cb2a231b88891683fc3e248b53",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/reka.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/reka.js",
+        "sha256": "0c7ca60b583857201189b8dcf0bb909456a4aea732409c841945ab2a75e243c6",
+        "size": 760,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/reka.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/reka.js#sha256=0c7ca60b583857201189b8dcf0bb909456a4aea732409c841945ab2a75e243c6",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/requesty.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/requesty.js",
+        "sha256": "3453e42907d4494a7bfe317823d4b7d9a1994fee8e13f210e3f1ef6133f9b9b5",
+        "size": 684,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/requesty.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/requesty.js#sha256=3453e42907d4494a7bfe317823d4b7d9a1994fee8e13f210e3f1ef6133f9b9b5",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/routeway.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/routeway.js",
+        "sha256": "884b13f653acfde9fe49247916939074ca5a17ebba9185bd7c2517d490f61369",
+        "size": 1568,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/routeway.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/routeway.js#sha256=884b13f653acfde9fe49247916939074ca5a17ebba9185bd7c2517d490f61369",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/sambanova.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/sambanova.js",
+        "sha256": "98a674f6ccd7355e14dc1094b170158b001f6264764826ac1807ee8acf550e2e",
+        "size": 970,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/sambanova.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/sambanova.js#sha256=98a674f6ccd7355e14dc1094b170158b001f6264764826ac1807ee8acf550e2e",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/sarvam.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/sarvam.js",
+        "sha256": "db1fb9ddd7419836c0dedc5c1ba621bc81ef1f63aaa6812acc72a63f246081a7",
+        "size": 659,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/sarvam.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/sarvam.js#sha256=db1fb9ddd7419836c0dedc5c1ba621bc81ef1f63aaa6812acc72a63f246081a7",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/scaleway.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/scaleway.js",
+        "sha256": "4323adb00ced287ded5923439150ef28137909450a67c1ac87c1c90a74534d63",
+        "size": 1083,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/scaleway.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/scaleway.js#sha256=4323adb00ced287ded5923439150ef28137909450a67c1ac87c1c90a74534d63",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/sealion.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/sealion.js",
+        "sha256": "f060a8cd25b7b3c8c8531fd2361184bfd8390296790ef6322320cf223ae11c08",
+        "size": 1187,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/sealion.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/sealion.js#sha256=f060a8cd25b7b3c8c8531fd2361184bfd8390296790ef6322320cf223ae11c08",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/sensenova.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/sensenova.js",
+        "sha256": "8a4caf1eb72423d080b09dfa7b8f7de1a841a4f204ed5cf526acd10d00912d15",
+        "size": 974,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/sensenova.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/sensenova.js#sha256=8a4caf1eb72423d080b09dfa7b8f7de1a841a4f204ed5cf526acd10d00912d15",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/sparkdesk.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/sparkdesk.js",
+        "sha256": "4c2de0b2ceda68d6bfb2e7b98b25e20d99c9db15b3eb241a09032b1383e22d8f",
+        "size": 919,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/sparkdesk.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/sparkdesk.js#sha256=4c2de0b2ceda68d6bfb2e7b98b25e20d99c9db15b3eb241a09032b1383e22d8f",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/stepfun.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/stepfun.js",
+        "sha256": "4ac640072b2aaea57c7777d10de62306ca5aaca6d2f5dd4832fc8232c72cab56",
+        "size": 995,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/stepfun.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/stepfun.js#sha256=4ac640072b2aaea57c7777d10de62306ca5aaca6d2f5dd4832fc8232c72cab56",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/t3-web.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/t3-web.js",
+        "sha256": "9b32b44a091ba30ca7a7bda13456e20d7430811d8c2b197be8527fc61a68a9f2",
+        "size": 2071,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/t3-web.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/t3-web.js#sha256=9b32b44a091ba30ca7a7bda13456e20d7430811d8c2b197be8527fc61a68a9f2",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/tencent.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/tencent.js",
+        "sha256": "3b51fe149786546f07386ff3c2e66121b95d6ecd4caca619a4d64947496d4c61",
+        "size": 1061,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/tencent.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/tencent.js#sha256=3b51fe149786546f07386ff3c2e66121b95d6ecd4caca619a4d64947496d4c61",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/tokenrouter.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/tokenrouter.js",
+        "sha256": "7a6b780a8ea2aff1934d7042f29da9190020b97924ceba2b38a031b841c377d4",
+        "size": 675,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/tokenrouter.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/tokenrouter.js#sha256=7a6b780a8ea2aff1934d7042f29da9190020b97924ceba2b38a031b841c377d4",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/uncloseai.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/uncloseai.js",
+        "sha256": "e81c7a942c173d544312ef13ba26a4ebe643a2a908e2cfb5a9eacb3d38921196",
+        "size": 861,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/uncloseai.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/uncloseai.js#sha256=e81c7a942c173d544312ef13ba26a4ebe643a2a908e2cfb5a9eacb3d38921196",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/providers/registry/upstage.js",
+      "category": "provider",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/providers/registry/upstage.js",
+        "sha256": "07e8f16bc1f991bfc7b65e24ab879feab60108523c64d484eb21fb283fe767f7",
+        "size": 621,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/providers/registry/upstage.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/providers/registry/upstage.js#sha256=07e8f16bc1f991bfc7b65e24ab879feab60108523c64d484eb21fb283fe767f7",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -31068,6 +32106,74 @@
       },
       "evidence": {
         "implementationBlob": "overlays/unified/open-sse/utils/editToolArgs.js#sha256=e85b1236ab7ecc7cbfe807af407ebd23227038f78030296306c7105d0fb775f1",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/utils/openRouterRequest.js",
+      "category": "other",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/utils/openRouterRequest.js",
+        "sha256": "52d952f7c97f604d60e4da5c89b9a7493c4c5507321226f2b2fd3f4b0158fc9c",
+        "size": 2753,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/utils/openRouterRequest.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/utils/openRouterRequest.js#sha256=52d952f7c97f604d60e4da5c89b9a7493c4c5507321226f2b2fd3f4b0158fc9c",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/utils/quotaLimits.js",
+      "category": "other",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/utils/quotaLimits.js",
+        "sha256": "4dccd402c2269316a21d1dba2e9f4af969ea3f9bb506c8b671e067bb98e35429",
+        "size": 5848,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/utils/quotaLimits.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/utils/quotaLimits.js#sha256=4dccd402c2269316a21d1dba2e9f4af969ea3f9bb506c8b671e067bb98e35429",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/utils/toolJsonRepair.js",
+      "category": "other",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/utils/toolJsonRepair.js",
+        "sha256": "9206a9e25be81c7b7a288c8f6691d59134e2ad02ef9ec6bf93a50b5d6af59577",
+        "size": 6424,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/utils/toolJsonRepair.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/utils/toolJsonRepair.js#sha256=9206a9e25be81c7b7a288c8f6691d59134e2ad02ef9ec6bf93a50b5d6af59577",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "open-sse/utils/workflowToolArgs.js",
+      "category": "other",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/open-sse/utils/workflowToolArgs.js",
+        "sha256": "9552daf35a88ac7929a1b3af3472e9f50af7034513e9bc6ed78190ac46551a8b",
+        "size": 6481,
+        "runtimePath": ".proxy-max/runtime/unified/open-sse/utils/workflowToolArgs.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/open-sse/utils/workflowToolArgs.js#sha256=9552daf35a88ac7929a1b3af3472e9f50af7034513e9bc6ed78190ac46551a8b",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -31175,6 +32281,159 @@
       }
     },
     {
+      "path": "scripts/enable-claude-parallel-pool.js",
+      "category": "infra",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "build-or-operations-source",
+      "implementation": {
+        "path": "overlays/unified/scripts/enable-claude-parallel-pool.js",
+        "sha256": "93f2405169bf96e8d2fe48ecda582a50e752fb291d72f799386aa34e6c69e591",
+        "size": 952,
+        "runtimePath": ".proxy-max/runtime/unified/scripts/enable-claude-parallel-pool.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/scripts/enable-claude-parallel-pool.js#sha256=93f2405169bf96e8d2fe48ecda582a50e752fb291d72f799386aa34e6c69e591",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "scripts/inspect-claude-routing.js",
+      "category": "infra",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "build-or-operations-source",
+      "implementation": {
+        "path": "overlays/unified/scripts/inspect-claude-routing.js",
+        "sha256": "f0dbd8217a9469a161fb30e2a62452d8a109b4be7262f5a47c76bdfb124cc415",
+        "size": 1435,
+        "runtimePath": ".proxy-max/runtime/unified/scripts/inspect-claude-routing.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/scripts/inspect-claude-routing.js#sha256=f0dbd8217a9469a161fb30e2a62452d8a109b4be7262f5a47c76bdfb124cc415",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "scripts/inspect-nvidia-agent-models.js",
+      "category": "infra",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "build-or-operations-source",
+      "implementation": {
+        "path": "overlays/unified/scripts/inspect-nvidia-agent-models.js",
+        "sha256": "a2c8327483de641b176bf81254b3981cbe470cacb6542fba31ac88becb46e3bc",
+        "size": 397,
+        "runtimePath": ".proxy-max/runtime/unified/scripts/inspect-nvidia-agent-models.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/scripts/inspect-nvidia-agent-models.js#sha256=a2c8327483de641b176bf81254b3981cbe470cacb6542fba31ac88becb46e3bc",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "scripts/inspect-recent-routing-errors.js",
+      "category": "infra",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "build-or-operations-source",
+      "implementation": {
+        "path": "overlays/unified/scripts/inspect-recent-routing-errors.js",
+        "sha256": "e1f12574417d30c2e442268fb15e3439aace9454bab2cb4fd5e55f2b867ee0cb",
+        "size": 922,
+        "runtimePath": ".proxy-max/runtime/unified/scripts/inspect-recent-routing-errors.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/scripts/inspect-recent-routing-errors.js#sha256=e1f12574417d30c2e442268fb15e3439aace9454bab2cb4fd5e55f2b867ee0cb",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "scripts/probe-nvidia-agent-models.js",
+      "category": "infra",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "build-or-operations-source",
+      "implementation": {
+        "path": "overlays/unified/scripts/probe-nvidia-agent-models.js",
+        "sha256": "e018f10672516d7f7728725a318297b94deb8f8308e5419497a49fba8e65df1d",
+        "size": 2753,
+        "runtimePath": ".proxy-max/runtime/unified/scripts/probe-nvidia-agent-models.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/scripts/probe-nvidia-agent-models.js#sha256=e018f10672516d7f7728725a318297b94deb8f8308e5419497a49fba8e65df1d",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "scripts/quarantine-route.js",
+      "category": "infra",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "build-or-operations-source",
+      "implementation": {
+        "path": "overlays/unified/scripts/quarantine-route.js",
+        "sha256": "80ff7c8ecaf182c396439346e208595e054cdf7990d798975668e241877ef4ed",
+        "size": 934,
+        "runtimePath": ".proxy-max/runtime/unified/scripts/quarantine-route.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/scripts/quarantine-route.js#sha256=80ff7c8ecaf182c396439346e208595e054cdf7990d798975668e241877ef4ed",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "scripts/repair-claude-pool.js",
+      "category": "infra",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "build-or-operations-source",
+      "implementation": {
+        "path": "overlays/unified/scripts/repair-claude-pool.js",
+        "sha256": "301766d5e8c77c2c29c4f8171d3c169a27505524d17244fa2b5022429b41f962",
+        "size": 1738,
+        "runtimePath": ".proxy-max/runtime/unified/scripts/repair-claude-pool.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/scripts/repair-claude-pool.js#sha256=301766d5e8c77c2c29c4f8171d3c169a27505524d17244fa2b5022429b41f962",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "scripts/set-claude-combo.js",
+      "category": "infra",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "build-or-operations-source",
+      "implementation": {
+        "path": "overlays/unified/scripts/set-claude-combo.js",
+        "sha256": "b0f354ec4f2b0a9964e11e641f419bb0987a10e8940a41f4a3318f608d0ed32d",
+        "size": 1226,
+        "runtimePath": ".proxy-max/runtime/unified/scripts/set-claude-combo.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/scripts/set-claude-combo.js#sha256=b0f354ec4f2b0a9964e11e641f419bb0987a10e8940a41f4a3318f608d0ed32d",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "scripts/smoke-claude-parallel-pool.js",
+      "category": "infra",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "build-or-operations-source",
+      "implementation": {
+        "path": "overlays/unified/scripts/smoke-claude-parallel-pool.js",
+        "sha256": "8606ebfd7f0b08916ec3cff2e3454e6c4b8dea9a79b82af979c2fcc1095fd365",
+        "size": 1544,
+        "runtimePath": ".proxy-max/runtime/unified/scripts/smoke-claude-parallel-pool.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/scripts/smoke-claude-parallel-pool.js#sha256=8606ebfd7f0b08916ec3cff2e3454e6c4b8dea9a79b82af979c2fcc1095fd365",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
       "path": "src/app/(dashboard)/dashboard/DashboardOverview.js",
       "category": "ui-page/component",
       "disposition": "proxy-max-addition",
@@ -31232,12 +32491,29 @@
       "runtimeTreatment": "application-runtime-source",
       "implementation": {
         "path": "overlays/unified/src/app/api/providers/nvidia-catalog/route.js",
-        "sha256": "7cdf6ad4c8e9ed94a27fde1e1ac43fe2e28ddc34e3f69d7489f38ab42335719b",
-        "size": 567,
+        "sha256": "04f0c0fb03bdf52db4586f65b60b76be29b83a05eb9a2f0d2f3ae1e6f0bbfdf9",
+        "size": 887,
         "runtimePath": ".proxy-max/runtime/unified/src/app/api/providers/nvidia-catalog/route.js"
       },
       "evidence": {
-        "implementationBlob": "overlays/unified/src/app/api/providers/nvidia-catalog/route.js#sha256=7cdf6ad4c8e9ed94a27fde1e1ac43fe2e28ddc34e3f69d7489f38ab42335719b",
+        "implementationBlob": "overlays/unified/src/app/api/providers/nvidia-catalog/route.js#sha256=04f0c0fb03bdf52db4586f65b60b76be29b83a05eb9a2f0d2f3ae1e6f0bbfdf9",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "src/app/api/v1/models/modelInfo.js",
+      "category": "api-route",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/src/app/api/v1/models/modelInfo.js",
+        "sha256": "3421887143d75bea006e0922a7a6add84e8fa4d6ea79d9c0816a3f99ad92e4c9",
+        "size": 682,
+        "runtimePath": ".proxy-max/runtime/unified/src/app/api/v1/models/modelInfo.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/src/app/api/v1/models/modelInfo.js#sha256=3421887143d75bea006e0922a7a6add84e8fa4d6ea79d9c0816a3f99ad92e4c9",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -31255,6 +32531,23 @@
       },
       "evidence": {
         "implementationBlob": "overlays/unified/src/lib/db/helpers/secureStorage.js#sha256=e3290d4eabae4257efdedbd5eb27a70ac78e04127ad81ffd56e714e24db031e9",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "src/lib/db/repos/routingQuarantineRepo.js",
+      "category": "other",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/src/lib/db/repos/routingQuarantineRepo.js",
+        "sha256": "8757b2011fb29b4bd541ac6b508df58b526f3e24bd0f6fdf5b513353c02fe51c",
+        "size": 4956,
+        "runtimePath": ".proxy-max/runtime/unified/src/lib/db/repos/routingQuarantineRepo.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/src/lib/db/repos/routingQuarantineRepo.js#sha256=8757b2011fb29b4bd541ac6b508df58b526f3e24bd0f6fdf5b513353c02fe51c",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -31498,6 +32791,40 @@
       }
     },
     {
+      "path": "src/sse/handlers/comboFallback.js",
+      "category": "other",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "application-runtime-source",
+      "implementation": {
+        "path": "overlays/unified/src/sse/handlers/comboFallback.js",
+        "sha256": "b3a24a696a4f0b754c6c080c778d5336e7f1e2de52a66ea3baba6ae983b03fd5",
+        "size": 1026,
+        "runtimePath": ".proxy-max/runtime/unified/src/sse/handlers/comboFallback.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/src/sse/handlers/comboFallback.js#sha256=b3a24a696a4f0b754c6c080c778d5336e7f1e2de52a66ea3baba6ae983b03fd5",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "tests/package-lock.json",
+      "category": "test",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "verification-source",
+      "implementation": {
+        "path": "overlays/unified/tests/package-lock.json",
+        "sha256": "42f4c4f123ba0e6581cd7345613dd066ffcaa730dd024d0f20ecae4cd6b37cf1",
+        "size": 38726,
+        "runtimePath": ".proxy-max/runtime/unified/tests/package-lock.json"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/tests/package-lock.json#sha256=42f4c4f123ba0e6581cd7345613dd066ffcaa730dd024d0f20ecae4cd6b37cf1",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
       "path": "tests/setup/no-network.js",
       "category": "test",
       "disposition": "proxy-max-addition",
@@ -31583,6 +32910,57 @@
       }
     },
     {
+      "path": "tests/unit/cache-write-accounting.test.js",
+      "category": "test",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "verification-source",
+      "implementation": {
+        "path": "overlays/unified/tests/unit/cache-write-accounting.test.js",
+        "sha256": "2d0e8bd0724401556544fb9b266c97c9469c2266876b6c6defb8134f39b14963",
+        "size": 1173,
+        "runtimePath": ".proxy-max/runtime/unified/tests/unit/cache-write-accounting.test.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/tests/unit/cache-write-accounting.test.js#sha256=2d0e8bd0724401556544fb9b266c97c9469c2266876b6c6defb8134f39b14963",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "tests/unit/chat-combo-fallback.test.js",
+      "category": "test",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "verification-source",
+      "implementation": {
+        "path": "overlays/unified/tests/unit/chat-combo-fallback.test.js",
+        "sha256": "e1e62427fe1e3f8098b935cc16fd3acec4f9e58a9ee3f4ff1ce40cef1167f6f0",
+        "size": 2928,
+        "runtimePath": ".proxy-max/runtime/unified/tests/unit/chat-combo-fallback.test.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/tests/unit/chat-combo-fallback.test.js#sha256=e1e62427fe1e3f8098b935cc16fd3acec4f9e58a9ee3f4ff1ce40cef1167f6f0",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "tests/unit/claude-tool-contract.test.js",
+      "category": "test",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "verification-source",
+      "implementation": {
+        "path": "overlays/unified/tests/unit/claude-tool-contract.test.js",
+        "sha256": "118dcae1db48e5b1bbc7d5a1d791e747a3561bceff0e7ef2c26cedb4dd742c3d",
+        "size": 3364,
+        "runtimePath": ".proxy-max/runtime/unified/tests/unit/claude-tool-contract.test.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/tests/unit/claude-tool-contract.test.js#sha256=118dcae1db48e5b1bbc7d5a1d791e747a3561bceff0e7ef2c26cedb4dd742c3d",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
       "path": "tests/unit/cursor-agent-execution.test.js",
       "category": "test",
       "disposition": "proxy-max-addition",
@@ -31651,6 +33029,40 @@
       }
     },
     {
+      "path": "tests/unit/edit-tool-recovery.test.js",
+      "category": "test",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "verification-source",
+      "implementation": {
+        "path": "overlays/unified/tests/unit/edit-tool-recovery.test.js",
+        "sha256": "bc8828a95c1fefca205db61bfa230e7158077d6f2105b9ab0aa8ec91eb4c7f58",
+        "size": 4519,
+        "runtimePath": ".proxy-max/runtime/unified/tests/unit/edit-tool-recovery.test.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/tests/unit/edit-tool-recovery.test.js#sha256=bc8828a95c1fefca205db61bfa230e7158077d6f2105b9ab0aa8ec91eb4c7f58",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "tests/unit/free-model-filters.test.js",
+      "category": "test",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "verification-source",
+      "implementation": {
+        "path": "overlays/unified/tests/unit/free-model-filters.test.js",
+        "sha256": "dc6afecc686c7a48d73559083887003197e49f6afdd75c7c7800775e843730ed",
+        "size": 1495,
+        "runtimePath": ".proxy-max/runtime/unified/tests/unit/free-model-filters.test.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/tests/unit/free-model-filters.test.js#sha256=dc6afecc686c7a48d73559083887003197e49f6afdd75c7c7800775e843730ed",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
       "path": "tests/unit/npm-update.test.js",
       "category": "test",
       "disposition": "proxy-max-addition",
@@ -31663,6 +33075,40 @@
       },
       "evidence": {
         "implementationBlob": "overlays/unified/tests/unit/npm-update.test.js#sha256=e2308fc51bfb7ff7d5afca54762c12f4ef2eec50bf9a2dd6b8fae4a9a342728c",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "tests/unit/nvidia-catalog-routing.test.js",
+      "category": "test",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "verification-source",
+      "implementation": {
+        "path": "overlays/unified/tests/unit/nvidia-catalog-routing.test.js",
+        "sha256": "bc798c854b2c7ca46a432fe6440f7b7e31a4228d78054892edc757f1402452e4",
+        "size": 4583,
+        "runtimePath": ".proxy-max/runtime/unified/tests/unit/nvidia-catalog-routing.test.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/tests/unit/nvidia-catalog-routing.test.js#sha256=bc798c854b2c7ca46a432fe6440f7b7e31a4228d78054892edc757f1402452e4",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "tests/unit/openrouter-context-compression.test.js",
+      "category": "test",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "verification-source",
+      "implementation": {
+        "path": "overlays/unified/tests/unit/openrouter-context-compression.test.js",
+        "sha256": "beded7d81e83c76a306887c33ab2f08ede2995470fbaf3ca90e9f938bd0e0926",
+        "size": 3183,
+        "runtimePath": ".proxy-max/runtime/unified/tests/unit/openrouter-context-compression.test.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/tests/unit/openrouter-context-compression.test.js#sha256=beded7d81e83c76a306887c33ab2f08ede2995470fbaf3ca90e9f938bd0e0926",
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
@@ -32091,6 +33537,74 @@
         "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
         "gate": "scripts/unified-parity-ledger.js#verify"
       }
+    },
+    {
+      "path": "tests/unit/quota-limit-routing.test.js",
+      "category": "test",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "verification-source",
+      "implementation": {
+        "path": "overlays/unified/tests/unit/quota-limit-routing.test.js",
+        "sha256": "2aadd7ff5f80b6c3df9229023b62c62547cd1f10744e3f30ba15d559a521061a",
+        "size": 3488,
+        "runtimePath": ".proxy-max/runtime/unified/tests/unit/quota-limit-routing.test.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/tests/unit/quota-limit-routing.test.js#sha256=2aadd7ff5f80b6c3df9229023b62c62547cd1f10744e3f30ba15d559a521061a",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "tests/unit/routing-quarantine.test.js",
+      "category": "test",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "verification-source",
+      "implementation": {
+        "path": "overlays/unified/tests/unit/routing-quarantine.test.js",
+        "sha256": "5bed337094fe3c0d4df5a8585cbd32cd30d73c2974f48eb464be0b25b6a6ce11",
+        "size": 3974,
+        "runtimePath": ".proxy-max/runtime/unified/tests/unit/routing-quarantine.test.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/tests/unit/routing-quarantine.test.js#sha256=5bed337094fe3c0d4df5a8585cbd32cd30d73c2974f48eb464be0b25b6a6ce11",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "tests/unit/tool-json-repair.test.js",
+      "category": "test",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "verification-source",
+      "implementation": {
+        "path": "overlays/unified/tests/unit/tool-json-repair.test.js",
+        "sha256": "9e585db9b4d03950043a57290d9b956c2061aa693fe669d95e9c84adae12a76c",
+        "size": 2378,
+        "runtimePath": ".proxy-max/runtime/unified/tests/unit/tool-json-repair.test.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/tests/unit/tool-json-repair.test.js#sha256=9e585db9b4d03950043a57290d9b956c2061aa693fe669d95e9c84adae12a76c",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
+    },
+    {
+      "path": "tests/unit/workflow-tool-args.test.js",
+      "category": "test",
+      "disposition": "proxy-max-addition",
+      "runtimeTreatment": "verification-source",
+      "implementation": {
+        "path": "overlays/unified/tests/unit/workflow-tool-args.test.js",
+        "sha256": "5295e5544e8245076cdacc1bc443ca8ff5f940f119d2d9241f2ed5dd3a6b2a29",
+        "size": 2580,
+        "runtimePath": ".proxy-max/runtime/unified/tests/unit/workflow-tool-args.test.js"
+      },
+      "evidence": {
+        "implementationBlob": "overlays/unified/tests/unit/workflow-tool-args.test.js#sha256=5295e5544e8245076cdacc1bc443ca8ff5f940f119d2d9241f2ed5dd3a6b2a29",
+        "materialization": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-overlay-addition",
+        "gate": "scripts/unified-parity-ledger.js#verify"
+      }
     }
   ],
   "generatedArtifacts": [
@@ -32098,8 +33612,8 @@
       "path": "upstream/router-core/package-lock.json",
       "category": "infra",
       "disposition": "generated-dependency-lock",
-      "sha256": "9fc81062ac5d5cce98e9b1c8a29f441caa72749656b7195b3ed60d1a133c45ee",
-      "size": 358908,
+      "sha256": "5f6ea8d2f14b33c09aade57acc29c9211866e7d75444f5514b328865b62c9b26",
+      "size": 358910,
       "runtimePath": ".proxy-max/runtime/unified/package-lock.json",
       "evidence": "src/runtime/unified-source.js#sha256=6c0da5a059c41a36fefb41d3326a45c2dfbe4bdced301003d888322f232e27e3;rule=copy-generated-lock"
     },

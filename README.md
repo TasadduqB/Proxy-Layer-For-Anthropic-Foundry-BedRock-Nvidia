@@ -81,6 +81,28 @@ OpenAI-compatible clients use `http://127.0.0.1:8787/v1`. Principal routes are:
 | Video | `POST /v1/videos` |
 | Search / fetch | `POST /v1/search`, `POST /v1/fetch` |
 
+## Using Proxy-Max from another computer
+
+By default Proxy-Max binds to loopback only, and the dashboard's copy-paste
+launch command always reflects the *server's* current settings — so it works
+correctly out of the box for other machines too, as long as two things are
+set on the machine running the proxy:
+
+```bash
+export HOST=0.0.0.0                # bind on all interfaces, not just loopback
+export PROXY_MAX_API_KEY=some-long-random-value   # required for any non-local caller
+export PROXY_MAX_ADMIN_TOKEN=some-other-random-value  # required to open the dashboard remotely
+npm start
+```
+
+Then open `http://<this-machine's-LAN-IP>:8787/dashboard` from the other
+computer. The launch command shown there will already contain the correct
+host/port and the real `PROXY_MAX_API_KEY` value — copy it as-is. Without
+`PROXY_MAX_API_KEY` set, every request from a non-loopback address (dashboard
+management calls and `/v1` inference alike) is rejected with 403, which is
+the most common cause of "the launch command doesn't work on another
+computer."
+
 ## Runtime modes and rollback
 
 `npm start` launches the unified runtime on loopback port `8787`.
@@ -134,10 +156,60 @@ pool.
 
 Notable native integrations include Anthropic/Claude, OpenAI/Codex, Azure,
 AWS Bedrock, Gemini, Vertex, GitHub Copilot, Cursor, Kiro, Qwen, Kimi, xAI,
-OpenRouter, NVIDIA, Cloudflare AI, Ollama/local devices, ElevenLabs, Deepgram,
+OpenRouter, TokenRouter (including `moonshotai/kimi-k3-free`), NVIDIA,
+Cloudflare AI, Ollama/local devices, ElevenLabs, Deepgram,
 AssemblyAI, Stability, Runway, Tavily, Brave, Exa, Firecrawl, and many other
 registry-backed services. The dashboard is the source of truth for the exact
 models and connection fields in the pinned build.
+
+TokenRouter supports multiple API-key connections. Each key is treated as an
+independent account: a rate-limit response cools only that connection and the
+request falls through to the next available account.
+
+## OmniRoute-derived additions (unified runtime)
+
+`npm start` defaults to the **unified** runtime (the Next.js dashboard under
+`overlays/unified/` + `upstream/router-core`), not the legacy runtime below.
+That dashboard's provider registry now includes 55 additional free-tier
+providers (Kilo Gateway, Nous Research, DuckDuckGo, HuggingChat, Sambanova,
+Novita, and more — see `overlays/unified/open-sse/providers/registry/`) plus
+`hasFree: true` tagging on 15 existing providers (Mistral, Cohere, DeepSeek,
+Cerebras, GLM, Together, Vertex, and others) that already had a free tier but
+weren't marked. They show up automatically in **Dashboard → Providers** once
+you rebuild:
+
+```
+npm run unified:materialize   # applies the overlay on top of the pinned upstream source
+npm run unified:build         # compiles the standalone Next.js app (can take a few minutes)
+npm start                     # or: npm run start:unified
+```
+
+## OmniRoute-derived additions (legacy runtime)
+
+Adapted from [OmniRoute](https://github.com/diegosouzapw/OmniRoute) (MIT) into
+the legacy `src/server.js` runtime — see `THIRD_PARTY_NOTICES.md`:
+
+- **Generic provider registry** (`src/providers/registry.js`, `GET /api/providers/registry`) —
+  ~127 additional OpenAI-compatible providers (OpenRouter, Groq, Together,
+  Mistral, DeepSeek, xAI, Cohere, Perplexity, and more), merged into
+  `src/models.js` under their own `kind`. Set `kind` + `apiKey` in
+  `config.json`; `endpoint` is optional and defaults to the registry's base URL.
+- **Free-model catalog** (`src/free-models.js`, `GET /api/free-models`) — 462
+  free-tier models/allowances across ~80 providers, with budget math that
+  totals steady recurring tokens/month without double-counting shared pools.
+  `GET /api/free-models?provider=<id>` filters to one provider.
+- **Guardrails** (`src/security/guardrails.js`) — prompt-injection detection
+  (block/warn/log), PII detection/redaction (email, CPF/CNPJ, credit card,
+  phone, SSN), and credential/secret redaction (provider API keys, VCS/SaaS
+  tokens, payment keys, cloud keys, private keys, JWTs, connection strings).
+  Off by default; enable in `config.json`:
+  `{ "guardrails": { "enabled": true, "injection": { "mode": "warn" }, "piiRedaction": false, "credentialRedaction": false } }`.
+- **Adaptive circuit breaker** (`src/routing/circuit-breaker.js`,
+  `GET /api/pool/circuit-status`) — layers exponential backoff and a
+  CLOSED→DEGRADED→OPEN→HALF_OPEN state machine on top of the existing flat
+  pool breaker. Always records outcomes for visibility; only extends cooldowns
+  when `PROXY_POOL_BREAKER_ADAPTIVE=1` is set (requires `PROXY_POOL_BREAKER=1`
+  too), so default routing behavior is unchanged.
 
 ## Security model
 

@@ -201,7 +201,14 @@ export function buildAzureEndpoint(model, credentials = {}) {
       );
     }
   } else if (providerSpecificData.endpointMode === "direct") {
-    appendPath(endpoint, providerSpecificData.apiType === "responses" ? "/responses" : "/chat/completions");
+    // "direct" means "base resource URL, no path yet" — but a pasted Azure
+    // Portal URL commonly already includes the full /responses or
+    // /chat/completions path (with its own api-version query string). Appending
+    // again would build a doubled path (".../responses/responses") that Azure
+    // rejects outright, so only append when the path isn't already complete.
+    if (!hasExpectedFullPath(endpoint.pathname, providerSpecificData.apiType)) {
+      appendPath(endpoint, providerSpecificData.apiType === "responses" ? "/responses" : "/chat/completions");
+    }
   } else if (!hasExpectedFullPath(endpoint.pathname, providerSpecificData.apiType)) {
     // Defensive re-check in case this helper is called without normalization.
     throw new Error("Azure full endpoint path is invalid");
@@ -284,7 +291,7 @@ export class AzureExecutor extends DefaultExecutor {
     return transformed;
   }
 
-  parseError(response) {
+  parseError(response, bodyText) {
     const messages = {
       400: "Azure rejected the request",
       401: "Azure authentication failed",
@@ -292,9 +299,23 @@ export class AzureExecutor extends DefaultExecutor {
       404: "Azure endpoint or deployment was not found",
       429: "Azure rate limit exceeded",
     };
+    const fallback = messages[response.status] || `Azure upstream request failed (HTTP ${response.status})`;
+    // Azure's actual body (e.g. "content management policy", "model not found
+    // for this resource", a specific quota message) is far more actionable
+    // than a generic per-status label — surface it whenever present so
+    // fallback/cooldown decisions and logs reflect the real cause.
+    let detail = null;
+    if (typeof bodyText === "string" && bodyText.trim()) {
+      try {
+        const parsed = JSON.parse(bodyText);
+        detail = parsed?.error?.message || parsed?.error || parsed?.message || null;
+      } catch {
+        detail = bodyText.trim().slice(0, 500);
+      }
+    }
     return {
       status: response.status,
-      message: messages[response.status] || `Azure upstream request failed (HTTP ${response.status})`,
+      message: detail ? `${fallback}: ${detail}` : fallback,
     };
   }
 

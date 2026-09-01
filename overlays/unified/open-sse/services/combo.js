@@ -7,6 +7,7 @@ import { resolveProviderAlias } from "./model.js";
 import { unavailableResponse } from "../utils/error.js";
 import { getCapabilitiesForModel } from "../providers/capabilities.js";
 import { extractTextContent } from "../translator/formats/gemini.js";
+import { estimateInputTokens } from "../utils/usageTracking.js";
 
 // Hard capabilities = input modalities; missing one drops request data (e.g. image
 // stripped). Must be prioritized. Soft (e.g. search) only degrades a feature.
@@ -94,6 +95,63 @@ export function reorderByCapabilities(models, required) {
 const comboRotationState = new Map();
 const comboModelCooldowns = new Map();
 const comboModelSuccesses = new Map();
+// Learned per-model context-window ceilings, keyed by comboName+model. Free
+// long-tail models are rarely hand-curated with an accurate contextWindow in
+// capabilities.js, so instead of trusting a static (often optimistic) number,
+// we learn each model's real limit the first time it reports one, and use it
+// to skip that model for oversized requests going forward — without ever
+// removing it from the combo, since a smaller conversation can still use it.
+const comboModelContextLimits = new Map();
+
+// Matches the common "maximum context length is N tokens" family of errors
+// (OpenAI-compatible upstreams, including NVIDIA NIM and OpenRouter).
+const CONTEXT_LIMIT_ERROR_PATTERN = /maximum context length is (\d[\d,]*)\s*tokens/i;
+
+// A transport-level failure (DNS/connect-timeout/refused) means the whole
+// provider endpoint is unreachable right now, not that this one model/key is
+// bad. Every other combo model behind that same provider will fail the same
+// way, so retrying each individually only burns the connect timeout N times.
+const TRANSPORT_UNREACHABLE_PATTERN = /UND_ERR_CONNECT|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|fetch failed/i;
+
+function isTransportUnreachableError(errorText) {
+  return typeof errorText === "string" && TRANSPORT_UNREACHABLE_PATTERN.test(errorText);
+}
+
+function comboModelProvider(modelStr) {
+  const slash = modelStr.indexOf("/");
+  return slash > 0 ? modelStr.slice(0, slash) : modelStr;
+}
+
+function extractContextLimitFromError(errorText) {
+  if (typeof errorText !== "string") return null;
+  const match = errorText.match(CONTEXT_LIMIT_ERROR_PATTERN);
+  if (!match) return null;
+  const limit = Number.parseInt(match[1].replace(/,/g, ""), 10);
+  return Number.isFinite(limit) && limit > 0 ? limit : null;
+}
+
+function recordComboModelContextLimit(comboName, model, limit) {
+  const key = comboModelHealthKey(comboName, model);
+  const existing = comboModelContextLimits.get(key);
+  // Keep the smallest observed limit — a provider is never wrong about "too
+  // small," and a larger stale value would let an oversized request through.
+  if (existing == null || limit < existing) comboModelContextLimits.set(key, limit);
+}
+
+// Deprioritize (never remove) models already known to be too small for this
+// request's size, based on limits learned from past error responses.
+function reorderByLearnedContextFit(models, comboName, requiredTokens) {
+  if (!requiredTokens || models.length <= 1) return models;
+  const fits = [];
+  const tooSmall = [];
+  for (const model of models) {
+    const limit = comboModelContextLimits.get(comboModelHealthKey(comboName, model));
+    if (limit != null && limit < requiredTokens) tooSmall.push(model);
+    else fits.push(model);
+  }
+  if (tooSmall.length === 0) return models;
+  return [...fits, ...tooSmall];
+}
 
 function positiveMs(value, fallback) {
   const parsed = Number.parseInt(value, 10);
@@ -596,6 +654,17 @@ export async function validateClaudeToolStream(response, options = {}) {
   }
 
   const maxBytes = positiveMs(options.maxBytes, CLAUDE_TOOL_MAX_STREAM_BYTES);
+  // Weaker fallback models occasionally hallucinate a tool by a name that was
+  // never declared (e.g. calling "Read-only" instead of "Read", inferring a
+  // name from the tool's description text). The client rejects that locally
+  // with an opaque "no such tool" error and the combo never gets a chance to
+  // retry. Catching it here routes it through the same fallback path as any
+  // other malformed tool stream.
+  const validToolNames = options.validToolNames instanceof Set
+    ? options.validToolNames
+    : Array.isArray(options.validToolNames)
+      ? new Set(options.validToolNames)
+      : null;
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   const chunks = [];
@@ -662,6 +731,9 @@ export async function validateClaudeToolStream(response, options = {}) {
     inspectBytes(new Uint8Array(), true);
 
     for (const tool of tools.values()) {
+      if (validToolNames && validToolNames.size > 0 && !validToolNames.has(tool.name)) {
+        throw new Error(`Unknown tool "${tool.name}" — not declared in this request's tools`);
+      }
       if (!tool.partialJson) {
         if (tool.initialInput && typeof tool.initialInput === "object") continue;
         throw new Error(`Missing input JSON for ${tool.name}`);
@@ -873,6 +945,9 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
   // Edit, and Update turn. Other dashboard combos retain their chosen strategy.
   const effectiveStrategy = isClaudeManagedCombo(comboName) ? "fallback" : comboStrategy;
   const claudeToolRequest = isClaudeManagedCombo(comboName) && Array.isArray(body?.tools) && body.tools.length > 0;
+  const claudeToolNames = claudeToolRequest
+    ? new Set(body.tools.map((tool) => tool?.name).filter((name) => typeof name === "string" && name))
+    : null;
   const structuredOutputSchema = isClaudeManagedCombo(comboName)
     ? claudeStructuredOutputSchema(body)
     : null;
@@ -881,6 +956,10 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
     ? { ...body, max_tokens: CLAUDE_TOOL_MAX_OUTPUT_TOKENS }
     : body;
   const requestBytes = claudeManagedRequest ? JSON.stringify(routedBody).length : 0;
+  // Rough input+output token estimate for this request, used only to
+  // deprioritize models already known (from past errors) to be too small —
+  // never to remove them, since a smaller follow-up request could still fit.
+  const requiredTokens = estimateInputTokens(routedBody) + (Number(routedBody?.max_tokens) || 0);
   const effectiveStreamTtftTimeoutMs = requestBytes >= LARGE_CLAUDE_REQUEST_BYTES
     ? Math.max(
         positiveMs(streamTtftTimeoutMs, DEFAULT_STREAM_TTFT_TIMEOUT_MS),
@@ -903,6 +982,7 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
 
   const health = withoutCooledComboModels(rotatedModels, comboName);
   rotatedModels = preferKnownHealthyFallbacks(health.models, comboName);
+  rotatedModels = reorderByLearnedContextFit(rotatedModels, comboName, requiredTokens);
   if (health.cooled.length > 0) {
     log.info("COMBO", `Skipping ${health.cooled.length} cooling model(s): ${health.cooled.join(", ")}`);
   }
@@ -910,9 +990,18 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
   let lastError = null;
   let earliestRetryAfter = null;
   let lastStatus = null;
+  // Scoped to this single request only — a transient outage must not bias
+  // routing for the next unrelated request, so this never persists past here.
+  const unreachableProviders = new Set();
 
   for (let i = 0; i < rotatedModels.length; i++) {
     const modelStr = rotatedModels[i];
+
+    if (unreachableProviders.has(comboModelProvider(modelStr))) {
+      log.warn("COMBO", `Skipping ${modelStr}, provider unreachable this request`);
+      continue;
+    }
+
     log.info("COMBO", `Trying model ${i + 1}/${rotatedModels.length}: ${modelStr}`);
 
     try {
@@ -943,7 +1032,7 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
             })
           : ready.response;
         const validated = claudeToolRequest
-          ? await validateClaudeToolStream(guardedResponse)
+          ? await validateClaudeToolStream(guardedResponse, { validToolNames: claudeToolNames })
           : { response: guardedResponse };
         if (!validated.response) {
           lastError = validated.error;
@@ -1017,12 +1106,27 @@ export async function handleComboChat({ body, models, handleSingleModel, log, co
       lastError = errorText || String(result.status);
       if (!lastStatus) lastStatus = result.status;
       coolComboModel(comboName, modelStr, modelCooldownMs);
+      const learnedLimit = extractContextLimitFromError(errorText);
+      if (learnedLimit != null) {
+        recordComboModelContextLimit(comboName, modelStr, learnedLimit);
+        log.info("COMBO", `Learned ${modelStr} context limit: ${learnedLimit} tokens`);
+      }
+      if (isTransportUnreachableError(errorText)) {
+        const providerPrefix = comboModelProvider(modelStr);
+        unreachableProviders.add(providerPrefix);
+        log.warn("COMBO", `${providerPrefix} endpoint unreachable, skipping its other combo models this request`);
+      }
       log.warn("COMBO", `Model ${modelStr} failed, trying next`, { status: result.status });
     } catch (error) {
       // Catch unexpected exceptions to ensure fallback continues
       lastError = error.message || String(error);
       if (!lastStatus) lastStatus = 500;
       coolComboModel(comboName, modelStr, modelCooldownMs);
+      if (isTransportUnreachableError(lastError)) {
+        const providerPrefix = comboModelProvider(modelStr);
+        unreachableProviders.add(providerPrefix);
+        log.warn("COMBO", `${providerPrefix} endpoint unreachable, skipping its other combo models this request`);
+      }
       log.warn("COMBO", `Model ${modelStr} threw error, trying next`, { error: lastError });
     }
   }

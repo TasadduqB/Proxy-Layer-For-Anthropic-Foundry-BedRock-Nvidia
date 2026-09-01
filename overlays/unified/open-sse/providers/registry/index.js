@@ -100,7 +100,66 @@ import p97 from "./xiaomi-tokenplan.js";
 import p98 from "./youcom.js";
 import p99 from "./alims-intl.js";
 import p100 from "./bedrock.js";
+import p101 from "./tokenrouter.js";
 
+import p102 from "./agentrouter.js";
+import p103 from "./agnes.js";
+import p104 from "./ai21.js";
+import p105 from "./aihorde.js";
+import p106 from "./ainative.js";
+import p107 from "./aion.js";
+import p108 from "./api-airforce.js";
+import p109 from "./baichuan.js";
+import p110 from "./baidu.js";
+import p111 from "./bazaarlink.js";
+import p112 from "./bluesminds.js";
+import p113 from "./bytez.js";
+import p114 from "./coze.js";
+import p115 from "./deepinfra.js";
+import p116 from "./doubao.js";
+import p117 from "./duckduckgo-web.js";
+import p118 from "./felo-web.js";
+import p119 from "./freemodel-dev.js";
+import p120 from "./friendliai.js";
+import p121 from "./hackclub.js";
+import p122 from "./huggingchat.js";
+import p123 from "./iflytek.js";
+import p124 from "./inference-net.js";
+import p125 from "./kilo-gateway.js";
+import p126 from "./liquid.js";
+import p127 from "./llm7.js";
+import p128 from "./longcat.js";
+import p129 from "./monsterapi.js";
+import p130 from "./morph.js";
+import p131 from "./muse-spark-web.js";
+import p132 from "./nara.js";
+import p133 from "./navy.js";
+import p134 from "./nlpcloud.js";
+import p135 from "./nous-research.js";
+import p136 from "./novita.js";
+import p137 from "./nscale.js";
+import p138 from "./ollama-cloud.js";
+import p139 from "./opencode-zen.js";
+import p140 from "./ovhcloud.js";
+import p141 from "./pollinations.js";
+import p142 from "./predibase.js";
+import p143 from "./publicai.js";
+import p144 from "./qwen-web.js";
+import p145 from "./reka.js";
+import p146 from "./requesty.js";
+import p147 from "./routeway.js";
+import p148 from "./sambanova.js";
+import p149 from "./scaleway.js";
+import p150 from "./sealion.js";
+import p151 from "./sensenova.js";
+import p152 from "./sparkdesk.js";
+import p153 from "./stepfun.js";
+import p154 from "./t3-web.js";
+import p155 from "./tencent.js";
+import p156 from "./uncloseai.js";
+import p157 from "./github-models.js";
+import p158 from "./sarvam.js";
+import p159 from "./upstage.js";
 export default [
   p0,
   p1,
@@ -203,4 +262,63 @@ export default [
   p98,
   p99,
   p100,
+  p101,
+  p102,
+  p103,
+  p104,
+  p105,
+  p106,
+  p107,
+  p108,
+  p109,
+  p110,
+  p111,
+  p112,
+  p113,
+  p114,
+  p115,
+  p116,
+  p117,
+  p118,
+  p119,
+  p120,
+  p121,
+  p122,
+  p123,
+  p124,
+  p125,
+  p126,
+  p127,
+  p128,
+  p129,
+  p130,
+  p131,
+  p132,
+  p133,
+  p134,
+  p135,
+  p136,
+  p137,
+  p138,
+  p139,
+  p140,
+  p141,
+  p142,
+  p143,
+  p144,
+  p145,
+  p146,
+  p147,
+  p148,
+  p149,
+  p150,
+  p151,
+  p152,
+  p153,
+  p154,
+  p155,
+  p156,
+  p157,
+  p158,
+  p159,
 ];

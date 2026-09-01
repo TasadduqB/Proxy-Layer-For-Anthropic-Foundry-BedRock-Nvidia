@@ -1,6 +1,6 @@
 {
   "name": "proxy-max",
-  "version": "2.0.0",
+  "version": "2.10.5",
   "description": "Local-first multi-provider AI gateway with protocol translation, account routing, media APIs, proxy pools, and a secure operations dashboard.",
   "keywords": [
     "claude-code",

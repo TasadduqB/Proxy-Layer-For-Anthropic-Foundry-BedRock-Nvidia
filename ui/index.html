@@ -896,6 +896,13 @@
               <div class="small mono" id="launchClaudePath"></div>
             </div>
           </div>
+          <div id="launchRemoteWarn" class="launch-strip warn hide">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+            <div>
+              <div style="font-weight:600">This command won't work on other computers yet</div>
+              <div class="small">You opened this dashboard remotely, but no <span class="mono">PROXY_MAX_API_KEY</span> is set on the server, so the proxy will reject every non-local request. Set <span class="mono">PROXY_MAX_API_KEY</span> (and restart the proxy) before copying this command to another machine.</div>
+            </div>
+          </div>
           <div class="small" style="margin-bottom:8px">Paste into any terminal — paths are resolved for <strong id="launchPlatformLabel">your system</strong>:</div>
           <div class="cmd-wrap">
             <pre class="cmd" id="launchCmdPrimary"></pre>
@@ -2089,6 +2096,8 @@ function renderLaunchCard() {
   }
   $('#launchNoClaude').classList.add('hide');
   $('#launchReady').classList.remove('hide');
+  const remoteWarn = $('#launchRemoteWarn');
+  if (remoteWarn) remoteWarn.classList.toggle('hide', !info.remoteAuthWarning);
   const platform = info.platform;
   const platformLabel = { darwin:'macOS', linux:'Linux', win32:'Windows' }[platform] || platform;
   $('#launchPlatformLabel').textContent = platformLabel;
@@ -2107,7 +2116,8 @@ function renderLaunchPage() {
     statusBody.innerHTML = `
       <div class="k">Platform</div><div class="v">${escapeHtml(platformLabel)} (${escapeHtml(info.platform)})</div>
       <div class="k">Claude CLI</div><div class="v ${info.claudeInstalled?'ok':'bad'}">${info.claudeInstalled ? escapeHtml(info.claudePath) : 'not found — install via System page'}</div>
-      <div class="k">Proxy base URL</div><div class="v">${escapeHtml(info.base)}</div>`;
+      <div class="k">Proxy base URL</div><div class="v">${escapeHtml(info.base)}</div>
+      <div class="k">Remote access</div><div class="v ${info.remoteReady ? 'ok' : (info.remoteAuthWarning ? 'bad' : '')}">${info.remoteReady ? 'enabled (PROXY_MAX_API_KEY set)' : (info.remoteAuthWarning ? 'blocked — set PROXY_MAX_API_KEY on the server before using this command on another computer' : 'local-only (opened from this machine)')}</div>`;
   }
   const pill = $('#launchPlatformPill'); if (pill) pill.textContent = 'platform: ' + platformLabel;
   const baseEl = $('#launchBase'); if (baseEl) baseEl.textContent = (info && info.base) || base;
